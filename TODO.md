@@ -1,9 +1,9 @@
 # TODO
 
 NOW
-- Decide and implement the tenant provisioning/bootstrap path
-- Add a minimal local bootstrap/seed flow for Phase 1 development
 - Verify the runtime against a real PostgreSQL instance after migrations
+- Create a local `.env` with a valid `DATABASE_URL`
+- Run `pnpm db:migrate` and `pnpm bootstrap:dev` against the real database
 
 NEXT
 - Authentication and RBAC foundation
@@ -16,4 +16,4 @@ LATER
 - Sync package and offline client data layer
 
 BLOCKED
-- None
+- Real PostgreSQL runtime verification depends on a running PostgreSQL instance and local `.env`

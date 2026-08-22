@@ -11,3 +11,5 @@
 - Added tenant-scoped business, branch, and terminal API endpoints plus isolation tests
 - Replaced temporary tenant-core runtime wiring with a Drizzle/PostgreSQL repository
 - Added repository integration coverage using `PGlite`
+- Added an explicit `pnpm bootstrap:dev` tenant/business/branch/terminal provisioning flow
+- Removed temporary startup tenant seeding from the API server

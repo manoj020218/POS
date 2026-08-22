@@ -4,7 +4,7 @@ Current Phase:
 - Phase 1 - Multi-Tenant Core
 
 Current Subtask:
-- PostgreSQL-backed tenant-core repository is implemented and verified through integration tests
+- Explicit development bootstrap flow is implemented and verified through integration tests
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -27,15 +27,17 @@ Completed:
 - Replaced runtime tenant-core wiring with `DrizzleTenantCoreRepository`
 - Switched the runtime database client to `pg` + Drizzle node-postgres
 - Added repository-level integration tests backed by in-memory `PGlite`
+- Removed temporary startup tenant seeding from the API server
+- Added `pnpm bootstrap:dev` with idempotent tenant/business/branch/terminal provisioning logic
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is tenant provisioning/bootstrap on top of the persistent repository
+- Next safe unit is real PostgreSQL runtime verification plus the start of Phase 2 auth work
 
 Next:
-- Decide and implement the tenant provisioning/bootstrap path that will replace the temporary dev seeding approach
-- Add a minimal tenant/business bootstrap command or seed flow for local development
 - Verify the node-postgres runtime against a real PostgreSQL instance after migrations are applied
+- Start Phase 2 authentication and RBAC foundation once real DB runtime is verified
+- Replace the temporary dev access headers with authenticated access context in Phase 2
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -44,11 +46,13 @@ Important Decisions:
 - Keep tenant scoping in request access context rather than accepting tenant IDs in request bodies
 - Use a temporary development-only access-context bootstrap until Phase 2 authentication exists
 - Use `PGlite` for fast self-contained repository integration tests while keeping `pg` for the real runtime client
+- Use an explicit bootstrap command instead of auto-seeding tenants during API startup
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
 - The temporary dev headers are only a bootstrap mechanism and must be replaced during Phase 2 auth work
 - Real node-postgres runtime against an actual PostgreSQL server is NOT VERIFIED in this session
+- No `.env` file is present locally, and `127.0.0.1:5432` was not accepting connections during this session
 
 Tests:
 - `pnpm lint`
@@ -56,8 +60,8 @@ Tests:
 - `pnpm test`
 - `pnpm build`
 - Runtime probe: `GET /health -> {"status":"ok"}`
-- Runtime probe: `POST /api/v1/businesses` and `GET /api/v1/businesses` with seeded `DEV_TENANT_ID`
 - Repository integration: tenant/business/branch/terminal persistence validated with `PGlite`
+- Bootstrap integration: idempotent tenant/business/branch/terminal provisioning validated with `PGlite`
 
 Last Successful Commands:
 - `git init -b main`
@@ -73,6 +77,7 @@ Last Successful Commands:
 - `git commit -m "feat(tenant-core): add first multi-tenant core slice"`
 - `$env:npm_config_strict_ssl='false'; cmd /c pnpm install`
 - `git commit -m "feat(db): wire tenant core to postgres repository"`
+- `where.exe psql`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -86,7 +91,7 @@ API Status:
 - `GET /health` returns `{"status":"ok"}`
 
 Git Status:
-- clean
+- changes pending
 
 Last Commit:
 - `26d695d feat(db): wire tenant core to postgres repository`

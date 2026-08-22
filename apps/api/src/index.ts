@@ -1,7 +1,5 @@
 import 'dotenv/config';
 
-import { randomUUID } from 'node:crypto';
-
 import { createApp } from './app.js';
 import { loadEnv } from './config/env.js';
 import { createDatabase } from './db/client.js';
@@ -13,14 +11,6 @@ const bootstrap = async () => {
   const logger = createLogger(env.LOG_LEVEL);
   const database = createDatabase(env.DATABASE_URL);
   const tenantCoreRepository = new DrizzleTenantCoreRepository(database.db);
-
-  if (env.DEV_TENANT_ID && env.DEV_TENANT_NAME) {
-    await tenantCoreRepository.createTenant({
-      id: env.DEV_TENANT_ID,
-      name: env.DEV_TENANT_NAME,
-      slug: env.DEV_TENANT_SLUG ?? `dev-${randomUUID().slice(0, 8)}`
-    });
-  }
 
   const app = createApp({
     logger,

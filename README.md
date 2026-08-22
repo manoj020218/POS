@@ -49,6 +49,7 @@ Required variables:
 
 ```bash
 pnpm install
+pnpm bootstrap:dev
 pnpm db:migrate
 pnpm dev
 pnpm lint
@@ -56,7 +57,6 @@ pnpm typecheck
 pnpm test
 pnpm build
 pnpm db:generate
-pnpm db:migrate
 ```
 
 ## API
@@ -77,17 +77,23 @@ headers to resolve access context:
 - `x-dev-tenant-id`
 - `x-dev-user-id`
 
-To use the routes locally with the default in-memory repository, also seed a development tenant
-through environment variables:
+To provision a local development hierarchy, set these variables in `.env` and run
+`pnpm bootstrap:dev`:
 
 - `DEV_TENANT_ID`
 - `DEV_TENANT_NAME`
 - `DEV_TENANT_SLUG` (optional)
+- `DEV_BUSINESS_CODE` / `DEV_BUSINESS_NAME` (optional pair)
+- `DEV_BRANCH_CODE` / `DEV_BRANCH_NAME` (optional pair)
+- `DEV_BRANCH_ADDRESS` (optional)
+- `DEV_TERMINAL_CODE` / `DEV_TERMINAL_NAME` (optional pair)
+- `DEV_TERMINAL_INSTALLATION_ID` (optional)
 
 Before using the PostgreSQL-backed API routes against a real database, run migrations first:
 
 ```bash
 pnpm db:migrate
+pnpm bootstrap:dev
 ```
 
 ## Notes
