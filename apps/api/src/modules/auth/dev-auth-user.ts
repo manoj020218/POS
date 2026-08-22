@@ -5,6 +5,7 @@ import type { AuthUserRecord } from './auth.types.js';
 import { hashPassword } from './password.js';
 
 const defaultUserId = '99999999-9999-4999-8999-999999999999';
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 const DevAuthEnvSchema = z
   .object({
@@ -77,7 +78,7 @@ export const buildDevelopmentAuthUsers = async (env = process.env): Promise<Auth
   return [
     {
       displayName: parsed.data.DEV_AUTH_NAME!,
-      email: parsed.data.DEV_AUTH_EMAIL,
+      email: normalizeEmail(parsed.data.DEV_AUTH_EMAIL),
       id: parsed.data.DEV_AUTH_USER_ID ?? defaultUserId,
       isActive: true,
       passwordHash: await hashPassword(parsed.data.DEV_AUTH_PASSWORD!),

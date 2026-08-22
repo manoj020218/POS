@@ -56,4 +56,10 @@ export class InMemoryAuthRepository implements AuthRepository {
     this.sessions.set(sessionId, updated);
     return updated;
   }
+
+  async upsertUser(input: AuthUserRecord): Promise<AuthUserRecord> {
+    const user = { ...input, email: normalizeEmail(input.email) };
+    this.users.set(user.id, user);
+    return user;
+  }
 }

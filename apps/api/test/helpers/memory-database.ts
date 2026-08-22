@@ -6,13 +6,20 @@ import { drizzle } from 'drizzle-orm/pglite';
 import type { AppDatabase } from '../../src/db/client.js';
 import * as schema from '../../src/db/schema/index.js';
 
-const migrationPath = new URL('../../drizzle/0000_damp_loners.sql', import.meta.url);
+const journalPath = new URL('../../drizzle/meta/_journal.json', import.meta.url);
+
+type MigrationJournal = {
+  entries: Array<{ tag: string }>;
+};
 
 export const createMemoryDatabase = async () => {
-  const sql = readFileSync(migrationPath, 'utf8');
+  const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as MigrationJournal;
   const client = new PGlite();
 
-  await client.exec(sql);
+  for (const entry of journal.entries) {
+    const migrationPath = new URL(`../../drizzle/${entry.tag}.sql`, import.meta.url);
+    await client.exec(readFileSync(migrationPath, 'utf8'));
+  }
 
   return {
     close: async () => {

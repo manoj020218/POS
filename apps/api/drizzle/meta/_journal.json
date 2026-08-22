@@ -8,6 +8,13 @@
       "when": 1787378150578,
       "tag": "0000_damp_loners",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1787395112077,
+      "tag": "0001_lumpy_invaders",
+      "breakpoints": true
     }
   ]
 }

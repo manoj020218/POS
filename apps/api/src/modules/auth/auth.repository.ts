@@ -17,4 +17,5 @@ export interface AuthRepository {
   findUserById(userId: string): Promise<AuthUserRecord | null>;
   revokeSession(sessionId: string, revokedAt: Date): Promise<void>;
   updateSession(sessionId: string, input: UpdateSessionInput): Promise<AuthSessionRecord | null>;
+  upsertUser(input: AuthUserRecord): Promise<AuthUserRecord>;
 }
