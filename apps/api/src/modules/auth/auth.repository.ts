@@ -16,6 +16,12 @@ export interface AuthRepository {
   findUserByEmail(email: string): Promise<AuthUserRecord | null>;
   findUserById(userId: string): Promise<AuthUserRecord | null>;
   revokeSession(sessionId: string, revokedAt: Date): Promise<void>;
+  revokeSessionsForUser(userId: string, tenantId: string, revokedAt: Date): Promise<void>;
   updateSession(sessionId: string, input: UpdateSessionInput): Promise<AuthSessionRecord | null>;
+  updateUserPassword(
+    userId: string,
+    tenantId: string,
+    passwordHash: string
+  ): Promise<AuthUserRecord | null>;
   upsertUser(input: AuthUserRecord): Promise<AuthUserRecord>;
 }

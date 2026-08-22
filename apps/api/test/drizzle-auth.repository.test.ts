@@ -80,6 +80,47 @@ describe('DrizzleAuthRepository', () => {
       await database.close();
     }
   }, 15000);
+
+  it('updates password hashes and revokes all sessions for a user', async () => {
+    const database = await createMemoryDatabase();
+
+    try {
+      await seedTenant(database.db);
+      const repository = new DrizzleAuthRepository(database.db);
+      const user = await repository.upsertUser({
+        displayName: 'Owner One',
+        email: 'owner@example.com',
+        id: '22222222-2222-4222-8222-222222222222',
+        isActive: true,
+        passwordHash: await hashPassword('Password123'),
+        permissions: [],
+        role: 'BUSINESS_OWNER',
+        tenantId
+      });
+      await repository.createSession({
+        createdAt: new Date('2026-08-22T10:00:00.000Z'),
+        expiresAt: new Date('2026-09-21T10:00:00.000Z'),
+        id: '33333333-3333-4333-8333-333333333333',
+        lastRefreshedAt: new Date('2026-08-22T10:00:00.000Z'),
+        refreshTokenHash: 'hash-1',
+        tenantId,
+        userId: user.id
+      });
+
+      const updated = await repository.updateUserPassword(user.id, tenantId, 'hash-2');
+      await repository.revokeSessionsForUser(
+        user.id,
+        tenantId,
+        new Date('2026-08-22T12:00:00.000Z')
+      );
+      const revoked = await repository.findSessionById('33333333-3333-4333-8333-333333333333');
+
+      expect(updated?.passwordHash).toBe('hash-2');
+      expect(revoked?.revokedAt?.toISOString()).toBe('2026-08-22T12:00:00.000Z');
+    } finally {
+      await database.close();
+    }
+  }, 15000);
 });
 
 const seedTenant = async (db: Awaited<ReturnType<typeof createMemoryDatabase>>['db']) => {

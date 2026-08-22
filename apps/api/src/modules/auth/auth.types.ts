@@ -42,6 +42,13 @@ export type LogoutInput = {
   refreshToken: string;
 };
 
+export type ChangePasswordInput = {
+  currentPassword: string;
+  newPassword: string;
+  tenantId: string;
+  userId: string;
+};
+
 export type AuthTokens = {
   accessToken: string;
   accessTokenExpiresAt: string;

@@ -1,6 +1,11 @@
 import { Router, type Router as ExpressRouter } from 'express';
 
-import { loginController, logoutController, refreshController } from './auth.controller.js';
+import {
+  changePasswordController,
+  loginController,
+  logoutController,
+  refreshController
+} from './auth.controller.js';
 import type { AuthRepository } from './auth.repository.js';
 import { createAuthService, type AuthServiceConfig } from './auth.service.js';
 
@@ -14,6 +19,7 @@ export const createAuthRouter = (
   router.post('/login', loginController(service));
   router.post('/refresh', refreshController(service));
   router.post('/logout', logoutController(service));
+  router.post('/password/change', changePasswordController(service));
 
   return router;
 };

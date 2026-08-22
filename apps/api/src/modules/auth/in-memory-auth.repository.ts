@@ -45,6 +45,16 @@ export class InMemoryAuthRepository implements AuthRepository {
     this.sessions.set(sessionId, { ...session, revokedAt });
   }
 
+  async revokeSessionsForUser(userId: string, tenantId: string, revokedAt: Date): Promise<void> {
+    for (const [sessionId, session] of this.sessions.entries()) {
+      if (session.userId !== userId || session.tenantId !== tenantId) {
+        continue;
+      }
+
+      this.sessions.set(sessionId, { ...session, revokedAt });
+    }
+  }
+
   async updateSession(
     sessionId: string,
     input: UpdateSessionInput
@@ -54,6 +64,19 @@ export class InMemoryAuthRepository implements AuthRepository {
 
     const updated = { ...session, ...input };
     this.sessions.set(sessionId, updated);
+    return updated;
+  }
+
+  async updateUserPassword(
+    userId: string,
+    tenantId: string,
+    passwordHash: string
+  ): Promise<AuthUserRecord | null> {
+    const user = this.users.get(userId);
+    if (!user || user.tenantId !== tenantId) return null;
+
+    const updated = { ...user, passwordHash };
+    this.users.set(userId, updated);
     return updated;
   }
 

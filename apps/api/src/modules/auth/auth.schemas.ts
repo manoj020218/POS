@@ -31,6 +31,11 @@ export const logoutSchema = z.object({
   refreshToken: tokenSchema
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: passwordSchema,
+  newPassword: passwordSchema
+});
+
 export const accessTokenPayloadSchema = tokenBaseSchema.extend({
   displayName: z.string().trim().min(1).max(120),
   email: emailSchema,

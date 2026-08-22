@@ -44,6 +44,13 @@ export class DrizzleAuthRepository implements AuthRepository {
       .where(eq(authSessions.id, sessionId));
   }
 
+  async revokeSessionsForUser(userId: string, tenantId: string, revokedAt: Date): Promise<void> {
+    await this.db
+      .update(authSessions)
+      .set({ revokedAt, updatedAt: new Date() })
+      .where(and(eq(authSessions.userId, userId), eq(authSessions.tenantId, tenantId)));
+  }
+
   async updateSession(
     sessionId: string,
     input: UpdateSessionInput
@@ -55,6 +62,20 @@ export class DrizzleAuthRepository implements AuthRepository {
       .returning();
 
     return session ? normalizeAuthSession(session) : null;
+  }
+
+  async updateUserPassword(
+    userId: string,
+    tenantId: string,
+    passwordHash: string
+  ): Promise<AuthUserRecord | null> {
+    const [user] = await this.db
+      .update(authUsers)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(and(eq(authUsers.id, userId), eq(authUsers.tenantId, tenantId)))
+      .returning();
+
+    return user ? normalizeAuthUser(user) : null;
   }
 
   async upsertUser(input: AuthUserRecord): Promise<AuthUserRecord> {
