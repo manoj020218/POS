@@ -13,6 +13,7 @@ This repository currently contains Phase 0 foundation work:
 - Drizzle ORM + PostgreSQL wiring
 - Vitest + Supertest health endpoint test
 - GitHub Actions CI for install, lint, typecheck, and test
+- Phase 1 tenant/business/branch/terminal API slice
 
 ## Repository layout
 
@@ -65,6 +66,21 @@ pnpm db:migrate
   "status": "ok"
 }
 ```
+
+## Phase 1 development access
+
+Authentication is not implemented yet. The current Phase 1 routes use temporary development
+headers to resolve access context:
+
+- `x-dev-tenant-id`
+- `x-dev-user-id`
+
+To use the routes locally with the default in-memory repository, also seed a development tenant
+through environment variables:
+
+- `DEV_TENANT_ID`
+- `DEV_TENANT_NAME`
+- `DEV_TENANT_SLUG` (optional)
 
 ## Notes
 

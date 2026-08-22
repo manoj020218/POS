@@ -1,15 +1,31 @@
 import 'dotenv/config';
 
+import { randomUUID } from 'node:crypto';
+
 import { createApp } from './app.js';
 import { loadEnv } from './config/env.js';
 import { createDatabase } from './db/client.js';
 import { createLogger } from './lib/logger.js';
+import { InMemoryTenantCoreRepository } from './modules/tenant-core/in-memory-tenant-core.repository.js';
 
 const bootstrap = async () => {
   const env = loadEnv();
   const logger = createLogger(env.LOG_LEVEL);
   const database = createDatabase(env.DATABASE_URL);
-  const app = createApp(logger);
+  const tenantCoreRepository = new InMemoryTenantCoreRepository();
+
+  if (env.DEV_TENANT_ID && env.DEV_TENANT_NAME) {
+    await tenantCoreRepository.createTenant({
+      id: env.DEV_TENANT_ID,
+      name: env.DEV_TENANT_NAME,
+      slug: env.DEV_TENANT_SLUG ?? `dev-${randomUUID().slice(0, 8)}`
+    });
+  }
+
+  const app = createApp({
+    logger,
+    tenantCoreRepository
+  });
   const server = app.listen(env.PORT, () => {
     logger.info({ port: env.PORT }, 'API server listening');
   });

@@ -6,4 +6,3 @@ coverage
 .env.local
 .env.test
 *.log
-apps/api/drizzle/meta

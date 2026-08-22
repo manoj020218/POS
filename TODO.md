@@ -1,11 +1,12 @@
 # TODO
 
 NOW
-- Add the first tenant/business/branch/terminal schema slice
-- Add the first migration for Phase 1 entities
-- Add tenant isolation tests for Phase 1 reads
+- Implement the Drizzle-backed tenant/business/branch/terminal repository
+- Replace temporary in-memory runtime wiring with PostgreSQL-backed wiring
+- Add persistent repository integration tests
 
 NEXT
+- Tenant provisioning/bootstrap path
 - Authentication and RBAC foundation
 - Role and permission mapping
 - Auth failure tests

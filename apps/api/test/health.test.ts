@@ -6,7 +6,9 @@ import { createLogger } from '../src/lib/logger.js';
 
 describe('GET /health', () => {
   it('returns status ok', async () => {
-    const app = createApp(createLogger('silent'));
+    const app = createApp({
+      logger: createLogger('silent')
+    });
     const response = await request(app).get('/health');
 
     expect(response.status).toBe(200);
