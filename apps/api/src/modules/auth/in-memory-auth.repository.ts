@@ -1,9 +1,19 @@
-import type { AuthRepository, CreateSessionInput, UpdateSessionInput } from './auth.repository.js';
-import type { AuthSessionRecord, AuthUserRecord } from './auth.types.js';
+import type {
+  AuthRepository,
+  CreatePasswordResetTokenInput,
+  CreateSessionInput,
+  UpdateSessionInput
+} from './auth.repository.js';
+import type {
+  AuthPasswordResetTokenRecord,
+  AuthSessionRecord,
+  AuthUserRecord
+} from './auth.types.js';
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 export class InMemoryAuthRepository implements AuthRepository {
+  private readonly passwordResetTokens = new Map<string, AuthPasswordResetTokenRecord>();
   private readonly sessions = new Map<string, AuthSessionRecord>();
   private readonly users = new Map<string, AuthUserRecord>();
 
@@ -13,10 +23,28 @@ export class InMemoryAuthRepository implements AuthRepository {
     });
   }
 
+  async createPasswordResetToken(
+    input: CreatePasswordResetTokenInput
+  ): Promise<AuthPasswordResetTokenRecord> {
+    const record = { ...input };
+    this.passwordResetTokens.set(record.id, record);
+    return record;
+  }
+
   async createSession(input: CreateSessionInput): Promise<AuthSessionRecord> {
     const session = { ...input };
     this.sessions.set(session.id, session);
     return session;
+  }
+
+  async findPasswordResetTokenByHash(tokenHash: string): Promise<AuthPasswordResetTokenRecord | null> {
+    for (const record of this.passwordResetTokens.values()) {
+      if (record.tokenHash === tokenHash) {
+        return record;
+      }
+    }
+
+    return null;
   }
 
   async findSessionById(sessionId: string): Promise<AuthSessionRecord | null> {
@@ -43,6 +71,16 @@ export class InMemoryAuthRepository implements AuthRepository {
 
   async findUserById(userId: string): Promise<AuthUserRecord | null> {
     return this.users.get(userId) ?? null;
+  }
+
+  async revokePasswordResetTokensForUser(userId: string, tenantId: string, usedAt: Date): Promise<void> {
+    for (const [recordId, record] of this.passwordResetTokens.entries()) {
+      if (record.userId !== userId || record.tenantId !== tenantId || record.usedAt) {
+        continue;
+      }
+
+      this.passwordResetTokens.set(recordId, { ...record, updatedAt: usedAt, usedAt });
+    }
   }
 
   async revokeSession(sessionId: string, revokedAt: Date): Promise<void> {

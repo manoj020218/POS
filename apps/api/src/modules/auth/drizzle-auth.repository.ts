@@ -1,10 +1,24 @@
 import { and, desc, eq } from 'drizzle-orm';
 
 import type { AppDatabase } from '../../db/client.js';
-import { authSessions, authUsers, tenants } from '../../db/schema/index.js';
+import {
+  authPasswordResetTokens,
+  authSessions,
+  authUsers,
+  tenants
+} from '../../db/schema/index.js';
 import { createHttpError } from '../../lib/http-error.js';
-import type { AuthRepository, CreateSessionInput, UpdateSessionInput } from './auth.repository.js';
-import { normalizeAuthSession, normalizeAuthUser } from './drizzle-auth.repository.utils.js';
+import type {
+  AuthRepository,
+  CreatePasswordResetTokenInput,
+  CreateSessionInput,
+  UpdateSessionInput
+} from './auth.repository.js';
+import {
+  normalizeAuthPasswordResetToken,
+  normalizeAuthSession,
+  normalizeAuthUser
+} from './drizzle-auth.repository.utils.js';
 import type { AuthSessionRecord, AuthUserRecord } from './auth.types.js';
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
@@ -12,10 +26,27 @@ const normalizeEmail = (email: string) => email.trim().toLowerCase();
 export class DrizzleAuthRepository implements AuthRepository {
   constructor(private readonly db: AppDatabase) {}
 
+  async createPasswordResetToken(input: CreatePasswordResetTokenInput) {
+    await this.ensureUser(input.userId, input.tenantId);
+    const [record] = await this.db.insert(authPasswordResetTokens).values(input).returning();
+    return normalizeAuthPasswordResetToken(
+      this.requireRow(record, 'AUTH_PASSWORD_RESET_NOT_FOUND', 'Password reset token not found')
+    );
+  }
+
   async createSession(input: CreateSessionInput): Promise<AuthSessionRecord> {
     await this.ensureUser(input.userId, input.tenantId);
     const [session] = await this.db.insert(authSessions).values(input).returning();
     return normalizeAuthSession(this.requireRow(session, 'AUTH_SESSION_NOT_FOUND', 'Session not found'));
+  }
+
+  async findPasswordResetTokenByHash(tokenHash: string) {
+    const [record] = await this.db
+      .select()
+      .from(authPasswordResetTokens)
+      .where(eq(authPasswordResetTokens.tokenHash, tokenHash))
+      .limit(1);
+    return record ? normalizeAuthPasswordResetToken(record) : null;
   }
 
   async findSessionById(sessionId: string): Promise<AuthSessionRecord | null> {
@@ -45,6 +76,18 @@ export class DrizzleAuthRepository implements AuthRepository {
   async findUserById(userId: string): Promise<AuthUserRecord | null> {
     const [user] = await this.db.select().from(authUsers).where(eq(authUsers.id, userId)).limit(1);
     return user ? normalizeAuthUser(user) : null;
+  }
+
+  async revokePasswordResetTokensForUser(userId: string, tenantId: string, usedAt: Date): Promise<void> {
+    await this.db
+      .update(authPasswordResetTokens)
+      .set({ updatedAt: usedAt, usedAt })
+      .where(
+        and(
+          eq(authPasswordResetTokens.userId, userId),
+          eq(authPasswordResetTokens.tenantId, tenantId)
+        )
+      );
   }
 
   async revokeSession(sessionId: string, revokedAt: Date): Promise<void> {

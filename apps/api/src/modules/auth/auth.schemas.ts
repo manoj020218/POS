@@ -36,6 +36,15 @@ export const changePasswordSchema = z.object({
   newPassword: passwordSchema
 });
 
+export const passwordResetRequestSchema = z.object({
+  email: emailSchema
+});
+
+export const passwordResetConfirmSchema = z.object({
+  newPassword: passwordSchema,
+  resetToken: tokenSchema
+});
+
 export const sessionIdParamsSchema = z.object({
   sessionId: z.string().uuid()
 });

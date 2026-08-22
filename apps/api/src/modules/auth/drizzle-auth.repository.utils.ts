@@ -1,6 +1,23 @@
-import { authSessions, authUsers } from '../../db/schema/index.js';
+import { authPasswordResetTokens, authSessions, authUsers } from '../../db/schema/index.js';
 import type { AppPermission, AppRole } from './authorization.js';
-import type { AuthSessionRecord, AuthUserRecord } from './auth.types.js';
+import type {
+  AuthPasswordResetTokenRecord,
+  AuthSessionRecord,
+  AuthUserRecord
+} from './auth.types.js';
+
+export const normalizeAuthPasswordResetToken = (
+  record: typeof authPasswordResetTokens.$inferSelect
+): AuthPasswordResetTokenRecord => ({
+  createdAt: record.createdAt,
+  expiresAt: record.expiresAt,
+  id: record.id,
+  tenantId: record.tenantId,
+  tokenHash: record.tokenHash,
+  updatedAt: record.updatedAt,
+  usedAt: record.usedAt ?? undefined,
+  userId: record.userId
+});
 
 export const normalizeAuthSession = (
   session: typeof authSessions.$inferSelect

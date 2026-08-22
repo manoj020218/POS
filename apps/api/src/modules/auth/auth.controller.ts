@@ -7,6 +7,8 @@ import {
   changePasswordSchema,
   loginSchema,
   logoutSchema,
+  passwordResetConfirmSchema,
+  passwordResetRequestSchema,
   refreshSchema,
   sessionIdParamsSchema
 } from './auth.schemas.js';
@@ -39,6 +41,18 @@ export const changePasswordController = (service: AuthService): RequestHandler =
       userId: accessContext.userId
     });
 
+    response.status(204).send();
+  });
+
+export const requestPasswordResetController = (service: AuthService): RequestHandler =>
+  asyncHandler(async (request, response: Response) => {
+    await service.requestPasswordReset(parseSchema(passwordResetRequestSchema, request.body));
+    response.status(202).send();
+  });
+
+export const resetPasswordController = (service: AuthService): RequestHandler =>
+  asyncHandler(async (request, response: Response) => {
+    await service.resetPassword(parseSchema(passwordResetConfirmSchema, request.body));
     response.status(204).send();
   });
 

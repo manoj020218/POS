@@ -123,6 +123,48 @@ describe('DrizzleAuthRepository', () => {
       await database.close();
     }
   }, 15000);
+
+  it('creates, finds, and marks password reset tokens used', async () => {
+    const database = await createMemoryDatabase();
+
+    try {
+      await seedTenant(database.db);
+      const repository = new DrizzleAuthRepository(database.db);
+      const user = await repository.upsertUser({
+        displayName: 'Owner One',
+        email: 'owner@example.com',
+        id: '22222222-2222-4222-8222-222222222222',
+        isActive: true,
+        passwordHash: await hashPassword('Password123'),
+        permissions: [],
+        role: 'BUSINESS_OWNER',
+        tenantId
+      });
+      const created = await repository.createPasswordResetToken({
+        createdAt: new Date('2026-08-22T10:00:00.000Z'),
+        expiresAt: new Date('2026-08-22T10:15:00.000Z'),
+        id: '44444444-4444-4444-8444-444444444444',
+        tenantId,
+        tokenHash: 'hash-1',
+        updatedAt: new Date('2026-08-22T10:00:00.000Z'),
+        userId: user.id
+      });
+      const found = await repository.findPasswordResetTokenByHash('hash-1');
+
+      await repository.revokePasswordResetTokensForUser(
+        user.id,
+        tenantId,
+        new Date('2026-08-22T10:05:00.000Z')
+      );
+      const revoked = await repository.findPasswordResetTokenByHash('hash-1');
+
+      expect(created.id).toBe('44444444-4444-4444-8444-444444444444');
+      expect(found?.userId).toBe(user.id);
+      expect(revoked?.usedAt?.toISOString()).toBe('2026-08-22T10:05:00.000Z');
+    } finally {
+      await database.close();
+    }
+  }, 15000);
 });
 
 const seedTenant = async (db: Awaited<ReturnType<typeof createMemoryDatabase>>['db']) => {

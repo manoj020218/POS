@@ -10,6 +10,7 @@ import { createRequestLogger, type AppLogger } from './lib/logger.js';
 import { createAccessTokenAccessContextResolver } from './modules/auth/access-context.js';
 import { createAuthRouter } from './modules/auth/auth.routes.js';
 import type { AuthRepository } from './modules/auth/auth.repository.js';
+import type { AuthServiceConfig } from './modules/auth/auth.service.js';
 import { InMemoryAuthRepository } from './modules/auth/in-memory-auth.repository.js';
 import {
   InMemoryTenantCoreRepository,
@@ -22,10 +23,7 @@ import {
 
 export type AppOptions = {
   accessContextResolver?: AccessContextResolver;
-  authConfig?: {
-    jwtSecret: string;
-    refreshSecret: string;
-  };
+  authConfig?: AuthServiceConfig;
   authRepository?: AuthRepository;
   logger: AppLogger;
   tenantCoreRepository?: TenantCoreRepository;

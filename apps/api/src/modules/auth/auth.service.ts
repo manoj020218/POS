@@ -1,11 +1,13 @@
-import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 
 import { createHttpError } from '../../lib/http-error.js';
 import type { AuthRepository } from './auth.repository.js';
 import { resolveGrantedPermissions } from './authorization.js';
 import { createChangePasswordHandler } from './change-password.service.js';
-import { createSessionManagementHandlers } from './session-management.service.js';
+import { hashOpaqueToken } from './opaque-token.js';
+import { createPasswordResetHandlers, type PasswordResetTokenSink } from './password-reset.service.js';
 import { refreshTokenPayloadSchema } from './auth.schemas.js';
+import { createSessionManagementHandlers } from './session-management.service.js';
 import type { AuthResult, AuthSessionRecord, AuthUserRecord, LoginInput, LogoutInput, RefreshInput } from './auth.types.js';
 import { verifyPassword } from './password.js';
 import { signToken, verifyToken } from './token.js';
@@ -13,6 +15,8 @@ import { signToken, verifyToken } from './token.js';
 export type AuthServiceConfig = {
   accessTokenTtlSeconds?: number;
   jwtSecret: string;
+  passwordResetTokenSink?: PasswordResetTokenSink;
+  passwordResetTokenTtlSeconds?: number;
   refreshSecret: string;
   refreshTokenTtlSeconds?: number;
 };
@@ -22,6 +26,7 @@ const defaultRefreshTokenTtlSeconds = 30 * 24 * 60 * 60;
 
 export const createAuthService = (repository: AuthRepository, config: AuthServiceConfig) => ({
   changePassword: createChangePasswordHandler(repository),
+  ...createPasswordResetHandlers(repository, config),
   ...createSessionManagementHandlers(repository),
   login: async (input: LoginInput): Promise<AuthResult> => {
     const user = await repository.findUserByEmail(input.email);
@@ -41,7 +46,7 @@ export const createAuthService = (repository: AuthRepository, config: AuthServic
       expiresAt: issued.refreshTokenExpiresAt,
       id: sessionId,
       lastRefreshedAt: now,
-      refreshTokenHash: hashToken(issued.refreshToken),
+      refreshTokenHash: hashOpaqueToken(issued.refreshToken),
       tenantId: user.tenantId,
       userAgent: input.userAgent,
       userId: user.id
@@ -79,7 +84,7 @@ export const createAuthService = (repository: AuthRepository, config: AuthServic
     const updated = await repository.updateSession(activeSession.id, {
       expiresAt: issued.refreshTokenExpiresAt,
       lastRefreshedAt: now,
-      refreshTokenHash: hashToken(issued.refreshToken),
+      refreshTokenHash: hashOpaqueToken(issued.refreshToken),
       userAgent: input.userAgent ?? activeSession.userAgent
     });
 
@@ -111,7 +116,7 @@ const ensureRefreshSession = (
   }
 
   const expected = Buffer.from(session.refreshTokenHash, 'utf8');
-  const actual = Buffer.from(hashToken(refreshToken), 'utf8');
+  const actual = Buffer.from(hashOpaqueToken(refreshToken), 'utf8');
 
   if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
     throw createHttpError(401, 'INVALID_REFRESH_TOKEN', 'Invalid refresh token');
@@ -125,8 +130,6 @@ const ensureUserIsActive = (user: AuthUserRecord) => {
     throw createHttpError(403, 'USER_DISABLED', 'User is disabled');
   }
 };
-
-const hashToken = (token: string) => createHash('sha256').update(token).digest('base64url');
 
 const issueTokens = (user: AuthUserRecord, sessionId: string, config: AuthServiceConfig, now: Date) => {
   const permissions = resolveGrantedPermissions(user);

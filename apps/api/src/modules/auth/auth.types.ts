@@ -25,6 +25,17 @@ export type AuthSessionRecord = {
   userId: string;
 };
 
+export type AuthPasswordResetTokenRecord = {
+  createdAt: Date;
+  expiresAt: Date;
+  id: string;
+  tenantId: string;
+  tokenHash: string;
+  updatedAt: Date;
+  usedAt?: Date;
+  userId: string;
+};
+
 export type LoginInput = {
   deviceInstallationId?: string;
   deviceName?: string;
@@ -47,6 +58,15 @@ export type ChangePasswordInput = {
   newPassword: string;
   tenantId: string;
   userId: string;
+};
+
+export type RequestPasswordResetInput = {
+  email: string;
+};
+
+export type ResetPasswordInput = {
+  newPassword: string;
+  resetToken: string;
 };
 
 export type AuthSessionView = {

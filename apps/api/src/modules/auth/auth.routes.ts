@@ -5,6 +5,8 @@ import {
   listSessionsController,
   loginController,
   logoutController,
+  requestPasswordResetController,
+  resetPasswordController,
   revokeSessionController,
   refreshController
 } from './auth.controller.js';
@@ -21,6 +23,8 @@ export const createAuthRouter = (
   router.post('/login', loginController(service));
   router.post('/refresh', refreshController(service));
   router.post('/logout', logoutController(service));
+  router.post('/password/reset/request', requestPasswordResetController(service));
+  router.post('/password/reset/confirm', resetPasswordController(service));
   router.post('/password/change', changePasswordController(service));
   router.get('/sessions', listSessionsController(service));
   router.delete('/sessions/:sessionId', revokeSessionController(service));
