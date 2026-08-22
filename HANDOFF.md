@@ -78,6 +78,7 @@ Last Successful Commands:
 - `$env:npm_config_strict_ssl='false'; cmd /c pnpm install`
 - `git commit -m "feat(db): wire tenant core to postgres repository"`
 - `where.exe psql`
+- `git commit -m "feat(dev): add tenant bootstrap flow"`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -91,7 +92,7 @@ API Status:
 - `GET /health` returns `{"status":"ok"}`
 
 Git Status:
-- changes pending
+- clean
 
 Last Commit:
-- `26d695d feat(db): wire tenant core to postgres repository`
+- `11cb4cb feat(dev): add tenant bootstrap flow`
