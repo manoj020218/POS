@@ -1,5 +1,6 @@
 import { Router, type Request, type Router as ExpressRouter } from 'express';
 
+import { requirePermissions } from '../../http/middleware/require-permissions.js';
 import { type AccessContext } from './access-context.js';
 import {
   createBranchController,
@@ -30,16 +31,32 @@ export const createTenantCoreRouter = (
   const service = createTenantCoreService(repository);
 
   router.get('/businesses', listBusinessesController(service));
-  router.post('/businesses', createBusinessController(service));
-  router.patch('/businesses/:businessId', updateBusinessController(service));
+  router.post('/businesses', requirePermissions(['business:create']), createBusinessController(service));
+  router.patch(
+    '/businesses/:businessId',
+    requirePermissions(['business:update']),
+    updateBusinessController(service)
+  );
 
   router.get('/branches', listBranchesController(service));
-  router.post('/branches', createBranchController(service));
-  router.patch('/branches/:branchId', updateBranchController(service));
+  router.post('/branches', requirePermissions(['branch:create']), createBranchController(service));
+  router.patch(
+    '/branches/:branchId',
+    requirePermissions(['branch:update']),
+    updateBranchController(service)
+  );
 
   router.get('/terminals', listTerminalsController(service));
-  router.post('/terminals', registerTerminalController(service));
-  router.patch('/terminals/:terminalId/disable', disableTerminalController(service));
+  router.post(
+    '/terminals',
+    requirePermissions(['terminal:create']),
+    registerTerminalController(service)
+  );
+  router.patch(
+    '/terminals/:terminalId/disable',
+    requirePermissions(['terminal:disable']),
+    disableTerminalController(service)
+  );
 
   return router;
 };
