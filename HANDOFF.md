@@ -4,7 +4,7 @@ Current Phase:
 - Phase 2 - Authentication and RBAC
 
 Current Subtask:
-- Session/device listing and revocation endpoints are the next safe Phase 2 slice
+- Password reset architecture is the next safe Phase 2 slice
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -56,13 +56,16 @@ Completed:
 - Added password-change route tests covering success, invalid current password, and missing auth context
 - Added repository support for password-hash updates plus per-user refresh-session revocation
 - Added repository integration coverage for password-hash updates and user-session revocation
+- Added authenticated `GET /api/v1/auth/sessions`
+- Added authenticated `DELETE /api/v1/auth/sessions/:sessionId`
+- Added session route tests covering current-session marking, targeted revocation, and cross-user denial
+- Added repository support for tenant-scoped user session listing
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is session/device listing and revocation endpoints
+- Next safe unit is password reset architecture
 
 Next:
-- Add session/device listing and revocation endpoints
 - Add password reset architecture
 - Add real auth-user creation and management flows beyond bootstrap-only development seeding
 - Add request-level permission guards on protected reads
@@ -112,6 +115,8 @@ Tests:
 - Tenant-core RBAC integration: unauthorized business/branch/terminal writes return `403`
 - Auth password change: success, invalid current password, and missing access context
 - Auth repository integration: password-hash update plus user-session revocation via `DrizzleAuthRepository`
+- Auth sessions: current-session listing, targeted revocation, and cross-user revocation denial
+- Auth repository integration: tenant-scoped user session listing via `DrizzleAuthRepository`
 
 Last Successful Commands:
 - `git init -b main`
@@ -171,6 +176,12 @@ Last Successful Commands:
 - `cmd /c pnpm build`
 - `git commit -m "feat(auth): add authenticated password change"`
 - `git push`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm test`
+- `cmd /c pnpm build`
+- `git commit -m "feat(auth): add session management endpoints"`
+- `git push`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -194,9 +205,10 @@ API Status:
 - Development auth-user seeding now occurs through `pnpm bootstrap:dev`, not API startup
 - Tenant-core write routes now enforce `business:*`, `branch:*`, and `terminal:*` permissions at the HTTP layer
 - Auth API now includes authenticated `POST /api/v1/auth/password/change` with refresh-session revocation after a successful password update
+- Auth API now includes authenticated session listing and session revocation endpoints backed by persisted auth sessions
 
 Git Status:
 - clean
 
 Last Commit:
-- `2f6b669 feat(auth): add authenticated password change`
+- `7b22950 feat(auth): add session management endpoints`

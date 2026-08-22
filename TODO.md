@@ -2,7 +2,6 @@
 
 NOW
 - Authentication and RBAC foundation
-- Add session/device listing and revocation endpoints
 - Add password reset architecture
 
 NEXT
