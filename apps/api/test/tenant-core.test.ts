@@ -3,35 +3,69 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createApp } from '../src/app.js';
 import { createLogger } from '../src/lib/logger.js';
+import { InMemoryAuthRepository } from '../src/modules/auth/in-memory-auth.repository.js';
+import { hashPassword } from '../src/modules/auth/password.js';
 import { InMemoryTenantCoreRepository } from '../src/modules/tenant-core/in-memory-tenant-core.repository.js';
+
+const authConfig = {
+  jwtSecret: 'test-jwt-secret-0123456789-abcdefgh',
+  refreshSecret: 'test-refresh-secret-0123456789-ab'
+};
 
 const tenantA = '11111111-1111-4111-8111-111111111111';
 const tenantB = '22222222-2222-4222-8222-222222222222';
+const password = 'Password123';
 
-const withAccess = (tenantId: string) => ({
-  'x-dev-tenant-id': tenantId,
-  'x-dev-user-id': '99999999-9999-4999-8999-999999999999'
-});
+const authorizationHeader = (token: string) => ({ authorization: `Bearer ${token}` });
 
 describe('tenant core routes', () => {
+  let authRepository: InMemoryAuthRepository;
   let repository: InMemoryTenantCoreRepository;
 
   beforeEach(async () => {
     repository = new InMemoryTenantCoreRepository();
     await repository.createTenant({ id: tenantA, name: 'Tenant A', slug: 'tenant-a' });
     await repository.createTenant({ id: tenantB, name: 'Tenant B', slug: 'tenant-b' });
+    authRepository = new InMemoryAuthRepository([
+      {
+        displayName: 'Tenant A Owner',
+        email: 'owner-a@example.com',
+        id: '99999999-9999-4999-8999-999999999999',
+        isActive: true,
+        passwordHash: await hashPassword(password),
+        permissions: [],
+        role: 'BUSINESS_OWNER',
+        tenantId: tenantA
+      },
+      {
+        displayName: 'Tenant B Owner',
+        email: 'owner-b@example.com',
+        id: '88888888-8888-4888-8888-888888888888',
+        isActive: true,
+        passwordHash: await hashPassword(password),
+        permissions: [],
+        role: 'BUSINESS_OWNER',
+        tenantId: tenantB
+      }
+    ]);
   });
 
   it('creates, lists, and updates businesses for the active tenant', async () => {
-    const app = createApp({ logger: createLogger('silent'), tenantCoreRepository: repository });
+    const app = createApp({
+      authConfig,
+      authRepository,
+      logger: createLogger('silent'),
+      tenantCoreRepository: repository
+    });
+    const access = await loginAs(app, 'owner-a@example.com');
     const created = await request(app)
       .post('/api/v1/businesses')
-      .set(withAccess(tenantA))
+      .set(access)
       .send({ code: 'shop_a', name: 'Shop A' });
-    const list = await request(app).get('/api/v1/businesses').set(withAccess(tenantA));
+    const list = await request(app).get('/api/v1/businesses').set(access);
     const updated = await request(app)
       .patch(`/api/v1/businesses/${created.body.data.id}`)
-      .set(withAccess(tenantA))
+      .set(access)
       .send({ name: 'Shop A Prime' });
 
     expect(created.status).toBe(201);
@@ -67,8 +101,15 @@ describe('tenant core routes', () => {
       tenantId: tenantB
     });
 
-    const app = createApp({ logger: createLogger('silent'), tenantCoreRepository: repository });
-    const response = await request(app).get('/api/v1/branches').set(withAccess(tenantA));
+    const app = createApp({
+      authConfig,
+      authRepository,
+      logger: createLogger('silent'),
+      tenantCoreRepository: repository
+    });
+    const response = await request(app)
+      .get('/api/v1/branches')
+      .set(await loginAs(app, 'owner-a@example.com'));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toHaveLength(1);
@@ -90,10 +131,16 @@ describe('tenant core routes', () => {
       tenantId: tenantA
     });
 
-    const app = createApp({ logger: createLogger('silent'), tenantCoreRepository: repository });
+    const app = createApp({
+      authConfig,
+      authRepository,
+      logger: createLogger('silent'),
+      tenantCoreRepository: repository
+    });
+    const access = await loginAs(app, 'owner-a@example.com');
     const created = await request(app)
       .post('/api/v1/terminals')
-      .set(withAccess(tenantA))
+      .set(access)
       .send({
         branchId: branch.id,
         code: 'POS-01',
@@ -102,7 +149,7 @@ describe('tenant core routes', () => {
       });
     const disabled = await request(app)
       .patch(`/api/v1/terminals/${created.body.data.id}/disable`)
-      .set(withAccess(tenantA));
+      .set(access);
 
     expect(created.status).toBe(201);
     expect(disabled.status).toBe(200);
@@ -110,10 +157,25 @@ describe('tenant core routes', () => {
   });
 
   it('rejects protected routes without access context', async () => {
-    const app = createApp({ logger: createLogger('silent'), tenantCoreRepository: repository });
+    const app = createApp({
+      authConfig,
+      authRepository,
+      logger: createLogger('silent'),
+      tenantCoreRepository: repository
+    });
     const response = await request(app).get('/api/v1/businesses');
 
     expect(response.status).toBe(401);
     expect(response.body.code).toBe('ACCESS_CONTEXT_REQUIRED');
   });
 });
+
+const loginAs = async (app: ReturnType<typeof createApp>, email: string) => {
+  const response = await request(app).post('/api/v1/auth/login').send({
+    email,
+    password
+  });
+
+  expect(response.status).toBe(200);
+  return authorizationHeader(response.body.data.accessToken);
+};

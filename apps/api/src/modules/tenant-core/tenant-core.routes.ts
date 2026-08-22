@@ -1,9 +1,6 @@
 import { Router, type Request, type Router as ExpressRouter } from 'express';
 
-import {
-  resolveDevelopmentAccessContext,
-  type AccessContext
-} from './access-context.js';
+import { type AccessContext } from './access-context.js';
 import {
   createBranchController,
   listBranchesController,
@@ -46,5 +43,3 @@ export const createTenantCoreRouter = (
 
   return router;
 };
-
-export { resolveDevelopmentAccessContext };
