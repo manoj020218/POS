@@ -23,3 +23,6 @@
 - Replaced the temporary protected-route access bootstrap with bearer access-token context resolution
 - Added auth access-context failure tests for invalid authorization headers, refresh tokens on protected routes, and expired access tokens
 - Added optional env-backed development auth user seeding so runtime login can be verified before auth persistence exists
+- Added `auth_users` and `auth_sessions` PostgreSQL schema plus migration `0001_lumpy_invaders.sql`
+- Added `DrizzleAuthRepository` and switched runtime auth off the in-memory repository
+- Moved development auth-user seeding into `pnpm bootstrap:dev` and added PostgreSQL-backed auth repository integration tests

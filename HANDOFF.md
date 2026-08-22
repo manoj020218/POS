@@ -4,7 +4,7 @@ Current Phase:
 - Phase 2 - Authentication and RBAC
 
 Current Subtask:
-- Persistent auth user and session storage is the next safe Phase 2 slice
+- Request-level permission guards on protected route writes are the next safe Phase 2 slice
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -44,17 +44,22 @@ Completed:
 - Added auth access-context failure tests for invalid authorization headers, refresh tokens on protected routes, and expired access tokens
 - Added optional env-backed development auth user seeding for runtime login smoke verification
 - Verified live PostgreSQL-backed runtime smoke for `POST /api/v1/auth/login`, `POST /api/v1/businesses`, and `GET /api/v1/businesses` using a bearer token
+- Added `auth_users` and `auth_sessions` database schema plus generated migration `apps/api/drizzle/0001_lumpy_invaders.sql`
+- Added PostgreSQL-backed `DrizzleAuthRepository` for auth users and sessions
+- Moved development auth-user seeding into the explicit `pnpm bootstrap:dev` flow
+- Switched runtime auth from the in-memory repository to PostgreSQL-backed persistence
+- Added auth repository integration tests backed by `PGlite`
+- Verified live PostgreSQL-backed runtime smoke for `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/businesses`, and `GET /api/v1/businesses`
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is persistent auth user and session storage
+- Next safe unit is request-level permission guards on protected route writes
 
 Next:
-- Add persistent auth user and session storage behind the existing auth service boundary
-- Add auth database schema and migration(s) for users and sessions
-- Replace the runtime in-memory auth repository with a Drizzle/PostgreSQL implementation
-- Add password change and reset architecture
 - Add request-level permission guards on protected route writes
+- Add password change and reset architecture
+- Add session/device listing and revocation endpoints
+- Add real auth-user creation and management flows beyond bootstrap-only development seeding
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -69,11 +74,13 @@ Important Decisions:
 - Keep the first auth slice repository-backed but in-memory so the HTTP/service/token boundaries are verified before adding database persistence
 - Resolve protected-route access context from signed bearer access tokens rather than development headers
 - Allow an optional env-backed development auth user only as a temporary bridge until auth persistence exists
+- Keep development auth seeding explicit in `pnpm bootstrap:dev` rather than auto-creating auth users during API startup
+- Back runtime auth with the same PostgreSQL repository boundary used by the persistence tests
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
 - Local PostgreSQL-backed verification still depends on the developer maintaining an ignored root `.env`
-- Runtime auth currently uses an in-memory repository, so users and sessions are not yet persisted across server restarts
+- Real auth-user management endpoints do not exist yet; runtime login currently depends on users being seeded explicitly through bootstrap or future admin flows
 
 Tests:
 - `pnpm lint`
@@ -91,6 +98,8 @@ Tests:
 - Protected-route auth tests: login to obtain bearer token, then create/list/update tenant-core resources through authenticated access
 - Auth access-context tests: invalid authorization header, refresh token rejected on protected routes, expired access token rejected
 - Runtime smoke: `GET /health`, `POST /api/v1/auth/login`, `POST /api/v1/businesses`, `GET /api/v1/businesses`
+- Auth repository integration: persisted user upsert/find plus session create/update/revoke lifecycle via `DrizzleAuthRepository`
+- Runtime smoke: `GET /health`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/businesses`, `GET /api/v1/businesses`
 
 Last Successful Commands:
 - `git init -b main`
@@ -129,6 +138,15 @@ Last Successful Commands:
 - `cmd /c pnpm build`
 - PowerShell smoke: start `pnpm dev`, login at `/api/v1/auth/login`, then create/list businesses with `Authorization: Bearer <token>`
 - `git commit -m "feat(auth): resolve bearer access context for protected routes"`
+- `cmd /c pnpm db:generate`
+- `cmd /c pnpm db:migrate`
+- `cmd /c pnpm bootstrap:dev`
+- `cmd /c pnpm test`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm build`
+- PowerShell smoke: start `pnpm dev`, login at `/api/v1/auth/login`, refresh at `/api/v1/auth/refresh`, then create/list businesses with `Authorization: Bearer <token>`
+- `git commit -m "feat(auth): persist auth users and sessions"`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -136,7 +154,9 @@ Database Status:
 - PostgreSQL persistence layer implemented in code
 - Migration applied successfully to local PostgreSQL 18 database `smart_pos`
 - Development tenant/business/branch/terminal bootstrap verified against the real database
-- Auth users and sessions are not persisted yet; the current Phase 2 auth slice uses an in-memory repository
+- Auth user/session schema added at `apps/api/drizzle/0001_lumpy_invaders.sql`
+- `auth_users` and `auth_sessions` are now persisted in PostgreSQL
+- Development auth user bootstrap verified against the real database
 
 API Status:
 - Phase 0 scaffold verified
@@ -146,10 +166,11 @@ API Status:
 - Auth/RBAC foundation now includes typed role permissions and a reusable permission guard
 - Auth route scaffolding is available for `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, and `POST /api/v1/auth/logout`
 - Protected tenant-core routes now resolve request access from bearer access tokens instead of development headers
-- Runtime can optionally seed one development auth user from env for login/access testing before auth persistence exists
+- Runtime auth users and sessions are now backed by PostgreSQL through `DrizzleAuthRepository`
+- Development auth-user seeding now occurs through `pnpm bootstrap:dev`, not API startup
 
 Git Status:
 - clean
 
 Last Commit:
-- `5766106 feat(auth): resolve bearer access context for protected routes`
+- `103479c feat(auth): persist auth users and sessions`

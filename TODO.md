@@ -2,14 +2,14 @@
 
 NOW
 - Authentication and RBAC foundation
-- Add persistent auth user and session storage
-- Add auth database schema and migrations
-- Replace the runtime in-memory auth repository with a Drizzle/PostgreSQL implementation
+- Request-level permission guards on protected route writes
+- Password change and reset architecture
+- Add session/device listing and revocation endpoints
 
 NEXT
-- Password change and reset architecture
-- Request-level permission guards on protected route writes
-- Add session/device listing and revocation endpoints
+- Add real auth-user creation and management flows beyond bootstrap-only seeding
+- Extend auth auditing around login, refresh, logout, and session revocation
+- Replace bootstrap-only development auth seeding with real user admin flows
 
 LATER
 - Shared contracts package
