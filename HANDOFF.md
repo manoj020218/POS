@@ -4,7 +4,7 @@ Current Phase:
 - Phase 2 - Authentication and RBAC
 
 Current Subtask:
-- Signed access-token access-context resolution is the next safe Phase 2 slice
+- Persistent auth user and session storage is the next safe Phase 2 slice
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -40,16 +40,21 @@ Completed:
 - Added password hashing and signed token helpers using Node crypto primitives
 - Added in-memory auth repository support for users, sessions, refresh rotation, and logout revocation
 - Added auth route tests for invalid credentials, disabled users, refresh rotation, and logout revocation
+- Replaced the temporary development access headers with bearer access-token resolution for protected routes
+- Added auth access-context failure tests for invalid authorization headers, refresh tokens on protected routes, and expired access tokens
+- Added optional env-backed development auth user seeding for runtime login smoke verification
+- Verified live PostgreSQL-backed runtime smoke for `POST /api/v1/auth/login`, `POST /api/v1/businesses`, and `GET /api/v1/businesses` using a bearer token
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is replacing temporary dev headers with signed access-token access context
+- Next safe unit is persistent auth user and session storage
 
 Next:
-- Replace the temporary dev access headers with authenticated access context in Phase 2
-- Add persistent auth user and session storage behind the new auth service boundary
+- Add persistent auth user and session storage behind the existing auth service boundary
+- Add auth database schema and migration(s) for users and sessions
+- Replace the runtime in-memory auth repository with a Drizzle/PostgreSQL implementation
 - Add password change and reset architecture
-- Extend auth failure coverage for invalid authorization headers and expired access tokens
+- Add request-level permission guards on protected route writes
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -62,10 +67,11 @@ Important Decisions:
 - Resolve env files from the workspace root so root-level `.env` works for filtered PNPM package scripts
 - Keep RBAC authorization permission-driven, with role-to-grant mapping in one typed catalog
 - Keep the first auth slice repository-backed but in-memory so the HTTP/service/token boundaries are verified before adding database persistence
+- Resolve protected-route access context from signed bearer access tokens rather than development headers
+- Allow an optional env-backed development auth user only as a temporary bridge until auth persistence exists
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
-- The temporary dev headers are only a bootstrap mechanism and must be replaced during Phase 2 auth work
 - Local PostgreSQL-backed verification still depends on the developer maintaining an ignored root `.env`
 - Runtime auth currently uses an in-memory repository, so users and sessions are not yet persisted across server restarts
 
@@ -82,6 +88,9 @@ Tests:
 - Runtime smoke: `GET /health`, `POST /api/v1/businesses`, `GET /api/v1/businesses` against PostgreSQL 18
 - Authorization tests: role grant resolution plus permission guard `401`/`403` behavior
 - Auth route tests: login success, invalid credentials, disabled user rejection, refresh rotation, logout revocation
+- Protected-route auth tests: login to obtain bearer token, then create/list/update tenant-core resources through authenticated access
+- Auth access-context tests: invalid authorization header, refresh token rejected on protected routes, expired access token rejected
+- Runtime smoke: `GET /health`, `POST /api/v1/auth/login`, `POST /api/v1/businesses`, `GET /api/v1/businesses`
 
 Last Successful Commands:
 - `git init -b main`
@@ -114,6 +123,12 @@ Last Successful Commands:
 - `cmd /c pnpm lint`
 - `cmd /c pnpm build`
 - `git commit -m "feat(auth): add login refresh and logout scaffolding"`
+- `cmd /c pnpm test`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm build`
+- PowerShell smoke: start `pnpm dev`, login at `/api/v1/auth/login`, then create/list businesses with `Authorization: Bearer <token>`
+- `git commit -m "feat(auth): resolve bearer access context for protected routes"`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -130,9 +145,11 @@ API Status:
 - Live PostgreSQL-backed business create/list smoke verified on port `4012`
 - Auth/RBAC foundation now includes typed role permissions and a reusable permission guard
 - Auth route scaffolding is available for `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, and `POST /api/v1/auth/logout`
+- Protected tenant-core routes now resolve request access from bearer access tokens instead of development headers
+- Runtime can optionally seed one development auth user from env for login/access testing before auth persistence exists
 
 Git Status:
 - clean
 
 Last Commit:
-- `e341b26 feat(auth): add login refresh and logout scaffolding`
+- `5766106 feat(auth): resolve bearer access context for protected routes`

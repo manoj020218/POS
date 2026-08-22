@@ -20,3 +20,6 @@
 - Added Phase 2 auth route scaffolding for login, refresh, and logout
 - Added password hashing, signed token utilities, and in-memory session/device tracking primitives
 - Added auth route tests for login success, refresh rotation, logout revocation, invalid credentials, and disabled users
+- Replaced the temporary protected-route access bootstrap with bearer access-token context resolution
+- Added auth access-context failure tests for invalid authorization headers, refresh tokens on protected routes, and expired access tokens
+- Added optional env-backed development auth user seeding so runtime login can be verified before auth persistence exists

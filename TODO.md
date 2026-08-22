@@ -2,13 +2,14 @@
 
 NOW
 - Authentication and RBAC foundation
-- Replace temporary dev headers with authenticated access context
 - Add persistent auth user and session storage
+- Add auth database schema and migrations
+- Replace the runtime in-memory auth repository with a Drizzle/PostgreSQL implementation
 
 NEXT
 - Password change and reset architecture
-- Auth failure tests for invalid authorization headers and expired access tokens
 - Request-level permission guards on protected route writes
+- Add session/device listing and revocation endpoints
 
 LATER
 - Shared contracts package
