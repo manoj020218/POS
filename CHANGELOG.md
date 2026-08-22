@@ -13,3 +13,5 @@
 - Added repository integration coverage using `PGlite`
 - Added an explicit `pnpm bootstrap:dev` tenant/business/branch/terminal provisioning flow
 - Removed temporary startup tenant seeding from the API server
+- Fixed monorepo env loading so API package scripts read the workspace-root `.env`
+- Verified `pnpm db:migrate`, `pnpm bootstrap:dev`, and a live PostgreSQL-backed API smoke flow

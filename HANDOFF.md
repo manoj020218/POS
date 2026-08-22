@@ -1,10 +1,10 @@
 # HANDOFF
 
 Current Phase:
-- Phase 1 - Multi-Tenant Core
+- Phase 2 - Authentication and RBAC
 
 Current Subtask:
-- Explicit development bootstrap flow is implemented and verified through integration tests
+- Permission catalog and role mapping foundation is the next safe Phase 2 slice
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -29,14 +29,19 @@ Completed:
 - Added repository-level integration tests backed by in-memory `PGlite`
 - Removed temporary startup tenant seeding from the API server
 - Added `pnpm bootstrap:dev` with idempotent tenant/business/branch/terminal provisioning logic
+- Fixed API monorepo env loading so package scripts resolve the workspace-root `.env`
+- Verified `pnpm db:migrate` against local PostgreSQL 18
+- Verified `pnpm bootstrap:dev` against the real `smart_pos` database
+- Verified live PostgreSQL-backed runtime smoke for `GET /health`, `POST /api/v1/businesses`, and `GET /api/v1/businesses`
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is real PostgreSQL runtime verification plus the start of Phase 2 auth work
+- Next safe unit is Phase 2 auth and RBAC foundation
 
 Next:
-- Verify the node-postgres runtime against a real PostgreSQL instance after migrations are applied
-- Start Phase 2 authentication and RBAC foundation once real DB runtime is verified
+- Implement the permission catalog and role-to-permission mapping
+- Add authentication module scaffolding for login, refresh token, and logout flows
+- Add initial auth failure and authorization tests
 - Replace the temporary dev access headers with authenticated access context in Phase 2
 
 Important Decisions:
@@ -47,12 +52,12 @@ Important Decisions:
 - Use a temporary development-only access-context bootstrap until Phase 2 authentication exists
 - Use `PGlite` for fast self-contained repository integration tests while keeping `pg` for the real runtime client
 - Use an explicit bootstrap command instead of auto-seeding tenants during API startup
+- Resolve env files from the workspace root so root-level `.env` works for filtered PNPM package scripts
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
 - The temporary dev headers are only a bootstrap mechanism and must be replaced during Phase 2 auth work
-- Real node-postgres runtime against an actual PostgreSQL server is NOT VERIFIED in this session
-- No `.env` file is present locally, and `127.0.0.1:5432` was not accepting connections during this session
+- Local PostgreSQL-backed verification still depends on the developer maintaining an ignored root `.env`
 
 Tests:
 - `pnpm lint`
@@ -62,6 +67,9 @@ Tests:
 - Runtime probe: `GET /health -> {"status":"ok"}`
 - Repository integration: tenant/business/branch/terminal persistence validated with `PGlite`
 - Bootstrap integration: idempotent tenant/business/branch/terminal provisioning validated with `PGlite`
+- Real DB verification: `pnpm db:migrate`
+- Real DB verification: `pnpm bootstrap:dev`
+- Runtime smoke: `GET /health`, `POST /api/v1/businesses`, `GET /api/v1/businesses` against PostgreSQL 18
 
 Last Successful Commands:
 - `git init -b main`
@@ -79,20 +87,30 @@ Last Successful Commands:
 - `git commit -m "feat(db): wire tenant core to postgres repository"`
 - `where.exe psql`
 - `git commit -m "feat(dev): add tenant bootstrap flow"`
+- `cmd /c sc start postgresql-x64-18`
+- `cmd /c pnpm db:migrate`
+- `cmd /c pnpm bootstrap:dev`
+- `cmd /c pnpm test`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm lint`
+- PowerShell smoke: start `pnpm dev`, verify `/health`, create/list a business
+- `git commit -m "fix(env): load workspace root env for runtime scripts"`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
 - Migration generated at `apps/api/drizzle/0000_damp_loners.sql`
 - PostgreSQL persistence layer implemented in code
-- Real PostgreSQL runtime connection path NOT VERIFIED in this session
+- Migration applied successfully to local PostgreSQL 18 database `smart_pos`
+- Development tenant/business/branch/terminal bootstrap verified against the real database
 
 API Status:
 - Phase 0 scaffold verified
 - Phase 1 route slice verified with business, branch, and terminal endpoints
 - `GET /health` returns `{"status":"ok"}`
+- Live PostgreSQL-backed business create/list smoke verified on port `4012`
 
 Git Status:
 - clean
 
 Last Commit:
-- `11cb4cb feat(dev): add tenant bootstrap flow`
+- `29e6dc9 fix(env): load workspace root env for runtime scripts`
