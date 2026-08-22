@@ -1,12 +1,11 @@
 # TODO
 
 NOW
-- Implement the Drizzle-backed tenant/business/branch/terminal repository
-- Replace temporary in-memory runtime wiring with PostgreSQL-backed wiring
-- Add persistent repository integration tests
+- Decide and implement the tenant provisioning/bootstrap path
+- Add a minimal local bootstrap/seed flow for Phase 1 development
+- Verify the runtime against a real PostgreSQL instance after migrations
 
 NEXT
-- Tenant provisioning/bootstrap path
 - Authentication and RBAC foundation
 - Role and permission mapping
 - Auth failure tests

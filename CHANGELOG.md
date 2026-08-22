@@ -9,3 +9,5 @@
 - Added first Phase 1 multi-tenant core slice with tenant/business/branch/terminal schema
 - Generated initial Drizzle migration for the Phase 1 entities
 - Added tenant-scoped business, branch, and terminal API endpoints plus isolation tests
+- Replaced temporary tenant-core runtime wiring with a Drizzle/PostgreSQL repository
+- Added repository integration coverage using `PGlite`

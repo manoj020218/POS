@@ -6,13 +6,13 @@ import { createApp } from './app.js';
 import { loadEnv } from './config/env.js';
 import { createDatabase } from './db/client.js';
 import { createLogger } from './lib/logger.js';
-import { InMemoryTenantCoreRepository } from './modules/tenant-core/in-memory-tenant-core.repository.js';
+import { DrizzleTenantCoreRepository } from './modules/tenant-core/drizzle-tenant-core.repository.js';
 
 const bootstrap = async () => {
   const env = loadEnv();
   const logger = createLogger(env.LOG_LEVEL);
   const database = createDatabase(env.DATABASE_URL);
-  const tenantCoreRepository = new InMemoryTenantCoreRepository();
+  const tenantCoreRepository = new DrizzleTenantCoreRepository(database.db);
 
   if (env.DEV_TENANT_ID && env.DEV_TENANT_NAME) {
     await tenantCoreRepository.createTenant({

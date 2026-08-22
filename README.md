@@ -14,6 +14,7 @@ This repository currently contains Phase 0 foundation work:
 - Vitest + Supertest health endpoint test
 - GitHub Actions CI for install, lint, typecheck, and test
 - Phase 1 tenant/business/branch/terminal API slice
+- PostgreSQL-backed tenant-core runtime repository
 
 ## Repository layout
 
@@ -48,6 +49,7 @@ Required variables:
 
 ```bash
 pnpm install
+pnpm db:migrate
 pnpm dev
 pnpm lint
 pnpm typecheck
@@ -81,6 +83,12 @@ through environment variables:
 - `DEV_TENANT_ID`
 - `DEV_TENANT_NAME`
 - `DEV_TENANT_SLUG` (optional)
+
+Before using the PostgreSQL-backed API routes against a real database, run migrations first:
+
+```bash
+pnpm db:migrate
+```
 
 ## Notes
 
