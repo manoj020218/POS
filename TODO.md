@@ -2,11 +2,11 @@
 
 NOW
 - Authentication and RBAC foundation
-- Add password reset architecture
+- Add request-level permission guards on protected reads
 
 NEXT
 - Add real auth-user creation and management flows beyond bootstrap-only seeding
-- Add request-level permission guards on protected reads
+- Add auth auditing around password resets and password changes
 - Extend auth auditing around login, refresh, logout, and session revocation
 - Replace bootstrap-only development auth seeding with real user admin flows
 

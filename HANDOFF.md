@@ -4,7 +4,7 @@ Current Phase:
 - Phase 2 - Authentication and RBAC
 
 Current Subtask:
-- Password reset architecture is the next safe Phase 2 slice
+- Request-level permission guards on protected reads are the next safe Phase 2 slice
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -60,15 +60,20 @@ Completed:
 - Added authenticated `DELETE /api/v1/auth/sessions/:sessionId`
 - Added session route tests covering current-session marking, targeted revocation, and cross-user denial
 - Added repository support for tenant-scoped user session listing
+- Added `auth_password_reset_tokens` schema plus generated migration `apps/api/drizzle/0002_motionless_triton.sql`
+- Added `POST /api/v1/auth/password/reset/request` with a generic `202` response that does not leak reset tokens
+- Added `POST /api/v1/auth/password/reset/confirm` backed by hashed reset-token lookup, expiry checks, password update, and session revocation
+- Added repository support for reset-token create/find/revoke flows in both in-memory and PostgreSQL-backed auth repositories
+- Verified `pnpm db:migrate` after adding the reset-token migration
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is password reset architecture
+- Next safe unit is request-level permission guards on protected reads
 
 Next:
-- Add password reset architecture
 - Add real auth-user creation and management flows beyond bootstrap-only development seeding
 - Add request-level permission guards on protected reads
+- Add auth auditing around password resets and password changes
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -87,12 +92,13 @@ Important Decisions:
 - Back runtime auth with the same PostgreSQL repository boundary used by the persistence tests
 - Enforce tenant-core write authorization at the router layer so controllers remain thin and permission checks stay request-scoped
 - Land password change before reset architecture because session revocation reuses existing auth persistence, while reset delivery still needs an explicit token-transport contract
+- Keep password reset token delivery behind an injected sink so normal API responses stay non-enumerating and do not expose reset tokens
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
 - Local PostgreSQL-backed verification still depends on the developer maintaining an ignored root `.env`
 - Real auth-user management endpoints do not exist yet; runtime login currently depends on users being seeded explicitly through bootstrap or future admin flows
-- Password reset delivery is not implemented yet; there is still no email/SMS/admin handoff for reset tokens
+- Password reset delivery still defaults to a no-op sink at runtime; email/SMS/admin handoff for reset tokens is not implemented yet
 
 Tests:
 - `pnpm lint`
@@ -117,6 +123,8 @@ Tests:
 - Auth repository integration: password-hash update plus user-session revocation via `DrizzleAuthRepository`
 - Auth sessions: current-session listing, targeted revocation, and cross-user revocation denial
 - Auth repository integration: tenant-scoped user session listing via `DrizzleAuthRepository`
+- Auth password reset: request/confirm flow, non-enumerating `202` responses, and expired token rejection
+- Auth repository integration: password reset token create/find/revoke lifecycle via `DrizzleAuthRepository`
 
 Last Successful Commands:
 - `git init -b main`
@@ -182,6 +190,14 @@ Last Successful Commands:
 - `cmd /c pnpm build`
 - `git commit -m "feat(auth): add session management endpoints"`
 - `git push`
+- `cmd /c pnpm db:generate`
+- `cmd /c pnpm db:migrate`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm test`
+- `cmd /c pnpm build`
+- `git commit -m "feat(auth): add password reset token flow"`
+- `git push`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -191,6 +207,8 @@ Database Status:
 - Development tenant/business/branch/terminal bootstrap verified against the real database
 - Auth user/session schema added at `apps/api/drizzle/0001_lumpy_invaders.sql`
 - `auth_users` and `auth_sessions` are now persisted in PostgreSQL
+- Auth password reset token schema added at `apps/api/drizzle/0002_motionless_triton.sql`
+- `auth_password_reset_tokens` are now persisted in PostgreSQL
 - Development auth user bootstrap verified against the real database
 
 API Status:
@@ -206,9 +224,10 @@ API Status:
 - Tenant-core write routes now enforce `business:*`, `branch:*`, and `terminal:*` permissions at the HTTP layer
 - Auth API now includes authenticated `POST /api/v1/auth/password/change` with refresh-session revocation after a successful password update
 - Auth API now includes authenticated session listing and session revocation endpoints backed by persisted auth sessions
+- Auth API now includes password reset request/confirm endpoints backed by hashed reset-token persistence and sink-based delivery
 
 Git Status:
 - clean
 
 Last Commit:
-- `7b22950 feat(auth): add session management endpoints`
+- `5f117f6 feat(auth): add password reset token flow`

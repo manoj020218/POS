@@ -29,3 +29,4 @@
 - Added request-level RBAC guards for tenant-core write endpoints with dedicated permission integration tests
 - Added an authenticated password-change endpoint that updates stored password hashes and revokes existing refresh sessions
 - Added authenticated session listing and session revocation endpoints backed by persisted `auth_sessions`
+- Added password reset request/confirm architecture backed by persisted hashed reset tokens and a non-leaking delivery sink
