@@ -26,3 +26,4 @@
 - Added `auth_users` and `auth_sessions` PostgreSQL schema plus migration `0001_lumpy_invaders.sql`
 - Added `DrizzleAuthRepository` and switched runtime auth off the in-memory repository
 - Moved development auth-user seeding into `pnpm bootstrap:dev` and added PostgreSQL-backed auth repository integration tests
+- Added request-level RBAC guards for tenant-core write endpoints with dedicated permission integration tests

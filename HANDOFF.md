@@ -4,7 +4,7 @@ Current Phase:
 - Phase 2 - Authentication and RBAC
 
 Current Subtask:
-- Request-level permission guards on protected route writes are the next safe Phase 2 slice
+- Password change and reset architecture is the next safe Phase 2 slice
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -50,16 +50,18 @@ Completed:
 - Switched runtime auth from the in-memory repository to PostgreSQL-backed persistence
 - Added auth repository integration tests backed by `PGlite`
 - Verified live PostgreSQL-backed runtime smoke for `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/businesses`, and `GET /api/v1/businesses`
+- Added request-level permission guards for tenant-core business, branch, and terminal write endpoints
+- Added tenant-core permission integration tests covering `403` denial for unauthorized business, branch, and terminal writes
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is request-level permission guards on protected route writes
+- Next safe unit is password change and reset architecture
 
 Next:
-- Add request-level permission guards on protected route writes
 - Add password change and reset architecture
 - Add session/device listing and revocation endpoints
 - Add real auth-user creation and management flows beyond bootstrap-only development seeding
+- Add request-level permission guards on protected reads
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -76,6 +78,7 @@ Important Decisions:
 - Allow an optional env-backed development auth user only as a temporary bridge until auth persistence exists
 - Keep development auth seeding explicit in `pnpm bootstrap:dev` rather than auto-creating auth users during API startup
 - Back runtime auth with the same PostgreSQL repository boundary used by the persistence tests
+- Enforce tenant-core write authorization at the router layer so controllers remain thin and permission checks stay request-scoped
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
@@ -100,6 +103,7 @@ Tests:
 - Runtime smoke: `GET /health`, `POST /api/v1/auth/login`, `POST /api/v1/businesses`, `GET /api/v1/businesses`
 - Auth repository integration: persisted user upsert/find plus session create/update/revoke lifecycle via `DrizzleAuthRepository`
 - Runtime smoke: `GET /health`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/businesses`, `GET /api/v1/businesses`
+- Tenant-core RBAC integration: unauthorized business/branch/terminal writes return `403`
 
 Last Successful Commands:
 - `git init -b main`
@@ -147,6 +151,12 @@ Last Successful Commands:
 - `cmd /c pnpm build`
 - PowerShell smoke: start `pnpm dev`, login at `/api/v1/auth/login`, refresh at `/api/v1/auth/refresh`, then create/list businesses with `Authorization: Bearer <token>`
 - `git commit -m "feat(auth): persist auth users and sessions"`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm test`
+- `cmd /c pnpm build`
+- `git commit -m "feat(auth): guard tenant core write permissions"`
+- `git push`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -168,9 +178,10 @@ API Status:
 - Protected tenant-core routes now resolve request access from bearer access tokens instead of development headers
 - Runtime auth users and sessions are now backed by PostgreSQL through `DrizzleAuthRepository`
 - Development auth-user seeding now occurs through `pnpm bootstrap:dev`, not API startup
+- Tenant-core write routes now enforce `business:*`, `branch:*`, and `terminal:*` permissions at the HTTP layer
 
 Git Status:
 - clean
 
 Last Commit:
-- `103479c feat(auth): persist auth users and sessions`
+- `b2a8510 feat(auth): guard tenant core write permissions`
