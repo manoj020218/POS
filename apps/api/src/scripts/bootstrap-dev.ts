@@ -1,11 +1,11 @@
-import 'dotenv/config';
-
 import { loadBootstrapEnv } from '../config/bootstrap-env.js';
+import { loadWorkspaceEnv } from '../config/load-workspace-env.js';
 import { createDatabase } from '../db/client.js';
 import { DrizzleTenantCoreRepository } from '../modules/tenant-core/drizzle-tenant-core.repository.js';
 import { bootstrapDevelopmentTenant } from '../modules/tenant-core/dev-bootstrap.js';
 
 const run = async () => {
+  loadWorkspaceEnv();
   const env = loadBootstrapEnv();
   const database = createDatabase(env.DATABASE_URL);
   const repository = new DrizzleTenantCoreRepository(database.db);

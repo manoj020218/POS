@@ -4,7 +4,8 @@ Offline-first, multi-tenant POS foundation aligned with `PROJECT_PLAN.md`.
 
 ## Current scope
 
-This repository currently contains Phase 0 foundation work:
+This repository currently contains verified Phase 0 foundation work plus the active Phase 1
+tenant/business/branch/terminal slice:
 
 - PNPM monorepo structure
 - TypeScript + Express API app
@@ -34,7 +35,8 @@ packages/     Future shared packages
 
 ## Environment variables
 
-Copy `.env.example` to `.env` and set real secrets before running the API.
+Copy `.env.example` to the repository root as `.env` and set real secrets before running the
+API. Package-level scripts load the workspace-root env file.
 
 Required variables:
 
@@ -49,8 +51,8 @@ Required variables:
 
 ```bash
 pnpm install
-pnpm bootstrap:dev
 pnpm db:migrate
+pnpm bootstrap:dev
 pnpm dev
 pnpm lint
 pnpm typecheck
@@ -89,7 +91,7 @@ To provision a local development hierarchy, set these variables in `.env` and ru
 - `DEV_TERMINAL_CODE` / `DEV_TERMINAL_NAME` (optional pair)
 - `DEV_TERMINAL_INSTALLATION_ID` (optional)
 
-Before using the PostgreSQL-backed API routes against a real database, run migrations first:
+Before using the PostgreSQL-backed API routes against a real database, run this sequence:
 
 ```bash
 pnpm db:migrate
