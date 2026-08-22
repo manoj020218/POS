@@ -2,8 +2,8 @@
 
 NOW
 - Authentication and RBAC foundation
-- Password change and reset architecture
 - Add session/device listing and revocation endpoints
+- Add password reset architecture
 
 NEXT
 - Add real auth-user creation and management flows beyond bootstrap-only seeding

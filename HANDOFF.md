@@ -4,7 +4,7 @@ Current Phase:
 - Phase 2 - Authentication and RBAC
 
 Current Subtask:
-- Password change and reset architecture is the next safe Phase 2 slice
+- Session/device listing and revocation endpoints are the next safe Phase 2 slice
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -52,14 +52,18 @@ Completed:
 - Verified live PostgreSQL-backed runtime smoke for `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/businesses`, and `GET /api/v1/businesses`
 - Added request-level permission guards for tenant-core business, branch, and terminal write endpoints
 - Added tenant-core permission integration tests covering `403` denial for unauthorized business, branch, and terminal writes
+- Added authenticated `POST /api/v1/auth/password/change`
+- Added password-change route tests covering success, invalid current password, and missing auth context
+- Added repository support for password-hash updates plus per-user refresh-session revocation
+- Added repository integration coverage for password-hash updates and user-session revocation
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is password change and reset architecture
+- Next safe unit is session/device listing and revocation endpoints
 
 Next:
-- Add password change and reset architecture
 - Add session/device listing and revocation endpoints
+- Add password reset architecture
 - Add real auth-user creation and management flows beyond bootstrap-only development seeding
 - Add request-level permission guards on protected reads
 
@@ -79,11 +83,13 @@ Important Decisions:
 - Keep development auth seeding explicit in `pnpm bootstrap:dev` rather than auto-creating auth users during API startup
 - Back runtime auth with the same PostgreSQL repository boundary used by the persistence tests
 - Enforce tenant-core write authorization at the router layer so controllers remain thin and permission checks stay request-scoped
+- Land password change before reset architecture because session revocation reuses existing auth persistence, while reset delivery still needs an explicit token-transport contract
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
 - Local PostgreSQL-backed verification still depends on the developer maintaining an ignored root `.env`
 - Real auth-user management endpoints do not exist yet; runtime login currently depends on users being seeded explicitly through bootstrap or future admin flows
+- Password reset delivery is not implemented yet; there is still no email/SMS/admin handoff for reset tokens
 
 Tests:
 - `pnpm lint`
@@ -104,6 +110,8 @@ Tests:
 - Auth repository integration: persisted user upsert/find plus session create/update/revoke lifecycle via `DrizzleAuthRepository`
 - Runtime smoke: `GET /health`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/businesses`, `GET /api/v1/businesses`
 - Tenant-core RBAC integration: unauthorized business/branch/terminal writes return `403`
+- Auth password change: success, invalid current password, and missing access context
+- Auth repository integration: password-hash update plus user-session revocation via `DrizzleAuthRepository`
 
 Last Successful Commands:
 - `git init -b main`
@@ -157,6 +165,12 @@ Last Successful Commands:
 - `cmd /c pnpm build`
 - `git commit -m "feat(auth): guard tenant core write permissions"`
 - `git push`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm test`
+- `cmd /c pnpm build`
+- `git commit -m "feat(auth): add authenticated password change"`
+- `git push`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -179,9 +193,10 @@ API Status:
 - Runtime auth users and sessions are now backed by PostgreSQL through `DrizzleAuthRepository`
 - Development auth-user seeding now occurs through `pnpm bootstrap:dev`, not API startup
 - Tenant-core write routes now enforce `business:*`, `branch:*`, and `terminal:*` permissions at the HTTP layer
+- Auth API now includes authenticated `POST /api/v1/auth/password/change` with refresh-session revocation after a successful password update
 
 Git Status:
 - clean
 
 Last Commit:
-- `b2a8510 feat(auth): guard tenant core write permissions`
+- `2f6b669 feat(auth): add authenticated password change`

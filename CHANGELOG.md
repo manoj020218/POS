@@ -27,3 +27,4 @@
 - Added `DrizzleAuthRepository` and switched runtime auth off the in-memory repository
 - Moved development auth-user seeding into `pnpm bootstrap:dev` and added PostgreSQL-backed auth repository integration tests
 - Added request-level RBAC guards for tenant-core write endpoints with dedicated permission integration tests
+- Added an authenticated password-change endpoint that updates stored password hashes and revokes existing refresh sessions
