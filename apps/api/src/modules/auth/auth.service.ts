@@ -8,6 +8,7 @@ import { hashOpaqueToken } from './opaque-token.js';
 import { createPasswordResetHandlers, type PasswordResetTokenSink } from './password-reset.service.js';
 import { refreshTokenPayloadSchema } from './auth.schemas.js';
 import { createSessionManagementHandlers } from './session-management.service.js';
+import { createUserManagementHandlers } from './user-management.service.js';
 import type { AuthResult, AuthSessionRecord, AuthUserRecord, LoginInput, LogoutInput, RefreshInput } from './auth.types.js';
 import { verifyPassword } from './password.js';
 import { signToken, verifyToken } from './token.js';
@@ -28,6 +29,7 @@ export const createAuthService = (repository: AuthRepository, config: AuthServic
   changePassword: createChangePasswordHandler(repository),
   ...createPasswordResetHandlers(repository, config),
   ...createSessionManagementHandlers(repository),
+  ...createUserManagementHandlers(repository),
   login: async (input: LoginInput): Promise<AuthResult> => {
     const user = await repository.findUserByEmail(input.email);
 

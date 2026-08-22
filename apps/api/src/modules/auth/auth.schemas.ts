@@ -1,8 +1,9 @@
 import { z } from 'zod';
 
-import { appPermissions, appRoles } from './authorization.js';
+import { appPermissions, appRoles, tenantAssignableRoles } from './authorization.js';
 
 const emailSchema = z.string().trim().email().transform((value) => value.toLowerCase());
+const displayNameSchema = z.string().trim().min(2).max(120);
 const passwordSchema = z.string().min(8).max(128);
 const optionalDeviceIdSchema = z.string().trim().min(4).max(120).optional();
 const optionalDeviceNameSchema = z.string().trim().min(2).max(120).optional();
@@ -48,6 +49,29 @@ export const passwordResetConfirmSchema = z.object({
 export const sessionIdParamsSchema = z.object({
   sessionId: z.string().uuid()
 });
+
+export const userIdParamsSchema = z.object({
+  userId: z.string().uuid()
+});
+
+export const createAuthUserSchema = z.object({
+  displayName: displayNameSchema,
+  email: emailSchema,
+  isActive: z.boolean().optional().default(true),
+  password: passwordSchema,
+  role: z.enum(tenantAssignableRoles)
+});
+
+export const updateAuthUserSchema = z
+  .object({
+    displayName: displayNameSchema.optional(),
+    email: emailSchema.optional(),
+    isActive: z.boolean().optional(),
+    role: z.enum(tenantAssignableRoles).optional()
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'At least one field is required'
+  });
 
 export const accessTokenPayloadSchema = tokenBaseSchema.extend({
   displayName: z.string().trim().min(1).max(120),

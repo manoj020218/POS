@@ -88,6 +88,17 @@ export type AuthTokens = {
   refreshTokenExpiresAt: string;
 };
 
+export type AuthManagedUserView = {
+  customPermissions: AppPermission[];
+  displayName: string;
+  email: string;
+  id: string;
+  isActive: boolean;
+  permissions: AppPermission[];
+  role: AppRole;
+  tenantId: string;
+};
+
 export type AuthResult = AuthTokens & {
   session: {
     createdAt: string;

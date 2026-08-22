@@ -51,6 +51,16 @@ export class InMemoryAuthRepository implements AuthRepository {
     return this.sessions.get(sessionId) ?? null;
   }
 
+  async listUsersForTenant(tenantId: string): Promise<AuthUserRecord[]> {
+    return [...this.users.values()]
+      .filter((user) => user.tenantId === tenantId)
+      .sort(
+        (left, right) =>
+          left.displayName.localeCompare(right.displayName) ||
+          left.email.localeCompare(right.email)
+      );
+  }
+
   async listSessionsForUser(userId: string, tenantId: string): Promise<AuthSessionRecord[]> {
     return [...this.sessions.values()]
       .filter((session) => session.userId === userId && session.tenantId === tenantId)

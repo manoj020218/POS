@@ -5,12 +5,15 @@ import { parseSchema } from '../../lib/parse-schema.js';
 import { getAccessContext } from '../tenant-core/access-context.js';
 import {
   changePasswordSchema,
+  createAuthUserSchema,
   loginSchema,
   logoutSchema,
   passwordResetConfirmSchema,
   passwordResetRequestSchema,
   refreshSchema,
-  sessionIdParamsSchema
+  sessionIdParamsSchema,
+  updateAuthUserSchema,
+  userIdParamsSchema
 } from './auth.schemas.js';
 import type { AuthService } from './auth.routes.js';
 
@@ -44,6 +47,18 @@ export const changePasswordController = (service: AuthService): RequestHandler =
     response.status(204).send();
   });
 
+export const createUserController = (service: AuthService): RequestHandler =>
+  asyncHandler(async (request, response: Response) => {
+    const accessContext = getAccessContext(request);
+    const user = await service.createUser({
+      ...parseSchema(createAuthUserSchema, request.body),
+      actor: accessContext,
+      tenantId: accessContext.tenantId
+    });
+
+    response.status(201).json({ data: user });
+  });
+
 export const requestPasswordResetController = (service: AuthService): RequestHandler =>
   asyncHandler(async (request, response: Response) => {
     await service.requestPasswordReset(parseSchema(passwordResetRequestSchema, request.body));
@@ -64,6 +79,14 @@ export const listSessionsController = (service: AuthService): RequestHandler =>
     response.status(200).json({ data: sessions });
   });
 
+export const listUsersController = (service: AuthService): RequestHandler =>
+  asyncHandler(async (request, response: Response) => {
+    const accessContext = getAccessContext(request);
+    const users = await service.listUsers(accessContext);
+
+    response.status(200).json({ data: users });
+  });
+
 export const revokeSessionController = (service: AuthService): RequestHandler =>
   asyncHandler(async (request, response: Response) => {
     const accessContext = getAccessContext(request);
@@ -74,6 +97,20 @@ export const revokeSessionController = (service: AuthService): RequestHandler =>
     });
 
     response.status(204).send();
+  });
+
+export const updateUserController = (service: AuthService): RequestHandler =>
+  asyncHandler(async (request, response: Response) => {
+    const accessContext = getAccessContext(request);
+    const user = await service.updateUser({
+      ...parseSchema(updateAuthUserSchema, request.body),
+      actor: accessContext,
+      actorUserId: accessContext.userId,
+      tenantId: accessContext.tenantId,
+      userId: parseSchema(userIdParamsSchema, request.params).userId
+    });
+
+    response.status(200).json({ data: user });
   });
 
 export const refreshController = (service: AuthService): RequestHandler =>

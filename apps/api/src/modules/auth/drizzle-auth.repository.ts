@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 
 import type { AppDatabase } from '../../db/client.js';
 import {
@@ -52,6 +52,16 @@ export class DrizzleAuthRepository implements AuthRepository {
   async findSessionById(sessionId: string): Promise<AuthSessionRecord | null> {
     const [session] = await this.db.select().from(authSessions).where(eq(authSessions.id, sessionId)).limit(1);
     return session ? normalizeAuthSession(session) : null;
+  }
+
+  async listUsersForTenant(tenantId: string): Promise<AuthUserRecord[]> {
+    const users = await this.db
+      .select()
+      .from(authUsers)
+      .where(eq(authUsers.tenantId, tenantId))
+      .orderBy(asc(authUsers.displayName), asc(authUsers.email));
+
+    return users.map(normalizeAuthUser);
   }
 
   async listSessionsForUser(userId: string, tenantId: string): Promise<AuthSessionRecord[]> {

@@ -21,6 +21,7 @@ export interface AuthRepository {
   createSession(input: CreateSessionInput): Promise<AuthSessionRecord>;
   findPasswordResetTokenByHash(tokenHash: string): Promise<AuthPasswordResetTokenRecord | null>;
   findSessionById(sessionId: string): Promise<AuthSessionRecord | null>;
+  listUsersForTenant(tenantId: string): Promise<AuthUserRecord[]>;
   listSessionsForUser(userId: string, tenantId: string): Promise<AuthSessionRecord[]>;
   findUserByEmail(email: string): Promise<AuthUserRecord | null>;
   findUserById(userId: string): Promise<AuthUserRecord | null>;

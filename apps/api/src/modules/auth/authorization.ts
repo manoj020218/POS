@@ -9,6 +9,15 @@ export const appRoles = [
 ] as const;
 
 export type AppRole = (typeof appRoles)[number];
+export const tenantAssignableRoles = [
+  'BUSINESS_OWNER',
+  'BUSINESS_ADMIN',
+  'BRANCH_MANAGER',
+  'CASHIER',
+  'INVENTORY_MANAGER',
+  'REPORT_VIEWER'
+] as const;
+export type TenantAssignableRole = (typeof tenantAssignableRoles)[number];
 
 const tenantCorePermissions = [
   'business:create',
