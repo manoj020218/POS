@@ -1,13 +1,14 @@
 # TODO
 
 NOW
-- Commit Phase 0
-- Push `main` to `origin`
-
-NEXT
 - Add the first tenant/business/branch/terminal schema slice
 - Add the first migration for Phase 1 entities
 - Add tenant isolation tests for Phase 1 reads
+
+NEXT
+- Authentication and RBAC foundation
+- Role and permission mapping
+- Auth failure tests
 
 LATER
 - Shared contracts package

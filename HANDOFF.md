@@ -4,7 +4,7 @@ Current Phase:
 - Phase 0 - Repository Foundation
 
 Current Subtask:
-- Finalize Phase 0 and publish the initial verified foundation
+- Phase 0 is published; repository is ready for the first Phase 1 slice
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -20,12 +20,13 @@ Completed:
 - Verified runtime health response at `http://127.0.0.1:4010/health`
 
 Currently Working:
-- Updating docs, preparing the initial commit, and attempting the first push
+- No active code changes in progress
+- Next safe unit is the first Phase 1 tenant/business/branch/terminal schema slice
 
 Next:
-- Commit Phase 0
-- Push `main` to `origin`
 - Begin Phase 1 tenant, business, branch, and terminal modeling
+- Add the first migration for Phase 1 entities
+- Add tenant isolation tests for Phase 1
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -51,6 +52,8 @@ Last Successful Commands:
 - `cmd /c pnpm typecheck`
 - `cmd /c pnpm test`
 - `cmd /c pnpm build`
+- `git commit -m "feat(phase0): scaffold monorepo api foundation"`
+- `git push -u origin main`
 
 Database Status:
 - Drizzle config and PostgreSQL client wiring verified at build time
@@ -61,7 +64,7 @@ API Status:
 - `GET /health` returns `{"status":"ok"}`
 
 Git Status:
-- changes pending
+- clean
 
 Last Commit:
-- none
+- `f786bb7 feat(phase0): scaffold monorepo api foundation`
