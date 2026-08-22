@@ -30,7 +30,7 @@ export const createTenantCoreRouter = (
   const router = Router();
   const service = createTenantCoreService(repository);
 
-  router.get('/businesses', listBusinessesController(service));
+  router.get('/businesses', requirePermissions(['business:view']), listBusinessesController(service));
   router.post('/businesses', requirePermissions(['business:create']), createBusinessController(service));
   router.patch(
     '/businesses/:businessId',
@@ -38,7 +38,7 @@ export const createTenantCoreRouter = (
     updateBusinessController(service)
   );
 
-  router.get('/branches', listBranchesController(service));
+  router.get('/branches', requirePermissions(['branch:view']), listBranchesController(service));
   router.post('/branches', requirePermissions(['branch:create']), createBranchController(service));
   router.patch(
     '/branches/:branchId',
@@ -46,7 +46,7 @@ export const createTenantCoreRouter = (
     updateBranchController(service)
   );
 
-  router.get('/terminals', listTerminalsController(service));
+  router.get('/terminals', requirePermissions(['terminal:view']), listTerminalsController(service));
   router.post(
     '/terminals',
     requirePermissions(['terminal:create']),
