@@ -69,11 +69,13 @@ describe('DrizzleAuthRepository', () => {
         refreshTokenHash: 'hash-2',
         userAgent: 'vitest-refresh'
       });
+      const listed = await repository.listSessionsForUser(user.id, tenantId);
 
       await repository.revokeSession(created.id, new Date('2026-08-22T12:00:00.000Z'));
       const revoked = await repository.findSessionById(created.id);
 
       expect(updated?.refreshTokenHash).toBe('hash-2');
+      expect(listed).toHaveLength(1);
       expect(revoked?.revokedAt?.toISOString()).toBe('2026-08-22T12:00:00.000Z');
       expect(revoked?.userAgent).toBe('vitest-refresh');
     } finally {

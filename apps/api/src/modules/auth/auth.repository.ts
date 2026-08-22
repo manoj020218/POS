@@ -13,6 +13,7 @@ export type UpdateSessionInput = Pick<
 export interface AuthRepository {
   createSession(input: CreateSessionInput): Promise<AuthSessionRecord>;
   findSessionById(sessionId: string): Promise<AuthSessionRecord | null>;
+  listSessionsForUser(userId: string, tenantId: string): Promise<AuthSessionRecord[]>;
   findUserByEmail(email: string): Promise<AuthUserRecord | null>;
   findUserById(userId: string): Promise<AuthUserRecord | null>;
   revokeSession(sessionId: string, revokedAt: Date): Promise<void>;

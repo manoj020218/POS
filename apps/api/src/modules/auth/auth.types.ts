@@ -49,6 +49,18 @@ export type ChangePasswordInput = {
   userId: string;
 };
 
+export type AuthSessionView = {
+  createdAt: string;
+  deviceInstallationId?: string;
+  deviceName?: string;
+  expiresAt: string;
+  id: string;
+  isCurrent: boolean;
+  lastRefreshedAt: string;
+  revokedAt?: string;
+  userAgent?: string;
+};
+
 export type AuthTokens = {
   accessToken: string;
   accessTokenExpiresAt: string;

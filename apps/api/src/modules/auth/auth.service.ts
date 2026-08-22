@@ -4,6 +4,7 @@ import { createHttpError } from '../../lib/http-error.js';
 import type { AuthRepository } from './auth.repository.js';
 import { resolveGrantedPermissions } from './authorization.js';
 import { createChangePasswordHandler } from './change-password.service.js';
+import { createSessionManagementHandlers } from './session-management.service.js';
 import { refreshTokenPayloadSchema } from './auth.schemas.js';
 import type { AuthResult, AuthSessionRecord, AuthUserRecord, LoginInput, LogoutInput, RefreshInput } from './auth.types.js';
 import { verifyPassword } from './password.js';
@@ -21,6 +22,7 @@ const defaultRefreshTokenTtlSeconds = 30 * 24 * 60 * 60;
 
 export const createAuthService = (repository: AuthRepository, config: AuthServiceConfig) => ({
   changePassword: createChangePasswordHandler(repository),
+  ...createSessionManagementHandlers(repository),
   login: async (input: LoginInput): Promise<AuthResult> => {
     const user = await repository.findUserByEmail(input.email);
 

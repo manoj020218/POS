@@ -23,6 +23,12 @@ export class InMemoryAuthRepository implements AuthRepository {
     return this.sessions.get(sessionId) ?? null;
   }
 
+  async listSessionsForUser(userId: string, tenantId: string): Promise<AuthSessionRecord[]> {
+    return [...this.sessions.values()]
+      .filter((session) => session.userId === userId && session.tenantId === tenantId)
+      .sort((left, right) => right.lastRefreshedAt.getTime() - left.lastRefreshedAt.getTime());
+  }
+
   async findUserByEmail(email: string): Promise<AuthUserRecord | null> {
     const normalized = normalizeEmail(email);
 

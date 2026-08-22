@@ -3,7 +3,13 @@ import type { RequestHandler, Response } from 'express';
 import { asyncHandler } from '../../http/middleware/async-handler.js';
 import { parseSchema } from '../../lib/parse-schema.js';
 import { getAccessContext } from '../tenant-core/access-context.js';
-import { changePasswordSchema, loginSchema, logoutSchema, refreshSchema } from './auth.schemas.js';
+import {
+  changePasswordSchema,
+  loginSchema,
+  logoutSchema,
+  refreshSchema,
+  sessionIdParamsSchema
+} from './auth.schemas.js';
 import type { AuthService } from './auth.routes.js';
 
 const getUserAgent = (value: string | undefined) => value?.trim() || undefined;
@@ -29,6 +35,26 @@ export const changePasswordController = (service: AuthService): RequestHandler =
     const accessContext = getAccessContext(request);
     await service.changePassword({
       ...parseSchema(changePasswordSchema, request.body),
+      tenantId: accessContext.tenantId,
+      userId: accessContext.userId
+    });
+
+    response.status(204).send();
+  });
+
+export const listSessionsController = (service: AuthService): RequestHandler =>
+  asyncHandler(async (request, response: Response) => {
+    const accessContext = getAccessContext(request);
+    const sessions = await service.listSessions(accessContext);
+
+    response.status(200).json({ data: sessions });
+  });
+
+export const revokeSessionController = (service: AuthService): RequestHandler =>
+  asyncHandler(async (request, response: Response) => {
+    const accessContext = getAccessContext(request);
+    await service.revokeUserSession({
+      sessionId: parseSchema(sessionIdParamsSchema, request.params).sessionId,
       tenantId: accessContext.tenantId,
       userId: accessContext.userId
     });

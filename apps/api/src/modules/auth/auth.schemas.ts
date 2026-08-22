@@ -36,6 +36,10 @@ export const changePasswordSchema = z.object({
   newPassword: passwordSchema
 });
 
+export const sessionIdParamsSchema = z.object({
+  sessionId: z.string().uuid()
+});
+
 export const accessTokenPayloadSchema = tokenBaseSchema.extend({
   displayName: z.string().trim().min(1).max(120),
   email: emailSchema,
