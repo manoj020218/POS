@@ -3,6 +3,7 @@ import { loadEnv } from './config/env.js';
 import { loadWorkspaceEnv } from './config/load-workspace-env.js';
 import { createDatabase } from './db/client.js';
 import { createLogger } from './lib/logger.js';
+import { InMemoryAuthRepository } from './modules/auth/in-memory-auth.repository.js';
 import { DrizzleTenantCoreRepository } from './modules/tenant-core/drizzle-tenant-core.repository.js';
 
 const bootstrap = async () => {
@@ -13,6 +14,11 @@ const bootstrap = async () => {
   const tenantCoreRepository = new DrizzleTenantCoreRepository(database.db);
 
   const app = createApp({
+    authConfig: {
+      jwtSecret: env.JWT_SECRET,
+      refreshSecret: env.REFRESH_SECRET
+    },
+    authRepository: new InMemoryAuthRepository(),
     logger,
     tenantCoreRepository
   });

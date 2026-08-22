@@ -7,6 +7,9 @@ import { errorHandler } from './http/middleware/error-handler.js';
 import { notFoundHandler } from './http/middleware/not-found.js';
 import { healthRouter } from './http/routes/health.js';
 import { createRequestLogger, type AppLogger } from './lib/logger.js';
+import { createAuthRouter } from './modules/auth/auth.routes.js';
+import type { AuthRepository } from './modules/auth/auth.repository.js';
+import { InMemoryAuthRepository } from './modules/auth/in-memory-auth.repository.js';
 import {
   InMemoryTenantCoreRepository,
   type TenantCoreRepository
@@ -19,6 +22,11 @@ import {
 
 export type AppOptions = {
   accessContextResolver?: AccessContextResolver;
+  authConfig?: {
+    jwtSecret: string;
+    refreshSecret: string;
+  };
+  authRepository?: AuthRepository;
   logger: AppLogger;
   tenantCoreRepository?: TenantCoreRepository;
 };
@@ -26,6 +34,11 @@ export type AppOptions = {
 export const createApp = (options: AppOptions): Express => {
   const app = express();
   const accessContextResolver = options.accessContextResolver ?? resolveDevelopmentAccessContext;
+  const authConfig = options.authConfig ?? {
+    jwtSecret: 'test-jwt-secret-0123456789-abcdefgh',
+    refreshSecret: 'test-refresh-secret-0123456789-ab'
+  };
+  const authRepository = options.authRepository ?? new InMemoryAuthRepository();
   const tenantCoreRepository =
     options.tenantCoreRepository ?? new InMemoryTenantCoreRepository();
 
@@ -36,6 +49,7 @@ export const createApp = (options: AppOptions): Express => {
   app.use(createRequestLogger(options.logger));
   app.use(attachAccessContext(accessContextResolver));
   app.use(healthRouter);
+  app.use('/api/v1/auth', createAuthRouter(authRepository, authConfig));
   app.use('/api/v1', createTenantCoreRouter(tenantCoreRepository));
   app.use(notFoundHandler);
   app.use(errorHandler(options.logger));
