@@ -17,3 +17,6 @@
 - Verified `pnpm db:migrate`, `pnpm bootstrap:dev`, and a live PostgreSQL-backed API smoke flow
 - Added the first Phase 2 RBAC foundation with a typed role/permission catalog
 - Added reusable permission-guard middleware plus authorization tests
+- Added Phase 2 auth route scaffolding for login, refresh, and logout
+- Added password hashing, signed token utilities, and in-memory session/device tracking primitives
+- Added auth route tests for login success, refresh rotation, logout revocation, invalid credentials, and disabled users

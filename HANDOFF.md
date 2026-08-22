@@ -4,7 +4,7 @@ Current Phase:
 - Phase 2 - Authentication and RBAC
 
 Current Subtask:
-- Login, refresh-token, and logout scaffolding is the next safe Phase 2 slice
+- Signed access-token access-context resolution is the next safe Phase 2 slice
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -36,16 +36,20 @@ Completed:
 - Added a typed role and permission catalog for Phase 2 authorization
 - Added reusable permission guard middleware that resolves role-derived and explicit permissions
 - Added authorization tests for role grants plus `401`/`403` permission enforcement
+- Added `/api/v1/auth/login`, `/api/v1/auth/refresh`, and `/api/v1/auth/logout` route scaffolding
+- Added password hashing and signed token helpers using Node crypto primitives
+- Added in-memory auth repository support for users, sessions, refresh rotation, and logout revocation
+- Added auth route tests for invalid credentials, disabled users, refresh rotation, and logout revocation
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is Phase 2 auth and RBAC foundation
+- Next safe unit is replacing temporary dev headers with signed access-token access context
 
 Next:
-- Add authentication module scaffolding for login, refresh token, and logout flows
-- Add session and device tracking primitives
-- Add auth failure tests for login, refresh, and disabled-user flows
 - Replace the temporary dev access headers with authenticated access context in Phase 2
+- Add persistent auth user and session storage behind the new auth service boundary
+- Add password change and reset architecture
+- Extend auth failure coverage for invalid authorization headers and expired access tokens
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -57,11 +61,13 @@ Important Decisions:
 - Use an explicit bootstrap command instead of auto-seeding tenants during API startup
 - Resolve env files from the workspace root so root-level `.env` works for filtered PNPM package scripts
 - Keep RBAC authorization permission-driven, with role-to-grant mapping in one typed catalog
+- Keep the first auth slice repository-backed but in-memory so the HTTP/service/token boundaries are verified before adding database persistence
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
 - The temporary dev headers are only a bootstrap mechanism and must be replaced during Phase 2 auth work
 - Local PostgreSQL-backed verification still depends on the developer maintaining an ignored root `.env`
+- Runtime auth currently uses an in-memory repository, so users and sessions are not yet persisted across server restarts
 
 Tests:
 - `pnpm lint`
@@ -75,6 +81,7 @@ Tests:
 - Real DB verification: `pnpm bootstrap:dev`
 - Runtime smoke: `GET /health`, `POST /api/v1/businesses`, `GET /api/v1/businesses` against PostgreSQL 18
 - Authorization tests: role grant resolution plus permission guard `401`/`403` behavior
+- Auth route tests: login success, invalid credentials, disabled user rejection, refresh rotation, logout revocation
 
 Last Successful Commands:
 - `git init -b main`
@@ -102,6 +109,11 @@ Last Successful Commands:
 - `git commit -m "fix(env): load workspace root env for runtime scripts"`
 - `cmd /c pnpm build`
 - `git commit -m "feat(auth): add role permission foundation"`
+- `cmd /c pnpm test`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm build`
+- `git commit -m "feat(auth): add login refresh and logout scaffolding"`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -109,6 +121,7 @@ Database Status:
 - PostgreSQL persistence layer implemented in code
 - Migration applied successfully to local PostgreSQL 18 database `smart_pos`
 - Development tenant/business/branch/terminal bootstrap verified against the real database
+- Auth users and sessions are not persisted yet; the current Phase 2 auth slice uses an in-memory repository
 
 API Status:
 - Phase 0 scaffold verified
@@ -116,9 +129,10 @@ API Status:
 - `GET /health` returns `{"status":"ok"}`
 - Live PostgreSQL-backed business create/list smoke verified on port `4012`
 - Auth/RBAC foundation now includes typed role permissions and a reusable permission guard
+- Auth route scaffolding is available for `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, and `POST /api/v1/auth/logout`
 
 Git Status:
 - clean
 
 Last Commit:
-- `e8ab38e feat(auth): add role permission foundation`
+- `e341b26 feat(auth): add login refresh and logout scaffolding`

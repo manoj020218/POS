@@ -2,13 +2,13 @@
 
 NOW
 - Authentication and RBAC foundation
-- Login, refresh token, and logout scaffolding
-- Session and device tracking
+- Replace temporary dev headers with authenticated access context
+- Add persistent auth user and session storage
 
 NEXT
-- Replace temporary dev headers with authenticated access context
-- Auth failure tests for login, refresh, and disabled-user scenarios
 - Password change and reset architecture
+- Auth failure tests for invalid authorization headers and expired access tokens
+- Request-level permission guards on protected route writes
 
 LATER
 - Shared contracts package
