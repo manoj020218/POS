@@ -72,6 +72,7 @@ Last Successful Commands:
 - `cmd /c pnpm db:generate`
 - `git commit -m "feat(tenant-core): add first multi-tenant core slice"`
 - `$env:npm_config_strict_ssl='false'; cmd /c pnpm install`
+- `git commit -m "feat(db): wire tenant core to postgres repository"`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -85,7 +86,7 @@ API Status:
 - `GET /health` returns `{"status":"ok"}`
 
 Git Status:
-- changes pending
+- clean
 
 Last Commit:
-- `780e6ab docs(handoff): sync tenant core slice state`
+- `26d695d feat(db): wire tenant core to postgres repository`
