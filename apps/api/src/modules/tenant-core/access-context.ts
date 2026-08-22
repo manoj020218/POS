@@ -1,8 +1,11 @@
 import type { Request } from 'express';
 
+import type { AppPermission, AppRole } from '../auth/authorization.js';
 import { createHttpError } from '../../lib/http-error.js';
 
 export type AccessContext = {
+  permissions?: AppPermission[];
+  role?: AppRole;
   tenantId: string;
   userId: string;
 };
