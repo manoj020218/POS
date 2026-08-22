@@ -4,7 +4,7 @@ Current Phase:
 - Phase 2 - Authentication and RBAC
 
 Current Subtask:
-- Real auth-user creation and management flows are the next safe Phase 2 slice
+- Branch-scoped user assignment and management flows are the next safe Phase 2 slice
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -67,15 +67,20 @@ Completed:
 - Verified `pnpm db:migrate` after adding the reset-token migration
 - Added request-level permission guards for tenant-core business, branch, and terminal read endpoints
 - Added tenant-core permission integration tests covering `403` denial for unauthorized business, branch, and terminal reads
+- Added tenant-scoped auth-user management endpoints for `GET/POST/PATCH /api/v1/auth/users`
+- Added role-assignment safety so managed users cannot be granted broader effective permissions than the acting user
+- Added automatic refresh-session revocation when a managed user is disabled or re-roled
+- Added repository support for tenant-scoped auth-user listing in both in-memory and PostgreSQL-backed auth repositories
+- Added auth-user management route tests plus `DrizzleAuthRepository` tenant-user listing integration coverage
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is real auth-user creation and management flows
+- Next safe unit is branch-scoped user assignment and management flows
 
 Next:
-- Add real auth-user creation and management flows beyond bootstrap-only development seeding
-- Add auth auditing around password resets and password changes
 - Add branch-scoped user assignment and management flows
+- Add auth auditing around password resets, password changes, and auth-user management mutations
+- Define an initial owner/bootstrap admin provisioning flow beyond env-only development seeding
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -95,12 +100,16 @@ Important Decisions:
 - Enforce tenant-core write authorization at the router layer so controllers remain thin and permission checks stay request-scoped
 - Land password change before reset architecture because session revocation reuses existing auth persistence, while reset delivery still needs an explicit token-transport contract
 - Keep password reset token delivery behind an injected sink so normal API responses stay non-enumerating and do not expose reset tokens
+- Expose real tenant-scoped auth-user management under `/api/v1/auth/users` behind the existing `user:manage` permission
+- Allow tenant-scoped user management to assign only roles whose effective permissions are a subset of the acting user's permissions
+- Revoke persisted refresh sessions whenever a managed user's role or active status changes
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
 - Local PostgreSQL-backed verification still depends on the developer maintaining an ignored root `.env`
-- Real auth-user management endpoints do not exist yet; runtime login currently depends on users being seeded explicitly through bootstrap or future admin flows
+- The first tenant owner/admin still must exist via bootstrap or another provisioning path before `/api/v1/auth/users` can manage additional users
 - Password reset delivery still defaults to a no-op sink at runtime; email/SMS/admin handoff for reset tokens is not implemented yet
+- Disabling or re-roling a user revokes refresh sessions, but already-issued access tokens remain valid until their expiry because access tokens are currently stateless
 
 Tests:
 - `pnpm lint`
@@ -128,6 +137,8 @@ Tests:
 - Auth password reset: request/confirm flow, non-enumerating `202` responses, and expired token rejection
 - Auth repository integration: password reset token create/find/revoke lifecycle via `DrizzleAuthRepository`
 - Tenant-core RBAC integration: unauthorized business/branch/terminal reads return `403`
+- Auth user management: tenant-scoped create/list/update flows, role-assignment denial, self-disable denial, and session revocation on disable
+- Auth repository integration: tenant-scoped user listing via `DrizzleAuthRepository`
 
 Last Successful Commands:
 - `git init -b main`
@@ -207,6 +218,12 @@ Last Successful Commands:
 - `cmd /c pnpm build`
 - `git commit -m "feat(auth): guard tenant core read permissions"`
 - `git push`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm test`
+- `cmd /c pnpm build`
+- `git commit -m "feat(auth): add tenant user management endpoints"`
+- `git push`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -235,9 +252,11 @@ API Status:
 - Auth API now includes authenticated `POST /api/v1/auth/password/change` with refresh-session revocation after a successful password update
 - Auth API now includes authenticated session listing and session revocation endpoints backed by persisted auth sessions
 - Auth API now includes password reset request/confirm endpoints backed by hashed reset-token persistence and sink-based delivery
+- Auth API now includes tenant-scoped `GET /api/v1/auth/users`, `POST /api/v1/auth/users`, and `PATCH /api/v1/auth/users/:userId` guarded by `user:manage`
+- Auth-user management writes now revoke persisted refresh sessions when a user's role or active status changes
 
 Git Status:
 - clean
 
 Last Commit:
-- `40cb63d feat(auth): guard tenant core read permissions`
+- `3a3e887 feat(auth): add tenant user management endpoints`

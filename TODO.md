@@ -1,13 +1,13 @@
 # TODO
 
 NOW
-- Authentication and RBAC foundation
-- Add real auth-user creation and management flows beyond bootstrap-only seeding
+- Add branch-scoped user assignment and management flows
+- Add auth auditing around password resets, password changes, and auth-user management mutations
 
 NEXT
-- Add auth auditing around password resets and password changes
 - Extend auth auditing around login, refresh, logout, and session revocation
-- Replace bootstrap-only development auth seeding with real user admin flows
+- Define an initial owner/bootstrap admin provisioning flow beyond env-only development seeding
+- Evaluate access-token revocation/versioning for immediate disable and role-change enforcement
 
 LATER
 - Shared contracts package
