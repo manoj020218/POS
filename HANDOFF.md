@@ -65,6 +65,7 @@ Last Successful Commands:
 - `git commit -m "feat(phase0): scaffold monorepo api foundation"`
 - `git push -u origin main`
 - `cmd /c pnpm db:generate`
+- `git commit -m "feat(tenant-core): add first multi-tenant core slice"`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -77,7 +78,7 @@ API Status:
 - `GET /health` returns `{"status":"ok"}`
 
 Git Status:
-- changes pending
+- clean
 
 Last Commit:
-- `4578183 docs(handoff): sync phase0 repository state`
+- `41499fb feat(tenant-core): add first multi-tenant core slice`
