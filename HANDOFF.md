@@ -4,7 +4,7 @@ Current Phase:
 - Phase 2 - Authentication and RBAC
 
 Current Subtask:
-- Request-level permission guards on protected reads are the next safe Phase 2 slice
+- Real auth-user creation and management flows are the next safe Phase 2 slice
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -65,15 +65,17 @@ Completed:
 - Added `POST /api/v1/auth/password/reset/confirm` backed by hashed reset-token lookup, expiry checks, password update, and session revocation
 - Added repository support for reset-token create/find/revoke flows in both in-memory and PostgreSQL-backed auth repositories
 - Verified `pnpm db:migrate` after adding the reset-token migration
+- Added request-level permission guards for tenant-core business, branch, and terminal read endpoints
+- Added tenant-core permission integration tests covering `403` denial for unauthorized business, branch, and terminal reads
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is request-level permission guards on protected reads
+- Next safe unit is real auth-user creation and management flows
 
 Next:
 - Add real auth-user creation and management flows beyond bootstrap-only development seeding
-- Add request-level permission guards on protected reads
 - Add auth auditing around password resets and password changes
+- Add branch-scoped user assignment and management flows
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -125,6 +127,7 @@ Tests:
 - Auth repository integration: tenant-scoped user session listing via `DrizzleAuthRepository`
 - Auth password reset: request/confirm flow, non-enumerating `202` responses, and expired token rejection
 - Auth repository integration: password reset token create/find/revoke lifecycle via `DrizzleAuthRepository`
+- Tenant-core RBAC integration: unauthorized business/branch/terminal reads return `403`
 
 Last Successful Commands:
 - `git init -b main`
@@ -198,6 +201,12 @@ Last Successful Commands:
 - `cmd /c pnpm build`
 - `git commit -m "feat(auth): add password reset token flow"`
 - `git push`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm test`
+- `cmd /c pnpm build`
+- `git commit -m "feat(auth): guard tenant core read permissions"`
+- `git push`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -222,6 +231,7 @@ API Status:
 - Runtime auth users and sessions are now backed by PostgreSQL through `DrizzleAuthRepository`
 - Development auth-user seeding now occurs through `pnpm bootstrap:dev`, not API startup
 - Tenant-core write routes now enforce `business:*`, `branch:*`, and `terminal:*` permissions at the HTTP layer
+- Tenant-core read routes now enforce `business:view`, `branch:view`, and `terminal:view` permissions at the HTTP layer
 - Auth API now includes authenticated `POST /api/v1/auth/password/change` with refresh-session revocation after a successful password update
 - Auth API now includes authenticated session listing and session revocation endpoints backed by persisted auth sessions
 - Auth API now includes password reset request/confirm endpoints backed by hashed reset-token persistence and sink-based delivery
@@ -230,4 +240,4 @@ Git Status:
 - clean
 
 Last Commit:
-- `5f117f6 feat(auth): add password reset token flow`
+- `40cb63d feat(auth): guard tenant core read permissions`
