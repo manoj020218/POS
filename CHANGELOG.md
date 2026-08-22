@@ -15,3 +15,5 @@
 - Removed temporary startup tenant seeding from the API server
 - Fixed monorepo env loading so API package scripts read the workspace-root `.env`
 - Verified `pnpm db:migrate`, `pnpm bootstrap:dev`, and a live PostgreSQL-backed API smoke flow
+- Added the first Phase 2 RBAC foundation with a typed role/permission catalog
+- Added reusable permission-guard middleware plus authorization tests

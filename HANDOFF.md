@@ -4,7 +4,7 @@ Current Phase:
 - Phase 2 - Authentication and RBAC
 
 Current Subtask:
-- Permission catalog and role mapping foundation is the next safe Phase 2 slice
+- Login, refresh-token, and logout scaffolding is the next safe Phase 2 slice
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -33,15 +33,18 @@ Completed:
 - Verified `pnpm db:migrate` against local PostgreSQL 18
 - Verified `pnpm bootstrap:dev` against the real `smart_pos` database
 - Verified live PostgreSQL-backed runtime smoke for `GET /health`, `POST /api/v1/businesses`, and `GET /api/v1/businesses`
+- Added a typed role and permission catalog for Phase 2 authorization
+- Added reusable permission guard middleware that resolves role-derived and explicit permissions
+- Added authorization tests for role grants plus `401`/`403` permission enforcement
 
 Currently Working:
 - No active code changes in progress
 - Next safe unit is Phase 2 auth and RBAC foundation
 
 Next:
-- Implement the permission catalog and role-to-permission mapping
 - Add authentication module scaffolding for login, refresh token, and logout flows
-- Add initial auth failure and authorization tests
+- Add session and device tracking primitives
+- Add auth failure tests for login, refresh, and disabled-user flows
 - Replace the temporary dev access headers with authenticated access context in Phase 2
 
 Important Decisions:
@@ -53,6 +56,7 @@ Important Decisions:
 - Use `PGlite` for fast self-contained repository integration tests while keeping `pg` for the real runtime client
 - Use an explicit bootstrap command instead of auto-seeding tenants during API startup
 - Resolve env files from the workspace root so root-level `.env` works for filtered PNPM package scripts
+- Keep RBAC authorization permission-driven, with role-to-grant mapping in one typed catalog
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
@@ -70,6 +74,7 @@ Tests:
 - Real DB verification: `pnpm db:migrate`
 - Real DB verification: `pnpm bootstrap:dev`
 - Runtime smoke: `GET /health`, `POST /api/v1/businesses`, `GET /api/v1/businesses` against PostgreSQL 18
+- Authorization tests: role grant resolution plus permission guard `401`/`403` behavior
 
 Last Successful Commands:
 - `git init -b main`
@@ -95,6 +100,8 @@ Last Successful Commands:
 - `cmd /c pnpm lint`
 - PowerShell smoke: start `pnpm dev`, verify `/health`, create/list a business
 - `git commit -m "fix(env): load workspace root env for runtime scripts"`
+- `cmd /c pnpm build`
+- `git commit -m "feat(auth): add role permission foundation"`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -108,9 +115,10 @@ API Status:
 - Phase 1 route slice verified with business, branch, and terminal endpoints
 - `GET /health` returns `{"status":"ok"}`
 - Live PostgreSQL-backed business create/list smoke verified on port `4012`
+- Auth/RBAC foundation now includes typed role permissions and a reusable permission guard
 
 Git Status:
 - clean
 
 Last Commit:
-- `29e6dc9 fix(env): load workspace root env for runtime scripts`
+- `e8ab38e feat(auth): add role permission foundation`

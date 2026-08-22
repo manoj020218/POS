@@ -2,13 +2,13 @@
 
 NOW
 - Authentication and RBAC foundation
-- Role and permission mapping
-- Auth failure tests
+- Login, refresh token, and logout scaffolding
+- Session and device tracking
 
 NEXT
-- Login, refresh token, and logout flows
-- Session and device tracking
 - Replace temporary dev headers with authenticated access context
+- Auth failure tests for login, refresh, and disabled-user scenarios
+- Password change and reset architecture
 
 LATER
 - Shared contracts package
