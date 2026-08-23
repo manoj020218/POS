@@ -48,7 +48,7 @@ export const createApp = (options: AppOptions): Express => {
   app.use(createRequestLogger(options.logger));
   app.use(healthRouter);
   app.use(attachAccessContext(accessContextResolver));
-  app.use('/api/v1/auth', createAuthRouter(authRepository, authConfig));
+  app.use('/api/v1/auth', createAuthRouter(authRepository, tenantCoreRepository, authConfig));
   app.use('/api/v1', createTenantCoreRouter(tenantCoreRepository));
   app.use(notFoundHandler);
   app.use(errorHandler(options.logger));

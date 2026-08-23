@@ -8,6 +8,8 @@ import { hashOpaqueToken } from './opaque-token.js';
 import { createPasswordResetHandlers, type PasswordResetTokenSink } from './password-reset.service.js';
 import { refreshTokenPayloadSchema } from './auth.schemas.js';
 import { createSessionManagementHandlers } from './session-management.service.js';
+import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
+import { createUserBranchAccessHandlers } from './user-branch-access.service.js';
 import { createUserManagementHandlers } from './user-management.service.js';
 import type { AuthResult, AuthSessionRecord, AuthUserRecord, LoginInput, LogoutInput, RefreshInput } from './auth.types.js';
 import { verifyPassword } from './password.js';
@@ -25,10 +27,15 @@ export type AuthServiceConfig = {
 const defaultAccessTokenTtlSeconds = 15 * 60;
 const defaultRefreshTokenTtlSeconds = 30 * 24 * 60 * 60;
 
-export const createAuthService = (repository: AuthRepository, config: AuthServiceConfig) => ({
+export const createAuthService = (
+  repository: AuthRepository,
+  tenantCoreRepository: TenantCoreRepository,
+  config: AuthServiceConfig
+) => ({
   changePassword: createChangePasswordHandler(repository),
   ...createPasswordResetHandlers(repository, config),
   ...createSessionManagementHandlers(repository),
+  ...createUserBranchAccessHandlers(repository, tenantCoreRepository),
   ...createUserManagementHandlers(repository),
   login: async (input: LoginInput): Promise<AuthResult> => {
     const user = await repository.findUserByEmail(input.email);

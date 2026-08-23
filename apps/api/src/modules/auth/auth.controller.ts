@@ -10,6 +10,7 @@ import {
   logoutSchema,
   passwordResetConfirmSchema,
   passwordResetRequestSchema,
+  replaceUserBranchAccessSchema,
   refreshSchema,
   sessionIdParamsSchema,
   updateAuthUserSchema,
@@ -87,6 +88,17 @@ export const listUsersController = (service: AuthService): RequestHandler =>
     response.status(200).json({ data: users });
   });
 
+export const listUserBranchAccessController = (service: AuthService): RequestHandler =>
+  asyncHandler(async (request, response: Response) => {
+    const accessContext = getAccessContext(request);
+    const branches = await service.listUserBranchAccess({
+      tenantId: accessContext.tenantId,
+      userId: parseSchema(userIdParamsSchema, request.params).userId
+    });
+
+    response.status(200).json({ data: branches });
+  });
+
 export const revokeSessionController = (service: AuthService): RequestHandler =>
   asyncHandler(async (request, response: Response) => {
     const accessContext = getAccessContext(request);
@@ -97,6 +109,18 @@ export const revokeSessionController = (service: AuthService): RequestHandler =>
     });
 
     response.status(204).send();
+  });
+
+export const replaceUserBranchAccessController = (service: AuthService): RequestHandler =>
+  asyncHandler(async (request, response: Response) => {
+    const accessContext = getAccessContext(request);
+    const branches = await service.replaceUserBranchAccess({
+      ...parseSchema(replaceUserBranchAccessSchema, request.body),
+      tenantId: accessContext.tenantId,
+      userId: parseSchema(userIdParamsSchema, request.params).userId
+    });
+
+    response.status(200).json({ data: branches });
   });
 
 export const updateUserController = (service: AuthService): RequestHandler =>

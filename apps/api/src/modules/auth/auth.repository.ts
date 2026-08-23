@@ -1,4 +1,5 @@
 import type {
+  AuthUserBranchAccessRecord,
   AuthPasswordResetTokenRecord,
   AuthSessionRecord,
   AuthUserRecord
@@ -21,10 +22,16 @@ export interface AuthRepository {
   createSession(input: CreateSessionInput): Promise<AuthSessionRecord>;
   findPasswordResetTokenByHash(tokenHash: string): Promise<AuthPasswordResetTokenRecord | null>;
   findSessionById(sessionId: string): Promise<AuthSessionRecord | null>;
+  listBranchAccessForUser(userId: string, tenantId: string): Promise<AuthUserBranchAccessRecord[]>;
   listUsersForTenant(tenantId: string): Promise<AuthUserRecord[]>;
   listSessionsForUser(userId: string, tenantId: string): Promise<AuthSessionRecord[]>;
   findUserByEmail(email: string): Promise<AuthUserRecord | null>;
   findUserById(userId: string): Promise<AuthUserRecord | null>;
+  replaceBranchAccessForUser(
+    userId: string,
+    tenantId: string,
+    branchIds: string[]
+  ): Promise<AuthUserBranchAccessRecord[]>;
   revokePasswordResetTokensForUser(userId: string, tenantId: string, usedAt: Date): Promise<void>;
   revokeSession(sessionId: string, revokedAt: Date): Promise<void>;
   revokeSessionsForUser(userId: string, tenantId: string, revokedAt: Date): Promise<void>;

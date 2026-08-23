@@ -18,7 +18,7 @@ describe('DrizzleTenantCoreRepository', () => {
 
     await repository.createTenant({ id: tenantA, name: 'Tenant A', slug: 'tenant-a' });
     await repository.createTenant({ id: tenantB, name: 'Tenant B', slug: 'tenant-b' });
-  });
+  }, 20000);
 
   afterEach(async () => {
     await close();

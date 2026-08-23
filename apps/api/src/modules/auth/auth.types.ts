@@ -36,6 +36,14 @@ export type AuthPasswordResetTokenRecord = {
   userId: string;
 };
 
+export type AuthUserBranchAccessRecord = {
+  branchId: string;
+  createdAt: Date;
+  id: string;
+  tenantId: string;
+  userId: string;
+};
+
 export type LoginInput = {
   deviceInstallationId?: string;
   deviceName?: string;
@@ -97,6 +105,14 @@ export type AuthManagedUserView = {
   permissions: AppPermission[];
   role: AppRole;
   tenantId: string;
+};
+
+export type AuthUserBranchAccessView = {
+  branchId: string;
+  businessId: string;
+  code: string;
+  isActive: boolean;
+  name: string;
 };
 
 export type AuthResult = AuthTokens & {

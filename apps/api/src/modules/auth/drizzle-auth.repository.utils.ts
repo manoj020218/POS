@@ -1,7 +1,13 @@
-import { authPasswordResetTokens, authSessions, authUsers } from '../../db/schema/index.js';
+import {
+  authPasswordResetTokens,
+  authSessions,
+  authUserBranchAccess,
+  authUsers
+} from '../../db/schema/index.js';
 import type { AppPermission, AppRole } from './authorization.js';
 import type {
   AuthPasswordResetTokenRecord,
+  AuthUserBranchAccessRecord,
   AuthSessionRecord,
   AuthUserRecord
 } from './auth.types.js';
@@ -44,4 +50,14 @@ export const normalizeAuthUser = (user: typeof authUsers.$inferSelect): AuthUser
   permissions: user.permissions as AppPermission[],
   role: user.role as AppRole,
   tenantId: user.tenantId
+});
+
+export const normalizeAuthUserBranchAccess = (
+  record: typeof authUserBranchAccess.$inferSelect
+): AuthUserBranchAccessRecord => ({
+  branchId: record.branchId,
+  createdAt: record.createdAt,
+  id: record.id,
+  tenantId: record.tenantId,
+  userId: record.userId
 });

@@ -19,12 +19,21 @@ import {
   normalizeAuthSession,
   normalizeAuthUser
 } from './drizzle-auth.repository.utils.js';
-import type { AuthSessionRecord, AuthUserRecord } from './auth.types.js';
+import { createDrizzleAuthBranchAccessStore } from './drizzle-auth.branch-access-store.js';
+import type {
+  AuthSessionRecord,
+  AuthUserBranchAccessRecord,
+  AuthUserRecord
+} from './auth.types.js';
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 export class DrizzleAuthRepository implements AuthRepository {
-  constructor(private readonly db: AppDatabase) {}
+  private readonly branchAccessStore: ReturnType<typeof createDrizzleAuthBranchAccessStore>;
+
+  constructor(private readonly db: AppDatabase) {
+    this.branchAccessStore = createDrizzleAuthBranchAccessStore(this.db);
+  }
 
   async createPasswordResetToken(input: CreatePasswordResetTokenInput) {
     await this.ensureUser(input.userId, input.tenantId);
@@ -52,6 +61,14 @@ export class DrizzleAuthRepository implements AuthRepository {
   async findSessionById(sessionId: string): Promise<AuthSessionRecord | null> {
     const [session] = await this.db.select().from(authSessions).where(eq(authSessions.id, sessionId)).limit(1);
     return session ? normalizeAuthSession(session) : null;
+  }
+
+  async listBranchAccessForUser(
+    userId: string,
+    tenantId: string
+  ): Promise<AuthUserBranchAccessRecord[]> {
+    await this.ensureUser(userId, tenantId);
+    return this.branchAccessStore.listForUser(userId, tenantId);
   }
 
   async listUsersForTenant(tenantId: string): Promise<AuthUserRecord[]> {
@@ -86,6 +103,15 @@ export class DrizzleAuthRepository implements AuthRepository {
   async findUserById(userId: string): Promise<AuthUserRecord | null> {
     const [user] = await this.db.select().from(authUsers).where(eq(authUsers.id, userId)).limit(1);
     return user ? normalizeAuthUser(user) : null;
+  }
+
+  async replaceBranchAccessForUser(
+    userId: string,
+    tenantId: string,
+    branchIds: string[]
+  ): Promise<AuthUserBranchAccessRecord[]> {
+    await this.ensureUser(userId, tenantId);
+    return this.branchAccessStore.replaceForUser(userId, tenantId, branchIds);
   }
 
   async revokePasswordResetTokensForUser(userId: string, tenantId: string, usedAt: Date): Promise<void> {

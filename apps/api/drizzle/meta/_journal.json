@@ -22,6 +22,13 @@
       "when": 1787400011362,
       "tag": "0002_motionless_triton",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787463439483,
+      "tag": "0003_thankful_sphinx",
+      "breakpoints": true
     }
   ]
 }

@@ -54,6 +54,10 @@ export const userIdParamsSchema = z.object({
   userId: z.string().uuid()
 });
 
+export const replaceUserBranchAccessSchema = z.object({
+  branchIds: z.array(z.string().uuid()).max(200)
+});
+
 export const createAuthUserSchema = z.object({
   displayName: displayNameSchema,
   email: emailSchema,

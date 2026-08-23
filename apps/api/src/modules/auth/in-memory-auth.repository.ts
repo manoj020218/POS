@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import type {
   AuthRepository,
   CreatePasswordResetTokenInput,
@@ -5,6 +7,7 @@ import type {
   UpdateSessionInput
 } from './auth.repository.js';
 import type {
+  AuthUserBranchAccessRecord,
   AuthPasswordResetTokenRecord,
   AuthSessionRecord,
   AuthUserRecord
@@ -13,6 +16,7 @@ import type {
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 export class InMemoryAuthRepository implements AuthRepository {
+  private readonly branchAccess = new Map<string, AuthUserBranchAccessRecord>();
   private readonly passwordResetTokens = new Map<string, AuthPasswordResetTokenRecord>();
   private readonly sessions = new Map<string, AuthSessionRecord>();
   private readonly users = new Map<string, AuthUserRecord>();
@@ -51,6 +55,15 @@ export class InMemoryAuthRepository implements AuthRepository {
     return this.sessions.get(sessionId) ?? null;
   }
 
+  async listBranchAccessForUser(
+    userId: string,
+    tenantId: string
+  ): Promise<AuthUserBranchAccessRecord[]> {
+    return [...this.branchAccess.values()].filter((record) => {
+      return record.userId === userId && record.tenantId === tenantId;
+    });
+  }
+
   async listUsersForTenant(tenantId: string): Promise<AuthUserRecord[]> {
     return [...this.users.values()]
       .filter((user) => user.tenantId === tenantId)
@@ -81,6 +94,34 @@ export class InMemoryAuthRepository implements AuthRepository {
 
   async findUserById(userId: string): Promise<AuthUserRecord | null> {
     return this.users.get(userId) ?? null;
+  }
+
+  async replaceBranchAccessForUser(
+    userId: string,
+    tenantId: string,
+    branchIds: string[]
+  ): Promise<AuthUserBranchAccessRecord[]> {
+    for (const [recordId, record] of this.branchAccess.entries()) {
+      if (record.userId === userId && record.tenantId === tenantId) {
+        this.branchAccess.delete(recordId);
+      }
+    }
+
+    const createdAt = new Date();
+    const records = branchIds.map((branchId) => {
+      const record = {
+        branchId,
+        createdAt,
+        id: randomUUID(),
+        tenantId,
+        userId
+      };
+
+      this.branchAccess.set(record.id, record);
+      return record;
+    });
+
+    return records;
   }
 
   async revokePasswordResetTokensForUser(userId: string, tenantId: string, usedAt: Date): Promise<void> {
