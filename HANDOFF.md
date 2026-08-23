@@ -4,7 +4,7 @@ Current Phase:
 - Phase 2 - Authentication and RBAC
 
 Current Subtask:
-- Branch-scoped user assignment and management flows are the next safe Phase 2 slice
+- Auth auditing around password resets, password changes, and auth-user management mutations is the next safe Phase 2 slice
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -72,14 +72,20 @@ Completed:
 - Added automatic refresh-session revocation when a managed user is disabled or re-roled
 - Added repository support for tenant-scoped auth-user listing in both in-memory and PostgreSQL-backed auth repositories
 - Added auth-user management route tests plus `DrizzleAuthRepository` tenant-user listing integration coverage
+- Added `auth_user_branch_access` schema plus generated migration `apps/api/drizzle/0003_thankful_sphinx.sql`
+- Added tenant-scoped branch-assignment management endpoints for `GET/PUT /api/v1/auth/users/:userId/branches`
+- Added repository support for tenant-scoped auth-user branch assignment listing and replacement in both in-memory and PostgreSQL-backed auth repositories
+- Added branch-assignment validation so only same-tenant branches can be assigned to a tenant-scoped user
+- Added auth-user branch-assignment route tests plus `DrizzleAuthRepository` branch-assignment integration coverage
+- Verified `pnpm db:migrate` after adding the branch-assignment migration
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is branch-scoped user assignment and management flows
+- Next safe unit is auth auditing around password resets, password changes, and auth-user management mutations
 
 Next:
-- Add branch-scoped user assignment and management flows
 - Add auth auditing around password resets, password changes, and auth-user management mutations
+- Extend auth auditing around login, refresh, logout, session revocation, and branch assignment changes
 - Define an initial owner/bootstrap admin provisioning flow beyond env-only development seeding
 
 Important Decisions:
@@ -103,6 +109,8 @@ Important Decisions:
 - Expose real tenant-scoped auth-user management under `/api/v1/auth/users` behind the existing `user:manage` permission
 - Allow tenant-scoped user management to assign only roles whose effective permissions are a subset of the acting user's permissions
 - Revoke persisted refresh sessions whenever a managed user's role or active status changes
+- Store branch-scoped user assignments in a separate tenant-scoped `auth_user_branch_access` relation rather than overloading the auth-user record
+- Manage branch assignments through explicit `/api/v1/auth/users/:userId/branches` endpoints behind the existing `user:manage` permission
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
@@ -110,6 +118,7 @@ Known Issues:
 - The first tenant owner/admin still must exist via bootstrap or another provisioning path before `/api/v1/auth/users` can manage additional users
 - Password reset delivery still defaults to a no-op sink at runtime; email/SMS/admin handoff for reset tokens is not implemented yet
 - Disabling or re-roling a user revokes refresh sessions, but already-issued access tokens remain valid until their expiry because access tokens are currently stateless
+- Branch assignments are now persisted and manageable, but protected-route authorization does not yet enforce branch-scoped access rules
 
 Tests:
 - `pnpm lint`
@@ -139,6 +148,8 @@ Tests:
 - Tenant-core RBAC integration: unauthorized business/branch/terminal reads return `403`
 - Auth user management: tenant-scoped create/list/update flows, role-assignment denial, self-disable denial, and session revocation on disable
 - Auth repository integration: tenant-scoped user listing via `DrizzleAuthRepository`
+- Auth user branch access: tenant-scoped list/replace flows, cross-tenant branch rejection, cross-tenant user rejection, and `user:manage` enforcement
+- Auth repository integration: tenant-scoped branch assignment replacement and listing via `DrizzleAuthRepository`
 
 Last Successful Commands:
 - `git init -b main`
@@ -224,6 +235,14 @@ Last Successful Commands:
 - `cmd /c pnpm build`
 - `git commit -m "feat(auth): add tenant user management endpoints"`
 - `git push`
+- `cmd /c pnpm db:generate`
+- `cmd /c pnpm db:migrate`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm test`
+- `cmd /c pnpm build`
+- `git commit -m "feat(auth): add branch-scoped user assignments"`
+- `git push`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -235,6 +254,8 @@ Database Status:
 - `auth_users` and `auth_sessions` are now persisted in PostgreSQL
 - Auth password reset token schema added at `apps/api/drizzle/0002_motionless_triton.sql`
 - `auth_password_reset_tokens` are now persisted in PostgreSQL
+- Auth user branch access schema added at `apps/api/drizzle/0003_thankful_sphinx.sql`
+- `auth_user_branch_access` assignments are now persisted in PostgreSQL
 - Development auth user bootstrap verified against the real database
 
 API Status:
@@ -254,9 +275,11 @@ API Status:
 - Auth API now includes password reset request/confirm endpoints backed by hashed reset-token persistence and sink-based delivery
 - Auth API now includes tenant-scoped `GET /api/v1/auth/users`, `POST /api/v1/auth/users`, and `PATCH /api/v1/auth/users/:userId` guarded by `user:manage`
 - Auth-user management writes now revoke persisted refresh sessions when a user's role or active status changes
+- Auth API now includes tenant-scoped `GET /api/v1/auth/users/:userId/branches` and `PUT /api/v1/auth/users/:userId/branches` guarded by `user:manage`
+- Auth-user branch assignment writes now replace the user's persisted tenant-scoped branch access set
 
 Git Status:
 - clean
 
 Last Commit:
-- `3a3e887 feat(auth): add tenant user management endpoints`
+- `5e9b7aa feat(auth): add branch-scoped user assignments`
