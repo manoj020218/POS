@@ -4,7 +4,7 @@ Current Phase:
 - Phase 2 - Authentication and RBAC
 
 Current Subtask:
-- Auth auditing around password resets, password changes, and auth-user management mutations is the next safe Phase 2 slice
+- Branch-scoped authorization enforcement on protected routes is the next safe Phase 2 slice
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -78,13 +78,18 @@ Completed:
 - Added branch-assignment validation so only same-tenant branches can be assigned to a tenant-scoped user
 - Added auth-user branch-assignment route tests plus `DrizzleAuthRepository` branch-assignment integration coverage
 - Verified `pnpm db:migrate` after adding the branch-assignment migration
+- Added `audit_logs` schema plus generated migration `apps/api/drizzle/0004_lazy_firestar.sql`
+- Added persisted auth audit logging for password changes, password reset requests/completions, and auth-user create/update mutations
+- Added repository support for auth audit-log create/list flows in both in-memory and PostgreSQL-backed auth repositories
+- Added auth audit route tests plus `DrizzleAuthRepository` audit-log integration coverage
+- Verified `pnpm db:migrate` after adding the auth audit-log migration
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is auth auditing around password resets, password changes, and auth-user management mutations
+- Next safe unit is branch-scoped authorization enforcement on protected routes
 
 Next:
-- Add auth auditing around password resets, password changes, and auth-user management mutations
+- Add branch-scoped authorization enforcement on protected routes
 - Extend auth auditing around login, refresh, logout, session revocation, and branch assignment changes
 - Define an initial owner/bootstrap admin provisioning flow beyond env-only development seeding
 
@@ -111,6 +116,8 @@ Important Decisions:
 - Revoke persisted refresh sessions whenever a managed user's role or active status changes
 - Store branch-scoped user assignments in a separate tenant-scoped `auth_user_branch_access` relation rather than overloading the auth-user record
 - Manage branch assignments through explicit `/api/v1/auth/users/:userId/branches` endpoints behind the existing `user:manage` permission
+- Persist auth audit history in a general `audit_logs` table keyed by tenant/entity/action while keeping the current write scope limited to auth mutations
+- Avoid storing passwords, reset tokens, or other secrets in audit metadata; audit only action type plus safe state deltas
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
@@ -119,6 +126,7 @@ Known Issues:
 - Password reset delivery still defaults to a no-op sink at runtime; email/SMS/admin handoff for reset tokens is not implemented yet
 - Disabling or re-roling a user revokes refresh sessions, but already-issued access tokens remain valid until their expiry because access tokens are currently stateless
 - Branch assignments are now persisted and manageable, but protected-route authorization does not yet enforce branch-scoped access rules
+- Audit logging currently covers password changes, password reset request/confirm, and auth-user create/update only; login, refresh, logout, session revocation, and branch-assignment mutations are not yet audited
 
 Tests:
 - `pnpm lint`
@@ -150,6 +158,8 @@ Tests:
 - Auth repository integration: tenant-scoped user listing via `DrizzleAuthRepository`
 - Auth user branch access: tenant-scoped list/replace flows, cross-tenant branch rejection, cross-tenant user rejection, and `user:manage` enforcement
 - Auth repository integration: tenant-scoped branch assignment replacement and listing via `DrizzleAuthRepository`
+- Auth audit logging: password change, password reset request/confirm, and auth-user create/update flows emit persisted tenant-scoped audit logs
+- Auth repository integration: tenant-scoped audit-log create/list via `DrizzleAuthRepository`
 
 Last Successful Commands:
 - `git init -b main`
@@ -243,6 +253,14 @@ Last Successful Commands:
 - `cmd /c pnpm build`
 - `git commit -m "feat(auth): add branch-scoped user assignments"`
 - `git push`
+- `cmd /c pnpm db:generate`
+- `cmd /c pnpm db:migrate`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm test`
+- `cmd /c pnpm build`
+- `git commit -m "feat(auth): add auth audit logging"`
+- `git push`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -256,6 +274,8 @@ Database Status:
 - `auth_password_reset_tokens` are now persisted in PostgreSQL
 - Auth user branch access schema added at `apps/api/drizzle/0003_thankful_sphinx.sql`
 - `auth_user_branch_access` assignments are now persisted in PostgreSQL
+- Audit log schema added at `apps/api/drizzle/0004_lazy_firestar.sql`
+- `audit_logs` are now persisted in PostgreSQL
 - Development auth user bootstrap verified against the real database
 
 API Status:
@@ -277,9 +297,10 @@ API Status:
 - Auth-user management writes now revoke persisted refresh sessions when a user's role or active status changes
 - Auth API now includes tenant-scoped `GET /api/v1/auth/users/:userId/branches` and `PUT /api/v1/auth/users/:userId/branches` guarded by `user:manage`
 - Auth-user branch assignment writes now replace the user's persisted tenant-scoped branch access set
+- Auth mutations now persist tenant-scoped audit logs for password change, password reset request/confirm, and auth-user create/update flows
 
 Git Status:
 - clean
 
 Last Commit:
-- `5e9b7aa feat(auth): add branch-scoped user assignments`
+- `8e27033 feat(auth): add auth audit logging`
