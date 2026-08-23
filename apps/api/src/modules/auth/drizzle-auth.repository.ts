@@ -10,29 +10,30 @@ import {
 import { createHttpError } from '../../lib/http-error.js';
 import type {
   AuthRepository,
+  CreateAuditLogInput,
   CreatePasswordResetTokenInput,
   CreateSessionInput,
   UpdateSessionInput
 } from './auth.repository.js';
-import {
-  normalizeAuthPasswordResetToken,
-  normalizeAuthSession,
-  normalizeAuthUser
-} from './drizzle-auth.repository.utils.js';
+import { normalizeAuthPasswordResetToken, normalizeAuthSession, normalizeAuthUser } from './drizzle-auth.repository.utils.js';
+import { createDrizzleAuthAuditStore } from './drizzle-auth.audit-store.js';
 import { createDrizzleAuthBranchAccessStore } from './drizzle-auth.branch-access-store.js';
-import type {
-  AuthSessionRecord,
-  AuthUserBranchAccessRecord,
-  AuthUserRecord
-} from './auth.types.js';
+import type { AuthAuditEntityType, AuthAuditLogRecord, AuthSessionRecord, AuthUserBranchAccessRecord, AuthUserRecord } from './auth.types.js';
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 export class DrizzleAuthRepository implements AuthRepository {
+  private readonly auditStore: ReturnType<typeof createDrizzleAuthAuditStore>;
   private readonly branchAccessStore: ReturnType<typeof createDrizzleAuthBranchAccessStore>;
 
   constructor(private readonly db: AppDatabase) {
+    this.auditStore = createDrizzleAuthAuditStore(this.db);
     this.branchAccessStore = createDrizzleAuthBranchAccessStore(this.db);
+  }
+
+  async createAuditLog(input: CreateAuditLogInput): Promise<AuthAuditLogRecord> {
+    await this.ensureTenant(input.tenantId);
+    return this.auditStore.create(input);
   }
 
   async createPasswordResetToken(input: CreatePasswordResetTokenInput) {
@@ -63,10 +64,16 @@ export class DrizzleAuthRepository implements AuthRepository {
     return session ? normalizeAuthSession(session) : null;
   }
 
-  async listBranchAccessForUser(
-    userId: string,
-    tenantId: string
-  ): Promise<AuthUserBranchAccessRecord[]> {
+  async listAuditLogsForEntity(
+    tenantId: string,
+    entityType: AuthAuditEntityType,
+    entityId: string
+  ): Promise<AuthAuditLogRecord[]> {
+    await this.ensureTenant(tenantId);
+    return this.auditStore.listForEntity(tenantId, entityType, entityId);
+  }
+
+  async listBranchAccessForUser(userId: string, tenantId: string): Promise<AuthUserBranchAccessRecord[]> {
     await this.ensureUser(userId, tenantId);
     return this.branchAccessStore.listForUser(userId, tenantId);
   }
@@ -105,11 +112,7 @@ export class DrizzleAuthRepository implements AuthRepository {
     return user ? normalizeAuthUser(user) : null;
   }
 
-  async replaceBranchAccessForUser(
-    userId: string,
-    tenantId: string,
-    branchIds: string[]
-  ): Promise<AuthUserBranchAccessRecord[]> {
+  async replaceBranchAccessForUser(userId: string, tenantId: string, branchIds: string[]): Promise<AuthUserBranchAccessRecord[]> {
     await this.ensureUser(userId, tenantId);
     return this.branchAccessStore.replaceForUser(userId, tenantId, branchIds);
   }

@@ -29,6 +29,13 @@
       "when": 1787463439483,
       "tag": "0003_thankful_sphinx",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787465688615,
+      "tag": "0004_lazy_firestar",
+      "breakpoints": true
     }
   ]
 }

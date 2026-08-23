@@ -1,10 +1,14 @@
 import { createHttpError } from '../../lib/http-error.js';
 import type { AuthRepository } from './auth.repository.js';
 import type { ChangePasswordInput } from './auth.types.js';
+import type { createAuthAuditLogger } from './auth-audit.service.js';
 import { hashPassword, verifyPassword } from './password.js';
 
 export const createChangePasswordHandler =
-  (repository: AuthRepository) =>
+  (
+    repository: AuthRepository,
+    auditLogger: ReturnType<typeof createAuthAuditLogger>
+  ) =>
   async (input: ChangePasswordInput): Promise<void> => {
     const user = await repository.findUserById(input.userId);
 
@@ -35,4 +39,5 @@ export const createChangePasswordHandler =
     }
 
     await repository.revokeSessionsForUser(user.id, user.tenantId, new Date());
+    await auditLogger.recordPasswordChanged({ tenantId: user.tenantId, userId: user.id });
   };

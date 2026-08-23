@@ -1,10 +1,12 @@
 import {
+  auditLogs,
   authPasswordResetTokens,
   authSessions,
   authUserBranchAccess,
   authUsers
 } from '../../db/schema/index.js';
 import type { AppPermission, AppRole } from './authorization.js';
+import type { AuthAuditLogRecord } from './auth-audit.types.js';
 import type {
   AuthPasswordResetTokenRecord,
   AuthUserBranchAccessRecord,
@@ -60,4 +62,16 @@ export const normalizeAuthUserBranchAccess = (
   id: record.id,
   tenantId: record.tenantId,
   userId: record.userId
+});
+
+export const normalizeAuditLog = (record: typeof auditLogs.$inferSelect): AuthAuditLogRecord => ({
+  action: record.action as AuthAuditLogRecord['action'],
+  actorUserId: record.actorUserId ?? undefined,
+  branchId: record.branchId ?? undefined,
+  createdAt: record.createdAt,
+  entityId: record.entityId,
+  entityType: record.entityType as AuthAuditLogRecord['entityType'],
+  id: record.id,
+  metadata: record.metadata as AuthAuditLogRecord['metadata'],
+  tenantId: record.tenantId
 });

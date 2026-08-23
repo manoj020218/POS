@@ -54,6 +54,7 @@ export const createUserController = (service: AuthService): RequestHandler =>
     const user = await service.createUser({
       ...parseSchema(createAuthUserSchema, request.body),
       actor: accessContext,
+      actorUserId: accessContext.userId,
       tenantId: accessContext.tenantId
     });
 

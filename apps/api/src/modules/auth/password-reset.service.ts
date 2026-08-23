@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 
 import { createHttpError } from '../../lib/http-error.js';
 import type { AuthRepository } from './auth.repository.js';
+import type { createAuthAuditLogger } from './auth-audit.service.js';
 import { hashOpaqueToken } from './opaque-token.js';
 import { hashPassword } from './password.js';
 import type { RequestPasswordResetInput, ResetPasswordInput } from './auth.types.js';
@@ -18,7 +19,8 @@ const defaultPasswordResetTokenTtlSeconds = 15 * 60;
 
 export const createPasswordResetHandlers = (
   repository: AuthRepository,
-  config: { passwordResetTokenSink?: PasswordResetTokenSink; passwordResetTokenTtlSeconds?: number }
+  config: { passwordResetTokenSink?: PasswordResetTokenSink; passwordResetTokenTtlSeconds?: number },
+  auditLogger: ReturnType<typeof createAuthAuditLogger>
 ) => ({
   requestPasswordReset: async (input: RequestPasswordResetInput): Promise<void> => {
     const user = await repository.findUserByEmail(input.email);
@@ -47,6 +49,11 @@ export const createPasswordResetHandlers = (
       token,
       userId: user.id
     });
+    await auditLogger.recordPasswordResetRequested({
+      expiresAt,
+      tenantId: user.tenantId,
+      userId: user.id
+    });
   },
   resetPassword: async (input: ResetPasswordInput): Promise<void> => {
     const now = new Date();
@@ -72,5 +79,6 @@ export const createPasswordResetHandlers = (
     await repository.updateUserPassword(user.id, user.tenantId, await hashPassword(input.newPassword));
     await repository.revokePasswordResetTokensForUser(user.id, user.tenantId, now);
     await repository.revokeSessionsForUser(user.id, user.tenantId, now);
+    await auditLogger.recordPasswordResetCompleted({ tenantId: user.tenantId, userId: user.id });
   }
 });

@@ -1,6 +1,7 @@
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 
 import { createHttpError } from '../../lib/http-error.js';
+import { createAuthAuditLogger } from './auth-audit.service.js';
 import type { AuthRepository } from './auth.repository.js';
 import { resolveGrantedPermissions } from './authorization.js';
 import { createChangePasswordHandler } from './change-password.service.js';
@@ -31,12 +32,15 @@ export const createAuthService = (
   repository: AuthRepository,
   tenantCoreRepository: TenantCoreRepository,
   config: AuthServiceConfig
-) => ({
-  changePassword: createChangePasswordHandler(repository),
-  ...createPasswordResetHandlers(repository, config),
+) => {
+  const auditLogger = createAuthAuditLogger(repository);
+
+  return {
+  changePassword: createChangePasswordHandler(repository, auditLogger),
+  ...createPasswordResetHandlers(repository, config, auditLogger),
   ...createSessionManagementHandlers(repository),
   ...createUserBranchAccessHandlers(repository, tenantCoreRepository),
-  ...createUserManagementHandlers(repository),
+  ...createUserManagementHandlers(repository, auditLogger),
   login: async (input: LoginInput): Promise<AuthResult> => {
     const user = await repository.findUserByEmail(input.email);
 
@@ -103,7 +107,8 @@ export const createAuthService = (
 
     return toAuthResult(user, updated, issued);
   }
-});
+  };
+};
 
 const ensureRefreshSession = (
   session: AuthSessionRecord | null,

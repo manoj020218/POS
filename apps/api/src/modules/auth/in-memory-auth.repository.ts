@@ -2,11 +2,14 @@ import { randomUUID } from 'node:crypto';
 
 import type {
   AuthRepository,
+  CreateAuditLogInput,
   CreatePasswordResetTokenInput,
   CreateSessionInput,
   UpdateSessionInput
 } from './auth.repository.js';
 import type {
+  AuthAuditEntityType,
+  AuthAuditLogRecord,
   AuthUserBranchAccessRecord,
   AuthPasswordResetTokenRecord,
   AuthSessionRecord,
@@ -16,6 +19,7 @@ import type {
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 export class InMemoryAuthRepository implements AuthRepository {
+  private readonly auditLogs = new Map<string, AuthAuditLogRecord>();
   private readonly branchAccess = new Map<string, AuthUserBranchAccessRecord>();
   private readonly passwordResetTokens = new Map<string, AuthPasswordResetTokenRecord>();
   private readonly sessions = new Map<string, AuthSessionRecord>();
@@ -32,6 +36,12 @@ export class InMemoryAuthRepository implements AuthRepository {
   ): Promise<AuthPasswordResetTokenRecord> {
     const record = { ...input };
     this.passwordResetTokens.set(record.id, record);
+    return record;
+  }
+
+  async createAuditLog(input: CreateAuditLogInput): Promise<AuthAuditLogRecord> {
+    const record = { ...input, createdAt: new Date() };
+    this.auditLogs.set(record.id, record);
     return record;
   }
 
@@ -53,6 +63,22 @@ export class InMemoryAuthRepository implements AuthRepository {
 
   async findSessionById(sessionId: string): Promise<AuthSessionRecord | null> {
     return this.sessions.get(sessionId) ?? null;
+  }
+
+  async listAuditLogsForEntity(
+    tenantId: string,
+    entityType: AuthAuditEntityType,
+    entityId: string
+  ): Promise<AuthAuditLogRecord[]> {
+    return [...this.auditLogs.values()]
+      .filter((record) => {
+        return (
+          record.tenantId === tenantId &&
+          record.entityType === entityType &&
+          record.entityId === entityId
+        );
+      })
+      .sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime());
   }
 
   async listBranchAccessForUser(

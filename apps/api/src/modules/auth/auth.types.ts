@@ -115,6 +115,13 @@ export type AuthUserBranchAccessView = {
   name: string;
 };
 
+export type {
+  AuthAuditAction,
+  AuthAuditEntityType,
+  AuthAuditLogRecord,
+  AuthAuditMetadata
+} from './auth-audit.types.js';
+
 export type AuthResult = AuthTokens & {
   session: {
     createdAt: string;

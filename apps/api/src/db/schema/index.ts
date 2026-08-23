@@ -1,3 +1,4 @@
+export * from './audit-log.js';
 export * from './auth-password-reset.js';
 export * from './auth-session.js';
 export * from './auth-user-branch-access.js';

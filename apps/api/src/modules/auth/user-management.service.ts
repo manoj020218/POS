@@ -3,12 +3,14 @@ import { randomUUID } from 'node:crypto';
 import { createHttpError } from '../../lib/http-error.js';
 import type { AccessContext } from '../tenant-core/access-context.js';
 import type { AuthRepository } from './auth.repository.js';
+import type { createAuthAuditLogger } from './auth-audit.service.js';
 import { hasAllPermissions, resolveGrantedPermissions } from './authorization.js';
 import type { AuthManagedUserView, AuthUserRecord } from './auth.types.js';
 import { hashPassword } from './password.js';
 
 type CreateAuthUserInput = {
   actor: Pick<AccessContext, 'permissions' | 'role'>;
+  actorUserId: string;
   displayName: string;
   email: string;
   isActive: boolean;
@@ -28,7 +30,10 @@ type UpdateAuthUserInput = {
   userId: string;
 };
 
-export const createUserManagementHandlers = (repository: AuthRepository) => ({
+export const createUserManagementHandlers = (
+  repository: AuthRepository,
+  auditLogger: ReturnType<typeof createAuthAuditLogger>
+) => ({
   createUser: async (input: CreateAuthUserInput): Promise<AuthManagedUserView> => {
     ensureAssignableUser(input.actor, { permissions: [], role: input.role });
     await ensureEmailAvailable(repository, input.email);
@@ -43,6 +48,8 @@ export const createUserManagementHandlers = (repository: AuthRepository) => ({
       role: input.role,
       tenantId: input.tenantId
     });
+
+    await auditLogger.recordUserCreated({ actorUserId: input.actorUserId, user });
 
     return toManagedUserView(user);
   },
@@ -83,6 +90,12 @@ export const createUserManagementHandlers = (repository: AuthRepository) => ({
     if (shouldRevokeSessions(existing, persisted)) {
       await repository.revokeSessionsForUser(persisted.id, persisted.tenantId, new Date());
     }
+
+    await auditLogger.recordUserUpdated({
+      actorUserId: input.actorUserId,
+      after: persisted,
+      before: existing
+    });
 
     return toManagedUserView(persisted);
   }

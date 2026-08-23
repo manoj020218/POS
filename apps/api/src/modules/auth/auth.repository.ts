@@ -1,9 +1,23 @@
 import type {
+  AuthAuditEntityType,
+  AuthAuditLogRecord,
+  AuthAuditMetadata,
   AuthUserBranchAccessRecord,
   AuthPasswordResetTokenRecord,
   AuthSessionRecord,
   AuthUserRecord
 } from './auth.types.js';
+
+export type CreateAuditLogInput = {
+  action: AuthAuditLogRecord['action'];
+  actorUserId?: string;
+  branchId?: string;
+  entityId: string;
+  entityType: AuthAuditEntityType;
+  id: string;
+  metadata: AuthAuditMetadata;
+  tenantId: string;
+};
 
 export type CreateSessionInput = Omit<AuthSessionRecord, 'createdAt' | 'lastRefreshedAt'> & {
   createdAt: Date;
@@ -18,10 +32,16 @@ export type UpdateSessionInput = Pick<
 >;
 
 export interface AuthRepository {
+  createAuditLog(input: CreateAuditLogInput): Promise<AuthAuditLogRecord>;
   createPasswordResetToken(input: CreatePasswordResetTokenInput): Promise<AuthPasswordResetTokenRecord>;
   createSession(input: CreateSessionInput): Promise<AuthSessionRecord>;
   findPasswordResetTokenByHash(tokenHash: string): Promise<AuthPasswordResetTokenRecord | null>;
   findSessionById(sessionId: string): Promise<AuthSessionRecord | null>;
+  listAuditLogsForEntity(
+    tenantId: string,
+    entityType: AuthAuditEntityType,
+    entityId: string
+  ): Promise<AuthAuditLogRecord[]>;
   listBranchAccessForUser(userId: string, tenantId: string): Promise<AuthUserBranchAccessRecord[]>;
   listUsersForTenant(tenantId: string): Promise<AuthUserRecord[]>;
   listSessionsForUser(userId: string, tenantId: string): Promise<AuthSessionRecord[]>;
