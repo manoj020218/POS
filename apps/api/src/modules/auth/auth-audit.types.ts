@@ -2,11 +2,16 @@ export const authAuditEntityTypes = ['auth_user'] as const;
 export type AuthAuditEntityType = (typeof authAuditEntityTypes)[number];
 
 export const authAuditActions = [
+  'AUTH_LOGIN_COMPLETED',
+  'AUTH_REFRESH_COMPLETED',
+  'AUTH_LOGOUT_COMPLETED',
+  'AUTH_SESSION_REVOKED',
   'AUTH_PASSWORD_CHANGED',
   'AUTH_PASSWORD_RESET_REQUESTED',
   'AUTH_PASSWORD_RESET_COMPLETED',
   'AUTH_USER_CREATED',
-  'AUTH_USER_UPDATED'
+  'AUTH_USER_UPDATED',
+  'AUTH_USER_BRANCH_ACCESS_REPLACED'
 ] as const;
 export type AuthAuditAction = (typeof authAuditActions)[number];
 

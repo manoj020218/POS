@@ -116,6 +116,7 @@ export const replaceUserBranchAccessController = (service: AuthService): Request
   asyncHandler(async (request, response: Response) => {
     const accessContext = getAccessContext(request);
     const branches = await service.replaceUserBranchAccess({
+      actorUserId: accessContext.userId,
       ...parseSchema(replaceUserBranchAccessSchema, request.body),
       tenantId: accessContext.tenantId,
       userId: parseSchema(userIdParamsSchema, request.params).userId

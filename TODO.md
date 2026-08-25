@@ -1,7 +1,6 @@
 # TODO
 
 NOW
-- Extend auth auditing around login, refresh, logout, session revocation, and branch assignment changes
 - Define an initial owner/bootstrap admin provisioning flow beyond env-only development seeding
 
 NEXT

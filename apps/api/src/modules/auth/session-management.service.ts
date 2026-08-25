@@ -1,13 +1,17 @@
 import { createHttpError } from '../../lib/http-error.js';
 import type { AccessContext } from '../tenant-core/access-context.js';
 import type { AuthRepository } from './auth.repository.js';
+import type { createAuthAuditLogger } from './auth-audit.service.js';
 import type { AuthSessionRecord, AuthSessionView } from './auth.types.js';
 
 type RevokeSessionInput = Pick<AccessContext, 'tenantId' | 'userId'> & {
   sessionId: string;
 };
 
-export const createSessionManagementHandlers = (repository: AuthRepository) => ({
+export const createSessionManagementHandlers = (
+  repository: AuthRepository,
+  auditLogger: ReturnType<typeof createAuthAuditLogger>
+) => ({
   listSessions: async (accessContext: AccessContext): Promise<AuthSessionView[]> => {
     const sessions = await repository.listSessionsForUser(accessContext.userId, accessContext.tenantId);
     return sessions.map((session) => toSessionView(session, session.id === accessContext.sessionId));
@@ -20,6 +24,12 @@ export const createSessionManagementHandlers = (repository: AuthRepository) => (
     }
 
     await repository.revokeSession(input.sessionId, new Date());
+    await auditLogger.recordSessionRevoked({
+      actorUserId: input.userId,
+      sessionId: input.sessionId,
+      tenantId: input.tenantId,
+      userId: input.userId
+    });
   }
 });
 

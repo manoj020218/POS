@@ -36,77 +36,99 @@ export const createAuthService = (
   const auditLogger = createAuthAuditLogger(repository);
 
   return {
-  changePassword: createChangePasswordHandler(repository, auditLogger),
-  ...createPasswordResetHandlers(repository, config, auditLogger),
-  ...createSessionManagementHandlers(repository),
-  ...createUserBranchAccessHandlers(repository, tenantCoreRepository),
-  ...createUserManagementHandlers(repository, auditLogger),
-  login: async (input: LoginInput): Promise<AuthResult> => {
-    const user = await repository.findUserByEmail(input.email);
+    changePassword: createChangePasswordHandler(repository, auditLogger),
+    ...createPasswordResetHandlers(repository, config, auditLogger),
+    ...createSessionManagementHandlers(repository, auditLogger),
+    ...createUserBranchAccessHandlers(repository, tenantCoreRepository, auditLogger),
+    ...createUserManagementHandlers(repository, auditLogger),
+    login: async (input: LoginInput): Promise<AuthResult> => {
+      const user = await repository.findUserByEmail(input.email);
 
-    if (!user || !(await verifyPassword(input.password, user.passwordHash))) {
-      throw createHttpError(401, 'INVALID_CREDENTIALS', 'Invalid credentials');
+      if (!user || !(await verifyPassword(input.password, user.passwordHash))) {
+        throw createHttpError(401, 'INVALID_CREDENTIALS', 'Invalid credentials');
+      }
+
+      ensureUserIsActive(user);
+      const now = new Date();
+      const sessionId = randomUUID();
+      const issued = issueTokens(user, sessionId, config, now);
+      const session = await repository.createSession({
+        createdAt: now,
+        deviceInstallationId: input.deviceInstallationId,
+        deviceName: input.deviceName,
+        expiresAt: issued.refreshTokenExpiresAt,
+        id: sessionId,
+        lastRefreshedAt: now,
+        refreshTokenHash: hashOpaqueToken(issued.refreshToken),
+        tenantId: user.tenantId,
+        userAgent: input.userAgent,
+        userId: user.id
+      });
+
+      await auditLogger.recordLoginCompleted({ session });
+
+      return toAuthResult(user, session, issued);
+    },
+    logout: async (input: LogoutInput): Promise<void> => {
+      const payload = verifyToken(input.refreshToken, config.refreshSecret, refreshTokenPayloadSchema);
+      const session = await repository.findSessionById(payload.sessionId);
+      const activeSession = ensureRefreshSession(
+        session,
+        input.refreshToken,
+        payload.sub,
+        payload.tenantId,
+        new Date()
+      );
+
+      await repository.revokeSession(payload.sessionId, new Date());
+      await auditLogger.recordLogoutCompleted({
+        sessionId: activeSession.id,
+        tenantId: activeSession.tenantId,
+        userId: activeSession.userId
+      });
+    },
+    refresh: async (input: RefreshInput): Promise<AuthResult> => {
+      const now = new Date();
+      const payload = verifyToken(input.refreshToken, config.refreshSecret, refreshTokenPayloadSchema, now);
+      const session = await repository.findSessionById(payload.sessionId);
+
+      const activeSession = ensureRefreshSession(
+        session,
+        input.refreshToken,
+        payload.sub,
+        payload.tenantId,
+        now
+      );
+      const user = await repository.findUserById(payload.sub);
+
+      if (!user) {
+        throw createHttpError(401, 'INVALID_REFRESH_TOKEN', 'Invalid refresh token');
+      }
+
+      ensureUserIsActive(user);
+      const previousExpiresAt = activeSession.expiresAt;
+      const issued = issueTokens(user, activeSession.id, config, now);
+      const updated = await repository.updateSession(activeSession.id, {
+        expiresAt: issued.refreshTokenExpiresAt,
+        lastRefreshedAt: now,
+        refreshTokenHash: hashOpaqueToken(issued.refreshToken),
+        userAgent: input.userAgent ?? activeSession.userAgent
+      });
+
+      if (!updated) {
+        throw createHttpError(401, 'INVALID_REFRESH_TOKEN', 'Invalid refresh token');
+      }
+
+      await auditLogger.recordRefreshCompleted({
+        nextExpiresAt: updated.expiresAt,
+        previousExpiresAt,
+        sessionId: updated.id,
+        tenantId: updated.tenantId,
+        userId: updated.userId
+      });
+
+      return toAuthResult(user, updated, issued);
     }
-
-    ensureUserIsActive(user);
-    const now = new Date();
-    const sessionId = randomUUID();
-    const issued = issueTokens(user, sessionId, config, now);
-    const session = await repository.createSession({
-      createdAt: now,
-      deviceInstallationId: input.deviceInstallationId,
-      deviceName: input.deviceName,
-      expiresAt: issued.refreshTokenExpiresAt,
-      id: sessionId,
-      lastRefreshedAt: now,
-      refreshTokenHash: hashOpaqueToken(issued.refreshToken),
-      tenantId: user.tenantId,
-      userAgent: input.userAgent,
-      userId: user.id
-    });
-
-    return toAuthResult(user, session, issued);
-  },
-  logout: async (input: LogoutInput): Promise<void> => {
-    const payload = verifyToken(input.refreshToken, config.refreshSecret, refreshTokenPayloadSchema);
-    const session = await repository.findSessionById(payload.sessionId);
-
-    ensureRefreshSession(session, input.refreshToken, payload.sub, payload.tenantId, new Date());
-    await repository.revokeSession(payload.sessionId, new Date());
-  },
-  refresh: async (input: RefreshInput): Promise<AuthResult> => {
-    const now = new Date();
-    const payload = verifyToken(input.refreshToken, config.refreshSecret, refreshTokenPayloadSchema, now);
-    const session = await repository.findSessionById(payload.sessionId);
-
-    const activeSession = ensureRefreshSession(
-      session,
-      input.refreshToken,
-      payload.sub,
-      payload.tenantId,
-      now
-    );
-    const user = await repository.findUserById(payload.sub);
-
-    if (!user) {
-      throw createHttpError(401, 'INVALID_REFRESH_TOKEN', 'Invalid refresh token');
-    }
-
-    ensureUserIsActive(user);
-    const issued = issueTokens(user, activeSession.id, config, now);
-    const updated = await repository.updateSession(activeSession.id, {
-      expiresAt: issued.refreshTokenExpiresAt,
-      lastRefreshedAt: now,
-      refreshTokenHash: hashOpaqueToken(issued.refreshToken),
-      userAgent: input.userAgent ?? activeSession.userAgent
-    });
-
-    if (!updated) {
-      throw createHttpError(401, 'INVALID_REFRESH_TOKEN', 'Invalid refresh token');
-    }
-
-    return toAuthResult(user, updated, issued);
-  }
   };
 };
 

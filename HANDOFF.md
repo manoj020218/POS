@@ -4,7 +4,7 @@ Current Phase:
 - Phase 2 - Authentication and RBAC
 
 Current Subtask:
-- Extend auth auditing around login, refresh, logout, session revocation, and branch assignment changes
+- Define an initial owner/bootstrap admin provisioning flow beyond env-only development seeding
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -90,14 +90,23 @@ Completed:
 - Verified `pnpm typecheck`
 - Verified `pnpm test`
 - Verified `pnpm build`
+- Added persisted auth audit logging for successful login, refresh, logout, explicit session revocation, and branch assignment replacement flows
+- Added safe audit metadata for session lifecycle and branch-assignment deltas while keeping audit records on the existing tenant-scoped `auth_user` entity stream
+- Skipped branch-assignment audit writes when a replacement request leaves the assigned branch set unchanged
+- Added auth audit coverage for session lifecycle events and branch-assignment replacement deltas
+- Verified `pnpm typecheck`
+- Verified `pnpm lint`
+- Verified `pnpm test`
+- Verified `pnpm build`
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is extending auth auditing around session and branch-assignment activity
+- Next safe unit is defining an initial owner/bootstrap admin provisioning flow beyond env-only development seeding
 
 Next:
-- Extend auth auditing around login, refresh, logout, session revocation, and branch assignment changes
 - Define an initial owner/bootstrap admin provisioning flow beyond env-only development seeding
+- Evaluate access-token revocation/versioning for immediate disable and role-change enforcement
+- Expand branch assignment flows with business/branch filtering ergonomics for admin clients
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -125,6 +134,8 @@ Important Decisions:
 - Persist auth audit history in a general `audit_logs` table keyed by tenant/entity/action while keeping the current write scope limited to auth mutations
 - Avoid storing passwords, reset tokens, or other secrets in audit metadata; audit only action type plus safe state deltas
 - Resolve branch-scoped route access from fresh repository-backed branch assignments on each protected request so assignment changes apply without token reissue
+- Keep session lifecycle and branch-assignment audit events on the existing `auth_user` entity stream instead of introducing a second audit read model
+- Treat unchanged branch-assignment replacement requests as no-op audit cases to avoid generating duplicate history entries
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
@@ -132,7 +143,6 @@ Known Issues:
 - The first tenant owner/admin still must exist via bootstrap or another provisioning path before `/api/v1/auth/users` can manage additional users
 - Password reset delivery still defaults to a no-op sink at runtime; email/SMS/admin handoff for reset tokens is not implemented yet
 - Disabling or re-roling a user revokes refresh sessions, but already-issued access tokens remain valid until their expiry because access tokens are currently stateless
-- Audit logging currently covers password changes, password reset request/confirm, and auth-user create/update only; login, refresh, logout, session revocation, and branch-assignment mutations are not yet audited
 
 Tests:
 - `pnpm lint`
@@ -164,7 +174,7 @@ Tests:
 - Auth repository integration: tenant-scoped user listing via `DrizzleAuthRepository`
 - Auth user branch access: tenant-scoped list/replace flows, cross-tenant branch rejection, cross-tenant user rejection, and `user:manage` enforcement
 - Auth repository integration: tenant-scoped branch assignment replacement and listing via `DrizzleAuthRepository`
-- Auth audit logging: password change, password reset request/confirm, and auth-user create/update flows emit persisted tenant-scoped audit logs
+- Auth audit logging: login, refresh, logout, explicit session revocation, branch assignment replacement, password change, password reset request/confirm, and auth-user create/update flows emit persisted tenant-scoped audit logs
 - Auth repository integration: tenant-scoped audit-log create/list via `DrizzleAuthRepository`
 - Branch-scope helpers: tenant-wide vs assigned-branch access checks plus branch/business filtering behavior
 - Tenant-core branch scope: filtered branch/terminal reads, empty restricted results, dynamic assignment refresh, and denied out-of-scope writes
@@ -273,6 +283,10 @@ Last Successful Commands:
 - `cmd /c pnpm lint`
 - `cmd /c pnpm build`
 - `cmd /c pnpm test`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm test`
+- `cmd /c pnpm build`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -309,7 +323,7 @@ API Status:
 - Auth-user management writes now revoke persisted refresh sessions when a user's role or active status changes
 - Auth API now includes tenant-scoped `GET /api/v1/auth/users/:userId/branches` and `PUT /api/v1/auth/users/:userId/branches` guarded by `user:manage`
 - Auth-user branch assignment writes now replace the user's persisted tenant-scoped branch access set
-- Auth mutations now persist tenant-scoped audit logs for password change, password reset request/confirm, and auth-user create/update flows
+- Auth mutations now persist tenant-scoped audit logs for login, refresh, logout, explicit session revocation, branch assignment replacement, password change, password reset request/confirm, and auth-user create/update flows
 - Tenant-core business, branch, and terminal routes now enforce branch-scoped access for non-tenant-wide roles using persisted user branch assignments
 - Protected-route access context now reloads branch assignments from the auth repository on each authenticated request
 
@@ -317,4 +331,4 @@ Git Status:
 - clean
 
 Last Commit:
-- `8e27033 feat(auth): add auth audit logging`
+- `e22cd46 feat(auth): enforce branch-scoped tenant access`

@@ -2,9 +2,11 @@ import { createHttpError } from '../../lib/http-error.js';
 import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
 import type { AccessContext } from '../tenant-core/access-context.js';
 import type { AuthRepository } from './auth.repository.js';
+import type { createAuthAuditLogger } from './auth-audit.service.js';
 import type { AuthUserBranchAccessView } from './auth.types.js';
 
 type ManageUserBranchAccessInput = {
+  actorUserId: string;
   branchIds: string[];
   tenantId: string;
   userId: string;
@@ -16,7 +18,8 @@ type ListUserBranchAccessInput = Pick<AccessContext, 'tenantId'> & {
 
 export const createUserBranchAccessHandlers = (
   repository: AuthRepository,
-  tenantCoreRepository: TenantCoreRepository
+  tenantCoreRepository: TenantCoreRepository,
+  auditLogger: ReturnType<typeof createAuthAuditLogger>
 ) => ({
   listUserBranchAccess: async (
     input: ListUserBranchAccessInput
@@ -43,6 +46,11 @@ export const createUserBranchAccessHandlers = (
     input: ManageUserBranchAccessInput
   ): Promise<AuthUserBranchAccessView[]> => {
     await ensureTenantUser(repository, input.userId, input.tenantId);
+    const previousBranchIds = sortIds(
+      (await repository.listBranchAccessForUser(input.userId, input.tenantId)).map(
+        (record) => record.branchId
+      )
+    );
     const tenantBranches = await tenantCoreRepository.listBranches(input.tenantId);
     const branchMap = new Map(tenantBranches.map((branch) => [branch.id, branch]));
     const branchIds = [...new Set(input.branchIds)];
@@ -53,7 +61,16 @@ export const createUserBranchAccessHandlers = (
       }
     }
 
-    await repository.replaceBranchAccessForUser(input.userId, input.tenantId, branchIds);
+    if (!hasSameBranchIds(previousBranchIds, branchIds)) {
+      await repository.replaceBranchAccessForUser(input.userId, input.tenantId, branchIds);
+      await auditLogger.recordUserBranchAccessReplaced({
+        actorUserId: input.actorUserId,
+        nextBranchIds: branchIds,
+        previousBranchIds,
+        tenantId: input.tenantId,
+        userId: input.userId
+      });
+    }
 
     return branchIds.map((branchId) => {
       const branch = branchMap.get(branchId)!;
@@ -79,3 +96,15 @@ const ensureTenantUser = async (
     throw createHttpError(404, 'AUTH_USER_NOT_FOUND', 'User not found');
   }
 };
+
+const hasSameBranchIds = (left: string[], right: string[]) => {
+  const normalizedLeft = sortIds(left);
+  const normalizedRight = sortIds(right);
+
+  return (
+    normalizedLeft.length === normalizedRight.length &&
+    normalizedLeft.every((branchId, index) => branchId === normalizedRight[index])
+  );
+};
+
+const sortIds = (ids: string[]) => [...new Set(ids)].sort();
