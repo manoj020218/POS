@@ -4,7 +4,7 @@ Current Phase:
 - Phase 2 - Authentication and RBAC
 
 Current Subtask:
-- Define an initial owner/bootstrap admin provisioning flow beyond env-only development seeding
+- Evaluate access-token revocation/versioning for immediate disable and role-change enforcement
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -98,13 +98,21 @@ Completed:
 - Verified `pnpm lint`
 - Verified `pnpm test`
 - Verified `pnpm build`
+- Added dedicated `pnpm bootstrap:owner` command for explicit first tenant-wide auth-user provisioning against an existing tenant
+- Added CLI and `BOOTSTRAP_OWNER_*` env parsing for bootstrap owner provisioning with explicit tenant, email, display name, password, role, and optional user id inputs
+- Added idempotent bootstrap owner provisioning with create/update/unchanged behavior, tenant/email collision guards, and bootstrap-sourced auth audit records
+- Added bootstrap owner coverage for CLI/env parsing, forwarded `--` separator handling, idempotent provisioning, audited updates, and cross-tenant email conflicts
+- Verified `pnpm typecheck`
+- Verified `pnpm lint`
+- Verified `pnpm test`
+- Verified `pnpm build`
+- Verified `pnpm bootstrap:owner -- --tenant-id 11111111-1111-4111-8111-111111111111 --email owner@example.com --name "Dev Owner" --password Password123 --role BUSINESS_OWNER --user-id 99999999-9999-4999-8999-999999999999` against local PostgreSQL 18 with `action: "unchanged"`
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is defining an initial owner/bootstrap admin provisioning flow beyond env-only development seeding
+- Next safe unit is evaluating access-token revocation/versioning for immediate disable and role-change enforcement
 
 Next:
-- Define an initial owner/bootstrap admin provisioning flow beyond env-only development seeding
 - Evaluate access-token revocation/versioning for immediate disable and role-change enforcement
 - Expand branch assignment flows with business/branch filtering ergonomics for admin clients
 
@@ -136,13 +144,16 @@ Important Decisions:
 - Resolve branch-scoped route access from fresh repository-backed branch assignments on each protected request so assignment changes apply without token reissue
 - Keep session lifecycle and branch-assignment audit events on the existing `auth_user` entity stream instead of introducing a second audit read model
 - Treat unchanged branch-assignment replacement requests as no-op audit cases to avoid generating duplicate history entries
+- Provision the first tenant-wide auth user through the explicit `pnpm bootstrap:owner` command instead of coupling bootstrap admin creation to `DEV_AUTH_*` development seeding
+- Keep bootstrap owner provisioning tenant-scoped and limited to `BUSINESS_OWNER` or `BUSINESS_ADMIN`
+- Support both CLI flags and `BOOTSTRAP_OWNER_*` env fallbacks for owner bootstrap while keeping the command idempotent on rerun
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
 - Local PostgreSQL-backed verification still depends on the developer maintaining an ignored root `.env`
-- The first tenant owner/admin still must exist via bootstrap or another provisioning path before `/api/v1/auth/users` can manage additional users
 - Password reset delivery still defaults to a no-op sink at runtime; email/SMS/admin handoff for reset tokens is not implemented yet
 - Disabling or re-roling a user revokes refresh sessions, but already-issued access tokens remain valid until their expiry because access tokens are currently stateless
+- `pnpm bootstrap:owner` requires the target tenant to already exist; it does not create tenant/business/branch/terminal hierarchy on its own
 
 Tests:
 - `pnpm lint`
@@ -178,6 +189,9 @@ Tests:
 - Auth repository integration: tenant-scoped audit-log create/list via `DrizzleAuthRepository`
 - Branch-scope helpers: tenant-wide vs assigned-branch access checks plus branch/business filtering behavior
 - Tenant-core branch scope: filtered branch/terminal reads, empty restricted results, dynamic assignment refresh, and denied out-of-scope writes
+- Bootstrap owner config: CLI and env parsing plus forwarded `--` separator handling
+- Bootstrap owner provisioning: create/update/idempotent flows, audit records, and cross-tenant email collision handling via `DrizzleAuthRepository`
+- Real DB verification: `pnpm bootstrap:owner -- --tenant-id 11111111-1111-4111-8111-111111111111 --email owner@example.com --name "Dev Owner" --password Password123 --role BUSINESS_OWNER --user-id 99999999-9999-4999-8999-999999999999`
 
 Last Successful Commands:
 - `git init -b main`
@@ -287,6 +301,15 @@ Last Successful Commands:
 - `cmd /c pnpm lint`
 - `cmd /c pnpm test`
 - `cmd /c pnpm build`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm test -- bootstrap-owner`
+- `cmd /c pnpm build`
+- `cmd /c pnpm test -- bootstrap-owner-env`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm build`
+- `cmd /c pnpm bootstrap:owner -- --tenant-id 11111111-1111-4111-8111-111111111111 --email owner@example.com --name "Dev Owner" --password Password123 --role BUSINESS_OWNER --user-id 99999999-9999-4999-8999-999999999999`
+- `cmd /c pnpm lint`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -303,6 +326,7 @@ Database Status:
 - Audit log schema added at `apps/api/drizzle/0004_lazy_firestar.sql`
 - `audit_logs` are now persisted in PostgreSQL
 - Development auth user bootstrap verified against the real database
+- Explicit bootstrap owner provisioning verified idempotently against the existing development tenant/user in local PostgreSQL 18
 
 API Status:
 - Phase 0 scaffold verified
@@ -326,9 +350,10 @@ API Status:
 - Auth mutations now persist tenant-scoped audit logs for login, refresh, logout, explicit session revocation, branch assignment replacement, password change, password reset request/confirm, and auth-user create/update flows
 - Tenant-core business, branch, and terminal routes now enforce branch-scoped access for non-tenant-wide roles using persisted user branch assignments
 - Protected-route access context now reloads branch assignments from the auth repository on each authenticated request
+- Operational tooling now includes `pnpm bootstrap:owner` for first tenant-wide auth-user provisioning against an existing tenant without reusing `DEV_AUTH_*` seeding
 
 Git Status:
 - clean
 
 Last Commit:
-- `e22cd46 feat(auth): enforce branch-scoped tenant access`
+- `0c754df feat(auth): expand auth audit coverage`

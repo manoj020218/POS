@@ -8,6 +8,7 @@
   },
   "scripts": {
     "bootstrap:dev": "pnpm --filter @smart-pos/api bootstrap:dev",
+    "bootstrap:owner": "pnpm --filter @smart-pos/api bootstrap:owner",
     "build": "pnpm --filter @smart-pos/api build",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config drizzle.config.ts",

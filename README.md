@@ -53,6 +53,7 @@ Required variables:
 pnpm install
 pnpm db:migrate
 pnpm bootstrap:dev
+pnpm bootstrap:owner -- --tenant-id <tenant-uuid> --email owner@example.com --name "Tenant Owner" --password "Password123"
 pnpm dev
 pnpm lint
 pnpm typecheck
@@ -97,6 +98,18 @@ Before using the PostgreSQL-backed API routes against a real database, run this 
 pnpm db:migrate
 pnpm bootstrap:dev
 ```
+
+To provision the first tenant-wide auth user for an existing tenant, run:
+
+```bash
+pnpm bootstrap:owner -- --tenant-id <tenant-uuid> --email owner@example.com --name "Tenant Owner" --password "Password123"
+```
+
+Optional owner bootstrap inputs:
+
+- `--role BUSINESS_OWNER|BUSINESS_ADMIN`
+- `--user-id <uuid>`
+- Environment fallback: `BOOTSTRAP_OWNER_TENANT_ID`, `BOOTSTRAP_OWNER_EMAIL`, `BOOTSTRAP_OWNER_NAME`, `BOOTSTRAP_OWNER_PASSWORD`, `BOOTSTRAP_OWNER_ROLE`, `BOOTSTRAP_OWNER_USER_ID`
 
 ## Notes
 

@@ -139,6 +139,43 @@ export const createAuthAuditLogger = (repository: AuthRepository) => ({
       tenantId: input.tenantId
     });
   },
+  recordBootstrapUserCreated: async (input: { user: AuthUserRecord }) => {
+    await repository.createAuditLog({
+      action: 'AUTH_USER_CREATED',
+      entityId: input.user.id,
+      entityType: 'auth_user',
+      id: randomUUID(),
+      metadata: {
+        isActive: input.user.isActive,
+        role: input.user.role,
+        source: 'bootstrap_owner'
+      },
+      tenantId: input.user.tenantId
+    });
+  },
+  recordBootstrapUserUpdated: async (input: { after: AuthUserRecord; before: AuthUserRecord }) => {
+    const changedFields = resolveChangedFields(input.before, input.after);
+
+    if (changedFields.length === 0) {
+      return;
+    }
+
+    await repository.createAuditLog({
+      action: 'AUTH_USER_UPDATED',
+      entityId: input.after.id,
+      entityType: 'auth_user',
+      id: randomUUID(),
+      metadata: {
+        changedFields,
+        nextIsActive: input.after.isActive,
+        nextRole: input.after.role,
+        previousIsActive: input.before.isActive,
+        previousRole: input.before.role,
+        source: 'bootstrap_owner'
+      },
+      tenantId: input.after.tenantId
+    });
+  },
   recordUserCreated: async (input: { actorUserId: string; user: AuthUserRecord }) => {
     await repository.createAuditLog({
       action: 'AUTH_USER_CREATED',
