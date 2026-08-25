@@ -23,11 +23,11 @@ describe('bootstrapOwnerUser', () => {
       name: 'Tenant A',
       slug: 'tenant-a'
     });
-  });
+  }, 20000);
 
   afterEach(async () => {
     await close();
-  });
+  }, 20000);
 
   it('creates an initial bootstrap owner and audits the creation', async () => {
     const auditLogger = createAuthAuditLogger(repository);

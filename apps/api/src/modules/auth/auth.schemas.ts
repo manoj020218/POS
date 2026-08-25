@@ -54,6 +54,12 @@ export const userIdParamsSchema = z.object({
   userId: z.string().uuid()
 });
 
+export const userBranchAccessQuerySchema = z.object({
+  assignment: z.enum(['all', 'assigned', 'unassigned']).optional().default('assigned'),
+  businessId: z.string().uuid().optional(),
+  search: z.string().trim().min(1).max(120).optional()
+});
+
 export const replaceUserBranchAccessSchema = z.object({
   branchIds: z.array(z.string().uuid()).max(200)
 });

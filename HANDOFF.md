@@ -1,10 +1,10 @@
 # HANDOFF
 
 Current Phase:
-- Phase 2 - Authentication and RBAC
+- Phase 3 - Product Master
 
 Current Subtask:
-- Expand branch assignment flows with business/branch filtering ergonomics for admin clients
+- Define Category, Unit, TaxProfile, and Product schema plus the minimal-create product contract
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -113,14 +113,22 @@ Completed:
 - Verified `pnpm lint`
 - Verified `pnpm typecheck`
 - Verified `pnpm build`
+- Expanded `GET /api/v1/auth/users/:userId/branches` with admin-friendly assignment directory filters for `assignment`, `businessId`, and `search`
+- Added business metadata plus explicit `assigned` state to auth user branch-assignment listing responses while keeping assigned-only results as the default
+- Added auth branch-directory regression coverage for assignment-state, business, and search filtering
+- Increased the `bootstrap-owner` memory-database hook timeout so the full Vitest suite remains stable under current suite load
+- Verified `pnpm lint`
+- Verified `pnpm typecheck`
+- Verified `pnpm test`
+- Verified `pnpm build`
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is expanding branch assignment flows with business/branch filtering ergonomics for admin clients
+- Next safe unit is defining the Phase 3 product-master schema and minimal-create product contract
 
 Next:
-- Expand branch assignment flows with business/branch filtering ergonomics for admin clients
 - Start Phase 3 product-master foundation with Category, Unit, TaxProfile, and Product schema design
+- Add POS-oriented product search by name, SKU, and barcode with barcode exact-match priority
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -154,6 +162,7 @@ Important Decisions:
 - Keep bootstrap owner provisioning tenant-scoped and limited to `BUSINESS_OWNER` or `BUSINESS_ADMIN`
 - Support both CLI flags and `BOOTSTRAP_OWNER_*` env fallbacks for owner bootstrap while keeping the command idempotent on rerun
 - Revalidate protected-route bearer access against the persisted auth user and auth session on every request instead of introducing a separate access-token version column for now
+- Keep `GET /api/v1/auth/users/:userId/branches` backward-compatible by defaulting to assigned-only results while adding `assignment=all|assigned|unassigned`, `businessId`, and `search` filters for admin clients
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
@@ -196,6 +205,7 @@ Tests:
 - Branch-scope helpers: tenant-wide vs assigned-branch access checks plus branch/business filtering behavior
 - Tenant-core branch scope: filtered branch/terminal reads, empty restricted results, dynamic assignment refresh, and denied out-of-scope writes
 - Auth access enforcement: protected-route bearer tokens are rejected immediately after logout, user disable, and role-change session revocation
+- Auth branch directory: admin listing supports assignment-state filtering plus business/search filtering and returns business metadata with the assignment state
 - Bootstrap owner config: CLI and env parsing plus forwarded `--` separator handling
 - Bootstrap owner provisioning: create/update/idempotent flows, audit records, and cross-tenant email collision handling via `DrizzleAuthRepository`
 - Real DB verification: `pnpm bootstrap:owner -- --tenant-id 11111111-1111-4111-8111-111111111111 --email owner@example.com --name "Dev Owner" --password Password123 --role BUSINESS_OWNER --user-id 99999999-9999-4999-8999-999999999999`
@@ -354,6 +364,7 @@ API Status:
 - Auth-user management writes now revoke persisted refresh sessions when a user's role or active status changes
 - Auth API now includes tenant-scoped `GET /api/v1/auth/users/:userId/branches` and `PUT /api/v1/auth/users/:userId/branches` guarded by `user:manage`
 - Auth-user branch assignment writes now replace the user's persisted tenant-scoped branch access set
+- Auth-user branch assignment reads now support assignment-state filtering plus business/search filtering and return business metadata with the assignment state
 - Auth mutations now persist tenant-scoped audit logs for login, refresh, logout, explicit session revocation, branch assignment replacement, password change, password reset request/confirm, and auth-user create/update flows
 - Tenant-core business, branch, and terminal routes now enforce branch-scoped access for non-tenant-wide roles using persisted user branch assignments
 - Protected-route access context now reloads branch assignments from the auth repository on each authenticated request

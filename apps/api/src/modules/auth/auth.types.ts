@@ -107,9 +107,14 @@ export type AuthManagedUserView = {
   tenantId: string;
 };
 
+export type AuthUserBranchAssignmentFilter = 'all' | 'assigned' | 'unassigned';
+
 export type AuthUserBranchAccessView = {
+  assigned: boolean;
   branchId: string;
+  businessCode: string;
   businessId: string;
+  businessName: string;
   code: string;
   isActive: boolean;
   name: string;

@@ -13,6 +13,7 @@ import {
   replaceUserBranchAccessSchema,
   refreshSchema,
   sessionIdParamsSchema,
+  userBranchAccessQuerySchema,
   updateAuthUserSchema,
   userIdParamsSchema
 } from './auth.schemas.js';
@@ -93,6 +94,7 @@ export const listUserBranchAccessController = (service: AuthService): RequestHan
   asyncHandler(async (request, response: Response) => {
     const accessContext = getAccessContext(request);
     const branches = await service.listUserBranchAccess({
+      ...parseSchema(userBranchAccessQuerySchema, request.query),
       tenantId: accessContext.tenantId,
       userId: parseSchema(userIdParamsSchema, request.params).userId
     });

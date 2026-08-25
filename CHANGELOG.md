@@ -5,6 +5,9 @@
 - Hardened protected-route bearer auth so access tokens are revalidated against the current user and current session on every authenticated request
 - Added auth access-enforcement regression coverage for immediate bearer-token rejection after logout, user disable, and role-change session revocation
 - Verified `pnpm test`, `pnpm lint`, `pnpm typecheck`, and `pnpm build`
+- Expanded auth user branch-access listing with admin-friendly assignment directory filters for `assignment`, `businessId`, and `search`
+- Added business metadata plus explicit `assigned` state to branch-assignment listing responses while keeping assigned-only results as the default
+- Added regression coverage for branch-directory filtering and widened the bootstrap-owner hook timeout so the full Vitest suite stays stable under current load
 
 ## 2026-08-22
 
