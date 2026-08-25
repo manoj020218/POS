@@ -4,7 +4,7 @@ import { createHttpError } from '../../lib/http-error.js';
 import type { AccessContext } from '../tenant-core/access-context.js';
 import type { AuthRepository } from './auth.repository.js';
 import { accessTokenPayloadSchema } from './auth.schemas.js';
-import { hasTenantWideBranchAccess } from './authorization.js';
+import { hasTenantWideBranchAccess, resolveGrantedPermissions } from './authorization.js';
 import { verifyToken } from './token.js';
 
 const bearerPattern = /^Bearer\s+(.+)$/i;
@@ -36,16 +36,42 @@ export const createAccessTokenAccessContextResolver =
       );
     }
 
-    const payload = verifyToken(token, jwtSecret, accessTokenPayloadSchema);
-    const assigned = await authRepository.listBranchAccessForUser(payload.sub, payload.tenantId);
+    const now = new Date();
+    const payload = verifyToken(token, jwtSecret, accessTokenPayloadSchema, now);
+    const [user, session] = await Promise.all([
+      authRepository.findUserById(payload.sub),
+      authRepository.findSessionById(payload.sessionId)
+    ]);
+
+    if (!user || user.tenantId !== payload.tenantId) {
+      throw createHttpError(401, 'INVALID_ACCESS_TOKEN', 'Invalid access token');
+    }
+
+    if (!user.isActive) {
+      throw createHttpError(403, 'USER_DISABLED', 'User is disabled');
+    }
+
+    if (!session || session.userId !== payload.sub || session.tenantId !== payload.tenantId) {
+      throw createHttpError(401, 'INVALID_ACCESS_TOKEN', 'Invalid access token');
+    }
+
+    if (session.revokedAt) {
+      throw createHttpError(401, 'AUTH_SESSION_REVOKED', 'Session revoked');
+    }
+
+    if (session.expiresAt <= now) {
+      throw createHttpError(401, 'AUTH_SESSION_EXPIRED', 'Session expired');
+    }
+
+    const assigned = await authRepository.listBranchAccessForUser(user.id, user.tenantId);
 
     return {
       assignedBranchIds: assigned.map((record) => record.branchId),
-      hasAllBranchAccess: hasTenantWideBranchAccess(payload.role),
-      permissions: payload.permissions,
-      role: payload.role,
-      sessionId: payload.sessionId,
-      tenantId: payload.tenantId,
-      userId: payload.sub
+      hasAllBranchAccess: hasTenantWideBranchAccess(user.role),
+      permissions: resolveGrantedPermissions(user),
+      role: user.role,
+      sessionId: session.id,
+      tenantId: user.tenantId,
+      userId: user.id
     };
   };

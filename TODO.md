@@ -1,10 +1,10 @@
 # TODO
 
 NOW
-- Evaluate access-token revocation/versioning for immediate disable and role-change enforcement
+- Expand branch assignment flows with business/branch filtering ergonomics for admin clients
 
 NEXT
-- Expand branch assignment flows with business/branch filtering ergonomics for admin clients
+- Start Phase 3 product-master foundation with Category, Unit, TaxProfile, and Product schema design
 
 LATER
 - Shared contracts package

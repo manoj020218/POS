@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-08-25
+
+- Hardened protected-route bearer auth so access tokens are revalidated against the current user and current session on every authenticated request
+- Added auth access-enforcement regression coverage for immediate bearer-token rejection after logout, user disable, and role-change session revocation
+- Verified `pnpm test`, `pnpm lint`, `pnpm typecheck`, and `pnpm build`
+
 ## 2026-08-22
 
 - Initialized local repository for Smart POS
