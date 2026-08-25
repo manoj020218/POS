@@ -6,6 +6,7 @@ import {
   appPermissions,
   getPermissionsForRoles,
   hasAllPermissions,
+  hasTenantWideBranchAccess,
   resolveGrantedPermissions
 } from '../src/modules/auth/authorization.js';
 import { requirePermissions } from '../src/http/middleware/require-permissions.js';
@@ -18,6 +19,14 @@ describe('authorization', () => {
 
     expect(granted).toHaveLength(appPermissions.length);
     expect(granted).toEqual(expect.arrayContaining([...appPermissions]));
+  });
+
+  it('treats owner and admin roles as tenant-wide branch access', () => {
+    expect(hasTenantWideBranchAccess('BUSINESS_OWNER')).toBe(true);
+    expect(hasTenantWideBranchAccess('BUSINESS_ADMIN')).toBe(true);
+    expect(hasTenantWideBranchAccess('PLATFORM_ADMIN')).toBe(true);
+    expect(hasTenantWideBranchAccess('BRANCH_MANAGER')).toBe(false);
+    expect(hasTenantWideBranchAccess('CASHIER')).toBe(false);
   });
 
   it('keeps cashier permissions narrow', () => {
@@ -85,7 +94,13 @@ const createProtectedApp = (
   const app = express();
 
   app.use((req, _res, next) => {
-    req.accessContext = accessContext;
+    req.accessContext = accessContext
+      ? {
+          assignedBranchIds: [],
+          hasAllBranchAccess: accessContext.role === 'BUSINESS_ADMIN',
+          ...accessContext
+        }
+      : undefined;
     next();
   });
   app.get('/protected', requirePermissions(['inventory:adjust']), (_req, res) => {

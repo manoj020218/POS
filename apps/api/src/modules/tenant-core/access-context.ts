@@ -4,6 +4,8 @@ import type { AppPermission, AppRole } from '../auth/authorization.js';
 import { createHttpError } from '../../lib/http-error.js';
 
 export type AccessContext = {
+  assignedBranchIds: string[];
+  hasAllBranchAccess: boolean;
   permissions?: AppPermission[];
   role?: AppRole;
   sessionId?: string;

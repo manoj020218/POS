@@ -35,11 +35,12 @@ export const createApp = (options: AppOptions): Express => {
     jwtSecret: 'test-jwt-secret-0123456789-abcdefgh',
     refreshSecret: 'test-refresh-secret-0123456789-ab'
   };
-  const accessContextResolver =
-    options.accessContextResolver ?? createAccessTokenAccessContextResolver(authConfig.jwtSecret);
   const authRepository = options.authRepository ?? new InMemoryAuthRepository();
   const tenantCoreRepository =
     options.tenantCoreRepository ?? new InMemoryTenantCoreRepository();
+  const accessContextResolver =
+    options.accessContextResolver ??
+    createAccessTokenAccessContextResolver(authConfig.jwtSecret, authRepository);
 
   app.disable('x-powered-by');
   app.use(helmet());

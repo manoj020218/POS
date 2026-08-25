@@ -36,15 +36,23 @@ describe('tenant core read permissions', () => {
       name: 'Front Counter',
       tenantId
     });
+    const managerId = '88888888-8888-4888-8888-888888888888';
+    const cashierId = '77777777-7777-4777-8777-777777777777';
+    const viewerId = '66666666-6666-4666-8666-666666666666';
+    const authRepository = new InMemoryAuthRepository([
+      await createUser('owner@example.com', 'BUSINESS_OWNER', '99999999-9999-4999-8999-999999999999'),
+      await createUser('manager@example.com', 'BRANCH_MANAGER', managerId),
+      await createUser('cashier@example.com', 'CASHIER', cashierId),
+      await createUser('viewer@example.com', 'REPORT_VIEWER', viewerId)
+    ]);
+
+    await authRepository.replaceBranchAccessForUser(managerId, tenantId, [branch.id]);
+    await authRepository.replaceBranchAccessForUser(cashierId, tenantId, [branch.id]);
+    await authRepository.replaceBranchAccessForUser(viewerId, tenantId, [branch.id]);
 
     app = createApp({
       authConfig,
-      authRepository: new InMemoryAuthRepository([
-        await createUser('owner@example.com', 'BUSINESS_OWNER', '99999999-9999-4999-8999-999999999999'),
-        await createUser('manager@example.com', 'BRANCH_MANAGER', '88888888-8888-4888-8888-888888888888'),
-        await createUser('cashier@example.com', 'CASHIER', '77777777-7777-4777-8777-777777777777'),
-        await createUser('viewer@example.com', 'REPORT_VIEWER', '66666666-6666-4666-8666-666666666666')
-      ]),
+      authRepository,
       logger: createLogger('silent'),
       tenantCoreRepository: repository
     });

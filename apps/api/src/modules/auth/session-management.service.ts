@@ -3,7 +3,7 @@ import type { AccessContext } from '../tenant-core/access-context.js';
 import type { AuthRepository } from './auth.repository.js';
 import type { AuthSessionRecord, AuthSessionView } from './auth.types.js';
 
-type RevokeSessionInput = AccessContext & {
+type RevokeSessionInput = Pick<AccessContext, 'tenantId' | 'userId'> & {
   sessionId: string;
 };
 

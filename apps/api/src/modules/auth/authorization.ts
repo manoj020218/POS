@@ -122,6 +122,10 @@ export const rolePermissions = {
   REPORT_VIEWER: ['branch:view', 'product:view', 'inventory:view', 'sale:view', 'report:view']
 } satisfies Record<AppRole, readonly AppPermission[]>;
 
+export const hasTenantWideBranchAccess = (role?: AppRole) => {
+  return role === 'PLATFORM_ADMIN' || role === 'BUSINESS_OWNER' || role === 'BUSINESS_ADMIN';
+};
+
 export const getPermissionsForRoles = (roles: readonly AppRole[]) => {
   return [...new Set(roles.flatMap((role) => rolePermissions[role]))];
 };
