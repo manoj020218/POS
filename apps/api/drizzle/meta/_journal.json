@@ -36,6 +36,13 @@
       "when": 1787465688615,
       "tag": "0004_lazy_firestar",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787666414472,
+      "tag": "0005_ambitious_blacklash",
+      "breakpoints": true
     }
   ]
 }

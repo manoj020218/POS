@@ -4,7 +4,7 @@ Current Phase:
 - Phase 3 - Product Master
 
 Current Subtask:
-- Define Category, Unit, TaxProfile, and Product schema plus the minimal-create product contract
+- Product-master foundation is complete; next safe unit is POS-oriented product search
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -117,18 +117,27 @@ Completed:
 - Added business metadata plus explicit `assigned` state to auth user branch-assignment listing responses while keeping assigned-only results as the default
 - Added auth branch-directory regression coverage for assignment-state, business, and search filtering
 - Increased the `bootstrap-owner` memory-database hook timeout so the full Vitest suite remains stable under current suite load
+- Added Phase 3 schema for `categories`, `units`, `tax_profiles`, and `products`
+- Generated catalog migration `apps/api/drizzle/0005_ambitious_blacklash.sql`
+- Added protected Phase 3 catalog endpoints for category, unit, tax-profile, and product create/list/update flows
+- Added minimal product creation with business-scoped default category, unit, tax profile, and generated SKU support
+- Added PostgreSQL-backed `DrizzleCatalogRepository` plus split master/product persisted stores for catalog data
+- Added catalog route coverage for minimal product creation, business-context enforcement, and cashier read-only access
+- Added `DrizzleCatalogRepository` integration coverage for persisted create/update flows and per-business duplicate enforcement
 - Verified `pnpm lint`
 - Verified `pnpm typecheck`
 - Verified `pnpm test`
 - Verified `pnpm build`
+- Verified `pnpm db:generate`
+- Verified `pnpm db:migrate`
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is defining the Phase 3 product-master schema and minimal-create product contract
+- Next safe unit is POS-oriented product search by name, SKU, and barcode
 
 Next:
-- Start Phase 3 product-master foundation with Category, Unit, TaxProfile, and Product schema design
 - Add POS-oriented product search by name, SKU, and barcode with barcode exact-match priority
+- Add product-list pagination and slimmer POS search responses once search behavior is in place
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -163,12 +172,17 @@ Important Decisions:
 - Support both CLI flags and `BOOTSTRAP_OWNER_*` env fallbacks for owner bootstrap while keeping the command idempotent on rerun
 - Revalidate protected-route bearer access against the persisted auth user and auth session on every request instead of introducing a separate access-token version column for now
 - Keep `GET /api/v1/auth/users/:userId/branches` backward-compatible by defaulting to assigned-only results while adding `assignment=all|assigned|unassigned`, `businessId`, and `search` filters for admin clients
+- Keep catalog master data business-scoped and auto-provision the default `GENERAL`, `PCS`, and `NO-TAX` records on first minimal product creation when the business does not already have them
+- Require explicit `businessId` for catalog writes only when the authenticated user can access multiple businesses; otherwise infer the single accessible business from branch scope
+- Enforce product barcode/SKU uniqueness per tenant plus business at both the service layer and the PostgreSQL repository layer so different businesses can reuse the same identifiers safely
+- Split persisted catalog storage into dedicated master/product stores to keep the repository layer below the project file-size limit without introducing generic wrappers
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
 - Local PostgreSQL-backed verification still depends on the developer maintaining an ignored root `.env`
 - Password reset delivery still defaults to a no-op sink at runtime; email/SMS/admin handoff for reset tokens is not implemented yet
 - `pnpm bootstrap:owner` requires the target tenant to already exist; it does not create tenant/business/branch/terminal hierarchy on its own
+- POS-oriented product search by barcode/SKU/name is not implemented yet; only create/list/update flows are complete in the current Phase 3 slice
 
 Tests:
 - `pnpm lint`
@@ -208,7 +222,10 @@ Tests:
 - Auth branch directory: admin listing supports assignment-state filtering plus business/search filtering and returns business metadata with the assignment state
 - Bootstrap owner config: CLI and env parsing plus forwarded `--` separator handling
 - Bootstrap owner provisioning: create/update/idempotent flows, audit records, and cross-tenant email collision handling via `DrizzleAuthRepository`
+- Catalog routes: minimal product creation auto-provisions business defaults, tenant-wide users must supply business context when multiple businesses are accessible, and cashiers remain read-only
+- Catalog repository integration: persisted category/unit/tax-profile/product create-update flows plus per-business duplicate code and identifier enforcement via `DrizzleCatalogRepository`
 - Real DB verification: `pnpm bootstrap:owner -- --tenant-id 11111111-1111-4111-8111-111111111111 --email owner@example.com --name "Dev Owner" --password Password123 --role BUSINESS_OWNER --user-id 99999999-9999-4999-8999-999999999999`
+- Real DB verification: `pnpm db:migrate` after adding the catalog migration
 
 Last Successful Commands:
 - `git init -b main`
@@ -327,6 +344,13 @@ Last Successful Commands:
 - `cmd /c pnpm build`
 - `cmd /c pnpm bootstrap:owner -- --tenant-id 11111111-1111-4111-8111-111111111111 --email owner@example.com --name "Dev Owner" --password Password123 --role BUSINESS_OWNER --user-id 99999999-9999-4999-8999-999999999999`
 - `cmd /c pnpm lint`
+- `cmd /c pnpm db:generate`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm exec vitest run apps/api/test/catalog.test.ts apps/api/test/drizzle-catalog.repository.test.ts --reporter=verbose`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm test`
+- `cmd /c pnpm build`
+- `cmd /c pnpm db:migrate`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -344,6 +368,9 @@ Database Status:
 - `audit_logs` are now persisted in PostgreSQL
 - Development auth user bootstrap verified against the real database
 - Explicit bootstrap owner provisioning verified idempotently against the existing development tenant/user in local PostgreSQL 18
+- Catalog schema added at `apps/api/drizzle/0005_ambitious_blacklash.sql`
+- `categories`, `units`, `tax_profiles`, and `products` are now persisted in PostgreSQL
+- Catalog migration generation and application verified against the local PostgreSQL database
 
 API Status:
 - Phase 0 scaffold verified
@@ -370,9 +397,12 @@ API Status:
 - Protected-route access context now reloads branch assignments from the auth repository on each authenticated request
 - Protected-route access context now revalidates the current auth user and auth session on each authenticated request so logout, disable, and role changes cut off existing bearer tokens immediately
 - Operational tooling now includes `pnpm bootstrap:owner` for first tenant-wide auth-user provisioning against an existing tenant without reusing `DEV_AUTH_*` seeding
+- Catalog API now includes protected `GET/POST/PATCH /api/v1/categories`, `GET/POST/PATCH /api/v1/units`, `GET/POST/PATCH /api/v1/tax-profiles`, and `GET/POST/PATCH /api/v1/products`
+- Minimal `POST /api/v1/products` now accepts only `name` and `sellingPrice` when the user has access to a single business and auto-resolves default category/unit/tax data
+- Catalog read routes honor existing branch-scoped business access and catalog write routes require the existing `product:create` or `product:update` permissions
 
 Git Status:
-- clean
+- changes pending
 
 Last Commit:
-- `0c754df feat(auth): expand auth audit coverage`
+- `62504d5 feat(auth): add branch directory filters`

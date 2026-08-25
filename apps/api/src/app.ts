@@ -12,6 +12,9 @@ import { createAuthRouter } from './modules/auth/auth.routes.js';
 import type { AuthRepository } from './modules/auth/auth.repository.js';
 import type { AuthServiceConfig } from './modules/auth/auth.service.js';
 import { InMemoryAuthRepository } from './modules/auth/in-memory-auth.repository.js';
+import { createCatalogRouter } from './modules/catalog/catalog.routes.js';
+import type { CatalogRepository } from './modules/catalog/catalog.repository.js';
+import { InMemoryCatalogRepository } from './modules/catalog/in-memory-catalog.repository.js';
 import {
   InMemoryTenantCoreRepository,
   type TenantCoreRepository
@@ -25,6 +28,7 @@ export type AppOptions = {
   accessContextResolver?: AccessContextResolver;
   authConfig?: AuthServiceConfig;
   authRepository?: AuthRepository;
+  catalogRepository?: CatalogRepository;
   logger: AppLogger;
   tenantCoreRepository?: TenantCoreRepository;
 };
@@ -36,6 +40,7 @@ export const createApp = (options: AppOptions): Express => {
     refreshSecret: 'test-refresh-secret-0123456789-ab'
   };
   const authRepository = options.authRepository ?? new InMemoryAuthRepository();
+  const catalogRepository = options.catalogRepository ?? new InMemoryCatalogRepository();
   const tenantCoreRepository =
     options.tenantCoreRepository ?? new InMemoryTenantCoreRepository();
   const accessContextResolver =
@@ -50,6 +55,7 @@ export const createApp = (options: AppOptions): Express => {
   app.use(healthRouter);
   app.use(attachAccessContext(accessContextResolver));
   app.use('/api/v1/auth', createAuthRouter(authRepository, tenantCoreRepository, authConfig));
+  app.use('/api/v1', createCatalogRouter(catalogRepository, tenantCoreRepository));
   app.use('/api/v1', createTenantCoreRouter(tenantCoreRepository));
   app.use(notFoundHandler);
   app.use(errorHandler(options.logger));

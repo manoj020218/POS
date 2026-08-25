@@ -4,6 +4,7 @@ import { loadWorkspaceEnv } from './config/load-workspace-env.js';
 import { createDatabase } from './db/client.js';
 import { createLogger } from './lib/logger.js';
 import { DrizzleAuthRepository } from './modules/auth/drizzle-auth.repository.js';
+import { DrizzleCatalogRepository } from './modules/catalog/drizzle-catalog.repository.js';
 import { DrizzleTenantCoreRepository } from './modules/tenant-core/drizzle-tenant-core.repository.js';
 
 const bootstrap = async () => {
@@ -12,6 +13,7 @@ const bootstrap = async () => {
   const logger = createLogger(env.LOG_LEVEL);
   const database = createDatabase(env.DATABASE_URL);
   const authRepository = new DrizzleAuthRepository(database.db);
+  const catalogRepository = new DrizzleCatalogRepository(database.db);
   const tenantCoreRepository = new DrizzleTenantCoreRepository(database.db);
 
   const app = createApp({
@@ -20,6 +22,7 @@ const bootstrap = async () => {
       refreshSecret: env.REFRESH_SECRET
     },
     authRepository,
+    catalogRepository,
     logger,
     tenantCoreRepository
   });
