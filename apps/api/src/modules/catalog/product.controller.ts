@@ -4,9 +4,9 @@ import { asyncHandler } from '../../http/middleware/async-handler.js';
 import { parseSchema } from '../../lib/parse-schema.js';
 import { getAccessContext } from '../tenant-core/access-context.js';
 import {
-  catalogQuerySchema,
   createProductSchema,
   productIdSchema,
+  productListQuerySchema,
   productSearchQuerySchema,
   updateProductSchema
 } from './catalog.schemas.js';
@@ -23,11 +23,11 @@ export const createProductController = (service: CatalogService): RequestHandler
 
 export const listProductsController = (service: CatalogService): RequestHandler =>
   asyncHandler(async (request, response: Response) => {
-    const products = await service.listProducts(
+    const productPage = await service.listProducts(
       getAccessContext(request),
-      parseSchema(catalogQuerySchema, request.query)
+      parseSchema(productListQuerySchema, request.query)
     );
-    response.status(200).json({ data: products });
+    response.status(200).json({ data: productPage.items, meta: productPage.meta });
   });
 
 export const searchProductsController = (service: CatalogService): RequestHandler =>

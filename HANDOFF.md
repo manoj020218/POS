@@ -1,10 +1,10 @@
 # HANDOFF
 
 Current Phase:
-- Phase 3 - Product Master
+- Phase 4 - Customer Master
 
 Current Subtask:
-- POS-oriented product search is complete; next safe unit is management pagination for `GET /api/v1/products`
+- Phase 3 product master is complete; next safe unit is minimal customer create/list/update foundation with walk-in customer support
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -136,14 +136,23 @@ Completed:
 - Verified `pnpm build`
 - Verified `pnpm db:generate`
 - Verified `pnpm db:migrate`
+- Added paginated management responses for `GET /api/v1/products` with `page` and `pageSize` query parameters plus response `meta`
+- Kept `GET /api/v1/products` backward-compatible for management clients by returning the paged product array in `data`
+- Added stable product-list ordering and total-count pagination metadata in both `InMemoryCatalogRepository` and `DrizzleCatalogRepository`
+- Added catalog route and repository coverage for page/pageSize behavior and pagination metadata
+- Verified `pnpm test`
+- Verified `pnpm typecheck`
+- Verified `pnpm lint`
+- Verified `pnpm build`
 
 Currently Working:
 - No active code changes in progress
-- Next safe unit is product-list pagination for management screens
+- Phase 3 product master is complete
+- Next safe unit is Phase 4 customer master foundation
 
 Next:
-- Add product-list pagination for management screens on `GET /api/v1/products`
-- Start Phase 4 customer master foundation after Phase 3 management pagination is complete
+- Start Phase 4 customer master foundation with minimal optional customer create/list/update flows
+- Add walk-in customer defaults so cashier sales remain customer-optional before sales-engine work
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -182,15 +191,16 @@ Important Decisions:
 - Require explicit `businessId` for catalog writes only when the authenticated user can access multiple businesses; otherwise infer the single accessible business from branch scope
 - Enforce product barcode/SKU uniqueness per tenant plus business at both the service layer and the PostgreSQL repository layer so different businesses can reuse the same identifiers safely
 - Split persisted catalog storage into dedicated master/product stores to keep the repository layer below the project file-size limit without introducing generic wrappers
-- Expose checkout-oriented search through a dedicated `GET /api/v1/products/search` endpoint so POS lookups can stay slim while the existing full `GET /api/v1/products` management response remains intact until pagination lands
+- Expose checkout-oriented search through a dedicated `GET /api/v1/products/search` endpoint so POS lookups can stay slim while `GET /api/v1/products` remains the paginated management endpoint
 - Treat POS search as active-only and capped by limit, with exact barcode matches short-circuiting ahead of broader SKU/name/barcode ranking for checkout speed
+- Keep management product lists paginated with `page`/`pageSize` query params and response `meta` while preserving the existing `data` array shape for low-friction client adoption
+- Order management product lists by name, SKU, and ID so page boundaries stay stable across repeated reads
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
 - Local PostgreSQL-backed verification still depends on the developer maintaining an ignored root `.env`
 - Password reset delivery still defaults to a no-op sink at runtime; email/SMS/admin handoff for reset tokens is not implemented yet
 - `pnpm bootstrap:owner` requires the target tenant to already exist; it does not create tenant/business/branch/terminal hierarchy on its own
-- `GET /api/v1/products` still returns the full unpaginated management payload; pagination has not been implemented yet
 
 Tests:
 - `pnpm lint`
@@ -231,8 +241,10 @@ Tests:
 - Bootstrap owner config: CLI and env parsing plus forwarded `--` separator handling
 - Bootstrap owner provisioning: create/update/idempotent flows, audit records, and cross-tenant email collision handling via `DrizzleAuthRepository`
 - Catalog routes: minimal product creation auto-provisions business defaults, tenant-wide users must supply business context when multiple businesses are accessible, and cashiers remain read-only
+- Catalog routes: management product lists now honor `page`/`pageSize` and return pagination `meta` alongside the paged `data` array
 - Catalog routes: POS search supports barcode/SKU/name lookups, exact barcode priority, slim response payloads, and branch/business scoping
 - Catalog repository integration: persisted category/unit/tax-profile/product create-update flows plus per-business duplicate code and identifier enforcement via `DrizzleCatalogRepository`
+- Catalog repository integration: product lists now return stable name/SKU/ID ordering plus total-count pagination metadata via `DrizzleCatalogRepository`
 - Catalog repository integration: product search enforces exact barcode priority, active-only filtering, business scoping, and result limits via `DrizzleCatalogRepository`
 - Real DB verification: `pnpm bootstrap:owner -- --tenant-id 11111111-1111-4111-8111-111111111111 --email owner@example.com --name "Dev Owner" --password Password123 --role BUSINESS_OWNER --user-id 99999999-9999-4999-8999-999999999999`
 - Real DB verification: `pnpm db:migrate` after adding the catalog migration
@@ -366,6 +378,10 @@ Last Successful Commands:
 - `cmd /c pnpm lint`
 - `cmd /c pnpm test`
 - `cmd /c pnpm build`
+- `cmd /c pnpm test -- apps/api/test/catalog.test.ts apps/api/test/drizzle-catalog.repository.test.ts`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm build`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -416,10 +432,11 @@ API Status:
 - Minimal `POST /api/v1/products` now accepts only `name` and `sellingPrice` when the user has access to a single business and auto-resolves default category/unit/tax data
 - Catalog read routes honor existing branch-scoped business access and catalog write routes require the existing `product:create` or `product:update` permissions
 - Catalog API now includes protected `GET /api/v1/products/search` with `query`, optional `businessId`, and optional `limit`
+- Catalog API now includes paginated management `GET /api/v1/products` with `page`, `pageSize`, and response `meta`
 - POS search returns slim active-only checkout results ranked by exact barcode first, then SKU/name matches, without reusing the full management product payload
 
 Git Status:
-- changes pending
+- clean after committing and pushing the current pagination slice
 
 Last Commit:
-- `d9cea26 feat(catalog): add product master foundation`
+- `feat(catalog): paginate management product list`

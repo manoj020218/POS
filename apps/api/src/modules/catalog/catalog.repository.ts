@@ -3,6 +3,8 @@ import type {
   CreateCategoryInput,
   CreateProductInput,
   CreateTaxProfileInput,
+  PaginatedResult,
+  PaginationInput,
   CreateUnitInput,
   ProductRecord,
   TaxProfileRecord,
@@ -39,7 +41,11 @@ export interface CatalogRepository {
   findUnitByCode(tenantId: string, businessId: string, code: string): Promise<UnitRecord | null>;
   findUnitById(unitId: string): Promise<UnitRecord | null>;
   listCategories(tenantId: string, businessIds?: string[]): Promise<CategoryRecord[]>;
-  listProducts(tenantId: string, businessIds?: string[]): Promise<ProductRecord[]>;
+  listProducts(
+    tenantId: string,
+    businessIds: string[] | undefined,
+    pagination: PaginationInput
+  ): Promise<PaginatedResult<ProductRecord>>;
   searchProducts(
     tenantId: string,
     businessIds: string[],

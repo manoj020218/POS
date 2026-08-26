@@ -7,9 +7,16 @@ import {
   ensureDefaultUnit,
   generateProductSku
 } from './catalog-defaults.js';
+import { buildPaginationMeta } from './catalog-pagination.js';
 import { resolveReadBusinessIds, resolveWriteBusiness } from './catalog-business-scope.js';
 import type { CatalogRepository } from './catalog.repository.js';
-import type { CatalogQuery, ProductRecord, ProductView } from './catalog.types.js';
+import type {
+  PaginatedResult,
+  PaginationInput,
+  ProductListQuery,
+  ProductRecord,
+  ProductView
+} from './catalog.types.js';
 import { requiredRecord, toProductView } from './product-view.js';
 
 type ProductInput = Omit<ProductRecord, 'businessId' | 'categoryId' | 'createdAt' | 'id' | 'sku' | 'taxProfileId' | 'tenantId' | 'unitId' | 'updatedAt'> & {
@@ -48,24 +55,43 @@ export const createProductHandlers = (
     });
     return toProductView(product, business, related.category, related.unit, related.taxProfile);
   },
-  listProducts: async (context: AccessContext, query: CatalogQuery): Promise<ProductView[]> => {
+  listProducts: async (
+    context: AccessContext,
+    query: ProductListQuery
+  ): Promise<PaginatedResult<ProductView>> => {
     const businessIds = await resolveReadBusinessIds(context, tenantCoreRepository, query.businessId);
-    if (businessIds.length === 0) return [];
-    const [businesses, categories, products, taxProfiles, units] = await Promise.all([
+    if (businessIds.length === 0) {
+      return emptyPage(query);
+    }
+
+    const [businesses, productPage] = await Promise.all([
       tenantCoreRepository.listBusinesses(context.tenantId),
-      repository.listCategories(context.tenantId, businessIds),
-      repository.listProducts(context.tenantId, businessIds),
-      repository.listTaxProfiles(context.tenantId, businessIds),
-      repository.listUnits(context.tenantId, businessIds)
+      repository.listProducts(context.tenantId, businessIds, {
+        page: query.page,
+        pageSize: query.pageSize
+      })
+    ]);
+    if (productPage.items.length === 0) {
+      return { items: [], meta: productPage.meta };
+    }
+
+    const pageBusinessIds = [...new Set(productPage.items.map((product) => product.businessId))];
+    const [categories, taxProfiles, units] = await Promise.all([
+      repository.listCategories(context.tenantId, pageBusinessIds),
+      repository.listTaxProfiles(context.tenantId, pageBusinessIds),
+      repository.listUnits(context.tenantId, pageBusinessIds)
     ]);
     const businessMap = new Map(businesses.map((business) => [business.id, business]));
     const categoryMap = new Map(categories.map((category) => [category.id, category]));
     const unitMap = new Map(units.map((unit) => [unit.id, unit]));
     const taxProfileMap = new Map(taxProfiles.map((taxProfile) => [taxProfile.id, taxProfile]));
 
-    return products.map((product) =>
-      toProductView(product, requiredRecord(businessMap, product.businessId, 'BUSINESS_NOT_FOUND', 'Business not found'), requiredRecord(categoryMap, product.categoryId, 'CATEGORY_NOT_FOUND', 'Category not found'), requiredRecord(unitMap, product.unitId, 'UNIT_NOT_FOUND', 'Unit not found'), requiredRecord(taxProfileMap, product.taxProfileId, 'TAX_PROFILE_NOT_FOUND', 'Tax profile not found'))
-    );
+    return {
+      items: productPage.items.map((product) =>
+        toProductView(product, requiredRecord(businessMap, product.businessId, 'BUSINESS_NOT_FOUND', 'Business not found'), requiredRecord(categoryMap, product.categoryId, 'CATEGORY_NOT_FOUND', 'Category not found'), requiredRecord(unitMap, product.unitId, 'UNIT_NOT_FOUND', 'Unit not found'), requiredRecord(taxProfileMap, product.taxProfileId, 'TAX_PROFILE_NOT_FOUND', 'Tax profile not found'))
+      ),
+      meta: productPage.meta
+    };
   },
   updateProduct: async (
     context: AccessContext,
@@ -101,6 +127,11 @@ export const createProductHandlers = (
     if (!updated) throw createHttpError(404, 'PRODUCT_NOT_FOUND', 'Product not found');
     return toProductView(updated, business, related.category, related.unit, related.taxProfile);
   }
+});
+
+const emptyPage = (pagination: PaginationInput): PaginatedResult<ProductView> => ({
+  items: [],
+  meta: buildPaginationMeta({ ...pagination, totalItems: 0 })
 });
 
 const resolveProductRelations = async (

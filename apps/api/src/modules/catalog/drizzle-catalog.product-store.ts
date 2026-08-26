@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, eq, ilike, inArray, or } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 
 import type { AppDatabase } from '../../db/client.js';
 import { products } from '../../db/schema/index.js';
 import { createHttpError } from '../../lib/http-error.js';
+import { buildPaginationMeta } from './catalog-pagination.js';
 import {
   isDuplicateKeyError,
   normalizeProduct
@@ -12,6 +13,8 @@ import {
 import { rankProductsForSearch } from './product-search-ranking.js';
 import type {
   CreateProductInput,
+  PaginatedResult,
+  PaginationInput,
   ProductRecord,
   UpdateProductInput
 } from './catalog.types.js';
@@ -60,17 +63,34 @@ export const createDrizzleCatalogProductStore = (db: AppDatabase) => ({
     return record ? normalizeProduct(record) : null;
   },
 
-  async listProducts(tenantId: string, businessIds?: string[]) {
+  async listProducts(
+    tenantId: string,
+    businessIds: string[] | undefined,
+    pagination: PaginationInput
+  ): Promise<PaginatedResult<ProductRecord>> {
     const whereClause =
       !businessIds || businessIds.length === 0
         ? eq(products.tenantId, tenantId)
         : and(eq(products.tenantId, tenantId), inArray(products.businessId, businessIds));
+    const [countRow] = await db
+      .select({ totalItems: sql<number>`count(*)` })
+      .from(products)
+      .where(whereClause);
+    const totalItems = Number(countRow?.totalItems ?? 0);
     const records = await db
       .select()
       .from(products)
       .where(whereClause)
-      .orderBy(asc(products.name), asc(products.sku));
-    return records.map(normalizeProduct);
+      .orderBy(asc(products.name), asc(products.sku), asc(products.id))
+      .limit(pagination.pageSize)
+      .offset((pagination.page - 1) * pagination.pageSize);
+    return {
+      items: records.map(normalizeProduct),
+      meta: buildPaginationMeta({
+        ...pagination,
+        totalItems
+      })
+    };
   },
 
   async searchProducts(tenantId: string, businessIds: string[], query: string, limit: number) {

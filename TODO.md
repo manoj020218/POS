@@ -1,10 +1,10 @@
 # TODO
 
 NOW
-- Add product-list pagination for management screens on `GET /api/v1/products`
+- Start Customer master foundation with minimal optional customer create/list/update flows
 
 NEXT
-- Start Customer master foundation after the Phase 3 pagination slice is complete
+- Add walk-in customer defaults so sales remain customer-optional before the sales-engine slice
 
 LATER
 - Shared contracts package

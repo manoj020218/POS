@@ -111,6 +111,25 @@ export type CatalogQuery = {
   businessId?: string;
 };
 
+export type PaginationInput = {
+  page: number;
+  pageSize: number;
+};
+
+export type PaginationMeta = PaginationInput & {
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  totalItems: number;
+  totalPages: number;
+};
+
+export type PaginatedResult<T> = {
+  items: T[];
+  meta: PaginationMeta;
+};
+
+export type ProductListQuery = CatalogQuery & PaginationInput;
+
 export type ProductSearchQuery = CatalogQuery & {
   limit: number;
   query: string;

@@ -100,6 +100,14 @@ describe('catalog routes', () => {
     });
     expect(listed.status).toBe(200);
     expect(listed.body.data).toHaveLength(1);
+    expect(listed.body.meta).toMatchObject({
+      hasNextPage: false,
+      hasPreviousPage: false,
+      page: 1,
+      pageSize: 20,
+      totalItems: 1,
+      totalPages: 1
+    });
   });
 
   it('allows cashiers to view products but not create them', async () => {
@@ -117,8 +125,70 @@ describe('catalog routes', () => {
 
     expect(listed.status).toBe(200);
     expect(listed.body.data).toHaveLength(1);
+    expect(listed.body.meta).toMatchObject({
+      hasNextPage: false,
+      hasPreviousPage: false,
+      page: 1,
+      pageSize: 20,
+      totalItems: 1,
+      totalPages: 1
+    });
     expect(created.status).toBe(403);
     expect(created.body.code).toBe('FORBIDDEN');
+  });
+
+  it('paginates management product listings and returns metadata', async () => {
+    const managerAccess = await loginAs('manager@example.com');
+    await request(app).post('/api/v1/products').set(managerAccess).send({
+      name: 'Apple Juice',
+      sellingPrice: 3000,
+      sku: 'APPLE-1'
+    });
+    await request(app).post('/api/v1/products').set(managerAccess).send({
+      name: 'Banana Chips',
+      sellingPrice: 1500,
+      sku: 'BANANA-1'
+    });
+    await request(app).post('/api/v1/products').set(managerAccess).send({
+      name: 'Coconut Water',
+      sellingPrice: 2500,
+      sku: 'COCONUT-1'
+    });
+
+    const firstPage = await request(app)
+      .get('/api/v1/products')
+      .query({ page: 1, pageSize: 2 })
+      .set(managerAccess);
+    const secondPage = await request(app)
+      .get('/api/v1/products')
+      .query({ page: 2, pageSize: 2 })
+      .set(managerAccess);
+
+    expect(firstPage.status).toBe(200);
+    expect(firstPage.body.data.map((item: { name: string }) => item.name)).toEqual([
+      'Apple Juice',
+      'Banana Chips'
+    ]);
+    expect(firstPage.body.meta).toMatchObject({
+      hasNextPage: true,
+      hasPreviousPage: false,
+      page: 1,
+      pageSize: 2,
+      totalItems: 3,
+      totalPages: 2
+    });
+    expect(secondPage.status).toBe(200);
+    expect(secondPage.body.data.map((item: { name: string }) => item.name)).toEqual([
+      'Coconut Water'
+    ]);
+    expect(secondPage.body.meta).toMatchObject({
+      hasNextPage: false,
+      hasPreviousPage: true,
+      page: 2,
+      pageSize: 2,
+      totalItems: 3,
+      totalPages: 2
+    });
   });
 
   it('searches with exact barcode priority and returns a slim POS payload', async () => {

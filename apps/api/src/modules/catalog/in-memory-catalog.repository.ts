@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+import { paginateItems } from './catalog-pagination.js';
 import type { CatalogRepository } from './catalog.repository.js';
 import { rankProductsForSearch } from './product-search-ranking.js';
 import type {
@@ -7,6 +8,7 @@ import type {
   CreateCategoryInput,
   CreateProductInput,
   CreateTaxProfileInput,
+  PaginationInput,
   CreateUnitInput,
   ProductRecord,
   TaxProfileRecord,
@@ -85,10 +87,14 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   async listCategories(tenantId: string, businessIds?: string[]) {
     return byBusiness(this.categories.values(), tenantId, businessIds).sort(byCodeThenName);
   }
-  async listProducts(tenantId: string, businessIds?: string[]) {
-    return byBusiness(this.products.values(), tenantId, businessIds).sort((left, right) =>
-      left.name.localeCompare(right.name) || left.sku.localeCompare(right.sku)
+  async listProducts(tenantId: string, businessIds: string[] | undefined, pagination: PaginationInput) {
+    const items = byBusiness(this.products.values(), tenantId, businessIds).sort(
+      (left, right) =>
+        left.name.localeCompare(right.name) ||
+        left.sku.localeCompare(right.sku) ||
+        left.id.localeCompare(right.id)
     );
+    return paginateItems(items, pagination);
   }
   async searchProducts(tenantId: string, businessIds: string[], query: string, limit: number) {
     return rankProductsForSearch(byBusiness(this.products.values(), tenantId, businessIds), query).slice(

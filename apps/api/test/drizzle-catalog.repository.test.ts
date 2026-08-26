@@ -62,16 +62,102 @@ describe('DrizzleCatalogRepository', () => {
     const found = await repository.findProductBySkuOrBarcode(tenantA, businessA1, {
       barcode: '8900000000012'
     });
-    const listed = await repository.listProducts(tenantA, [businessA1]);
+    const listed = await repository.listProducts(tenantA, [businessA1], {
+      page: 1,
+      pageSize: 20
+    });
 
     expect(updatedProduct?.sellingPrice).toBe(4200);
     expect(found?.sku).toBe('COKE-500');
-    expect(listed).toHaveLength(1);
-    expect(listed[0]).toBeDefined();
-    expect(listed[0]!.barcode).toBe('8900000000012');
+    expect(listed.items).toHaveLength(1);
+    expect(listed.items[0]).toBeDefined();
+    expect(listed.items[0]!.barcode).toBe('8900000000012');
+    expect(listed.meta).toMatchObject({
+      hasNextPage: false,
+      hasPreviousPage: false,
+      page: 1,
+      pageSize: 20,
+      totalItems: 1,
+      totalPages: 1
+    });
     expect((await repository.findCategoryById(masters.category.id))?.name).toBe('Cold Drinks');
     expect((await repository.findUnitById(masters.unit.id))?.symbol).toBe('btl');
     expect((await repository.findTaxProfileById(masters.taxProfile.id))?.rateBasisPoints).toBe(1800);
+  });
+
+  it('returns paginated product listings with stable ordering metadata', async () => {
+    const masters = await createMasterSet(repository, tenantA, businessA1);
+
+    await repository.createProduct({
+      businessId: businessA1,
+      categoryId: masters.category.id,
+      isActive: true,
+      lowStockLevel: 0,
+      name: 'Apple Juice',
+      openingStock: 0,
+      sellingPrice: 3000,
+      sku: 'APPLE-1',
+      taxProfileId: masters.taxProfile.id,
+      tenantId: tenantA,
+      trackInventory: true,
+      unitId: masters.unit.id
+    });
+    await repository.createProduct({
+      businessId: businessA1,
+      categoryId: masters.category.id,
+      isActive: true,
+      lowStockLevel: 0,
+      name: 'Banana Chips',
+      openingStock: 0,
+      sellingPrice: 1500,
+      sku: 'BANANA-1',
+      taxProfileId: masters.taxProfile.id,
+      tenantId: tenantA,
+      trackInventory: true,
+      unitId: masters.unit.id
+    });
+    await repository.createProduct({
+      businessId: businessA1,
+      categoryId: masters.category.id,
+      isActive: true,
+      lowStockLevel: 0,
+      name: 'Coconut Water',
+      openingStock: 0,
+      sellingPrice: 2500,
+      sku: 'COCONUT-1',
+      taxProfileId: masters.taxProfile.id,
+      tenantId: tenantA,
+      trackInventory: true,
+      unitId: masters.unit.id
+    });
+
+    const firstPage = await repository.listProducts(tenantA, [businessA1], {
+      page: 1,
+      pageSize: 2
+    });
+    const secondPage = await repository.listProducts(tenantA, [businessA1], {
+      page: 2,
+      pageSize: 2
+    });
+
+    expect(firstPage.items.map((item) => item.name)).toEqual(['Apple Juice', 'Banana Chips']);
+    expect(firstPage.meta).toMatchObject({
+      hasNextPage: true,
+      hasPreviousPage: false,
+      page: 1,
+      pageSize: 2,
+      totalItems: 3,
+      totalPages: 2
+    });
+    expect(secondPage.items.map((item) => item.name)).toEqual(['Coconut Water']);
+    expect(secondPage.meta).toMatchObject({
+      hasNextPage: false,
+      hasPreviousPage: true,
+      page: 2,
+      pageSize: 2,
+      totalItems: 3,
+      totalPages: 2
+    });
   });
 
   it('enforces duplicate codes and product identifiers per business', async () => {
