@@ -7,6 +7,7 @@ export * from './branch.js';
 export * from './business.js';
 export * from './category.js';
 export * from './customer.js';
+export * from './inventory-movement.js';
 export * from './product.js';
 export * from './sale-sequence.js';
 export * from './sale-item.js';

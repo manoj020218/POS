@@ -127,6 +127,17 @@ describe('DrizzleSaleRepository', () => {
           unitPrice: 4000
         }
       ],
+      inventoryMovements: [
+        {
+          branchId: branch.id,
+          businessId: business.id,
+          movementType: 'SALE',
+          occurredAt: new Date('2026-08-26T12:00:00.000Z'),
+          productId: product.id,
+          quantityDelta: -2,
+          tenantId: tenantA
+        }
+      ],
       sale: {
         branchCode: branch.code,
         branchId: branch.id,
@@ -163,6 +174,17 @@ describe('DrizzleSaleRepository', () => {
           unitPrice: 4000
         }
       ],
+      inventoryMovements: [
+        {
+          branchId: branch.id,
+          businessId: business.id,
+          movementType: 'SALE',
+          occurredAt: new Date('2026-08-26T12:05:00.000Z'),
+          productId: product.id,
+          quantityDelta: -1,
+          tenantId: tenantA
+        }
+      ],
       sale: {
         branchCode: branch.code,
         branchId: branch.id,
@@ -197,6 +219,17 @@ describe('DrizzleSaleRepository', () => {
           tenantId: tenantA,
           totalAmount: 4000,
           unitPrice: 4000
+        }
+      ],
+      inventoryMovements: [
+        {
+          branchId: branch.id,
+          businessId: business.id,
+          movementType: 'SALE',
+          occurredAt: new Date('2026-08-26T12:10:00.000Z'),
+          productId: product.id,
+          quantityDelta: -1,
+          tenantId: tenantA
         }
       ],
       sale: {
@@ -256,5 +289,18 @@ describe('DrizzleSaleRepository', () => {
       paymentMethod: 'UPI',
       terminalCode: 'TERM-A2'
     });
+    await expect(
+      saleRepository.listInventoryBalances({
+        businessIds: [business.id],
+        tenantId: tenantA
+      })
+    ).resolves.toEqual([
+      expect.objectContaining({
+        businessId: business.id,
+        netMovementQuantity: -4,
+        productId: product.id,
+        tenantId: tenantA
+      })
+    ]);
   });
 });

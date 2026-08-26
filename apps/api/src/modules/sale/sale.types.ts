@@ -1,3 +1,5 @@
+import type { CreateSaleInventoryMovementInput } from '../inventory/inventory.types.js';
+
 export const paymentMethods = ['CASH', 'CARD', 'UPI', 'OTHER'] as const;
 export type PaymentMethod = (typeof paymentMethods)[number];
 
@@ -50,6 +52,7 @@ export type CreateSaleItemRecordInput = Omit<SaleItemRecord, 'createdAt' | 'id'>
 
 export type CreateSaleInput = {
   items: CreateSaleItemRecordInput[];
+  inventoryMovements: CreateSaleInventoryMovementInput[];
   sale: CreateSaleRecordInput;
 };
 

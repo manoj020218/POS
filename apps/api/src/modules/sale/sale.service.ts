@@ -34,6 +34,7 @@ export const createSaleService = (
     const products = await Promise.all(
       input.items.map((item) => catalogRepository.findProductById(item.productId))
     );
+    const occurredAt = input.occurredAt ?? new Date();
 
     const calculated = calculateSaleTotals({
       items: input.items.map((item, index) => {
@@ -84,6 +85,24 @@ export const createSaleService = (
         totalAmount: item.totalAmount,
         unitPrice: item.unitPrice
       })),
+      inventoryMovements: input.items.flatMap((item, index) => {
+        const product = products[index]!;
+        if (!product.trackInventory) {
+          return [];
+        }
+
+        return [
+          {
+            branchId: branch.id,
+            businessId: branch.businessId,
+            movementType: 'SALE' as const,
+            occurredAt,
+            productId: product.id,
+            quantityDelta: item.quantity * -1,
+            tenantId: context.tenantId
+          }
+        ];
+      }),
       sale: {
         branchCode: branch.code,
         branchId: branch.id,
@@ -93,7 +112,7 @@ export const createSaleService = (
         customerId: customer?.id,
         customerName: customer?.name,
         discountAmount: calculated.discountAmount,
-        occurredAt: input.occurredAt ?? new Date(),
+        occurredAt,
         paymentMethod: input.payment.method,
         subtotalAmount: calculated.subtotalAmount,
         taxAmount: calculated.taxAmount,

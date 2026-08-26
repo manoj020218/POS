@@ -87,6 +87,16 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   async listCategories(tenantId: string, businessIds?: string[]) {
     return byBusiness(this.categories.values(), tenantId, businessIds).sort(byCodeThenName);
   }
+  async listInventoryProducts(tenantId: string, businessIds: string[], productId?: string) {
+    return byBusiness(this.products.values(), tenantId, businessIds)
+      .filter((product) => product.trackInventory && (!productId || product.id === productId))
+      .sort(
+        (left, right) =>
+          left.name.localeCompare(right.name) ||
+          left.sku.localeCompare(right.sku) ||
+          left.id.localeCompare(right.id)
+      );
+  }
   async listProducts(tenantId: string, businessIds: string[] | undefined, pagination: PaginationInput) {
     const items = byBusiness(this.products.values(), tenantId, businessIds).sort(
       (left, right) =>

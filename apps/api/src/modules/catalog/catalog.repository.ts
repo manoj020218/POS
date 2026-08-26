@@ -41,6 +41,11 @@ export interface CatalogRepository {
   findUnitByCode(tenantId: string, businessId: string, code: string): Promise<UnitRecord | null>;
   findUnitById(unitId: string): Promise<UnitRecord | null>;
   listCategories(tenantId: string, businessIds?: string[]): Promise<CategoryRecord[]>;
+  listInventoryProducts(
+    tenantId: string,
+    businessIds: string[],
+    productId?: string
+  ): Promise<ProductRecord[]>;
   listProducts(
     tenantId: string,
     businessIds: string[] | undefined,

@@ -4,7 +4,7 @@ Current Phase:
 - Phase 6 - Inventory Ledger
 
 Current Subtask:
-- Phase 5 sales engine plus invoice numbering are complete; next safe unit is immutable inventory-movement creation and balance queries tied to finalized sales
+- Phase 6 inventory sale-ledger foundation and balance queries are complete; next safe unit is corrective `SALE_RETURN` movement support without mutating prior ledger rows
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -178,15 +178,30 @@ Completed:
 - Verified `pnpm test`
 - Verified `pnpm build`
 - Verified `pnpm db:migrate`
+- Added Phase 6 schema for `inventory_movements`
+- Generated inventory-ledger migration `apps/api/drizzle/0009_past_wolf_cub.sql`
+- Backfilled historical tracked-product sale rows into `inventory_movements` during migration using existing `sale_items` snapshots
+- Added protected inventory balance endpoint `GET /api/v1/inventory/balances`
+- Recorded immutable `SALE` stock movements transactionally with sale creation for tracked products while leaving non-inventory products out of the ledger
+- Added business-scoped inventory balance reads that calculate `currentQuantity = openingStock + netMovementQuantity`
+- Added inventory route coverage for sale-linked stock deduction, non-tracked-product exclusion, product-scoped lookup, and business-scope denial
+- Expanded `DrizzleSaleRepository` integration coverage to assert aggregated inventory movement balances after multiple sales
+- Verified `pnpm db:generate`
+- Verified `pnpm exec vitest run apps/api/test/inventory.test.ts apps/api/test/sale.test.ts apps/api/test/drizzle-sale.repository.test.ts --reporter=verbose`
+- Verified `pnpm typecheck`
+- Verified `pnpm lint`
+- Verified `pnpm test`
+- Verified `pnpm build`
+- Verified `pnpm db:migrate`
 
 Currently Working:
 - No active code changes in progress
-- Phase 5 sales engine and invoice numbering are complete
-- Next safe unit is Phase 6 inventory ledger foundation
+- Phase 6 sale-linked inventory ledger foundation and balance queries are complete
+- Next safe unit is corrective `SALE_RETURN` movement support to finish the remaining Phase 6 return path
 
 Next:
-- Connect finalized sales to immutable inventory movements with negative stock deltas for tracked products
-- Add inventory balance queries plus regression coverage for sale and corrective return movement math
+- Add corrective `SALE_RETURN` movement support so item returns create positive stock deltas without editing existing `SALE` rows
+- Start Phase 7 purchase and supplier foundation once sale-return ledger support is in place
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -237,6 +252,9 @@ Important Decisions:
 - Keep Phase 5 sales logic in a dedicated domain service so controllers stay thin and the repository boundary owns only persistence plus terminal-scoped invoice-sequence allocation
 - Persist immutable sale-item product snapshots (`name`, `sku`, `unitPrice`) at sale time so later catalog edits do not rewrite historical financial records
 - Allocate invoice numbers per terminal with a persisted `sale_sequences` table and expose `INV-{BRANCH}-{TERMINAL}-{SEQUENCE}` on each sale instead of deriving invoice ids from the primary key
+- Keep sale-triggered stock movements inside the sale repository transaction so finalized sales and ledger entries cannot commit independently
+- Expose Phase 6 balances at business scope because products and `openingStock` are currently business-scoped; branch IDs are still stored on each movement for traceability
+- Use `product.openingStock` as the current stock baseline and layer immutable movement deltas on top until explicit `OPENING_STOCK` or manual-adjustment flows are introduced
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
@@ -244,6 +262,7 @@ Known Issues:
 - Password reset delivery still defaults to a no-op sink at runtime; email/SMS/admin handoff for reset tokens is not implemented yet
 - `pnpm bootstrap:owner` requires the target tenant to already exist; it does not create tenant/business/branch/terminal hierarchy on its own
 - Walk-in customer uniqueness is currently enforced by the service-level ensure flow rather than a database uniqueness constraint
+- Inventory balances currently derive from mutable `product.openingStock` plus movement sums; explicit opening-stock ledger entries and manual inventory adjustments are not implemented yet
 
 Tests:
 - `pnpm lint`
@@ -463,6 +482,10 @@ Database Status:
 - Invoice numbering schema update added at `apps/api/drizzle/0008_burly_paibok.sql`
 - Terminal-scoped `sale_sequences` are now persisted in PostgreSQL
 - Sales and invoice-numbering migration generation and application verified against the local PostgreSQL database
+- Inventory ledger schema added at `apps/api/drizzle/0009_past_wolf_cub.sql`
+- `inventory_movements` are now persisted in PostgreSQL
+- Historical tracked-product sale rows are backfilled into `inventory_movements` during migration application
+- Inventory-ledger migration generation and application verified against the local PostgreSQL database
 
 API Status:
 - Phase 0 scaffold verified
@@ -502,9 +525,11 @@ API Status:
 - Walk-in customers cannot be deactivated through the normal customer update endpoint
 - Sales API now includes protected `POST /api/v1/sales` with server-trusted total recalculation, payment validation, and immutable sale-item snapshots
 - Sale responses now include terminal-scoped human-readable invoice numbers and invoice sequence values alongside branch, terminal, customer, payment, and item totals
+- Finalized sales now create immutable `SALE` inventory movements for tracked products in the same repository transaction as sale persistence
+- Inventory API now includes protected `GET /api/v1/inventory/balances` with business and optional product scoping plus opening-stock-plus-ledger balance calculation
 
 Git Status:
-- clean after committing and pushing the current sales and invoice-numbering slice
+- clean after committing and pushing the current inventory-ledger slice
 
 Last Commit:
-- `feat(sale): add sales engine foundation and invoice numbering`
+- `feat(inventory): add sale-linked ledger balances`

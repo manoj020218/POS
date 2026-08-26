@@ -18,6 +18,8 @@ import { InMemoryCatalogRepository } from './modules/catalog/in-memory-catalog.r
 import { createCustomerRouter } from './modules/customer/customer.routes.js';
 import type { CustomerRepository } from './modules/customer/customer.repository.js';
 import { InMemoryCustomerRepository } from './modules/customer/in-memory-customer.repository.js';
+import { createInventoryRouter } from './modules/inventory/inventory.routes.js';
+import type { InventoryRepository } from './modules/inventory/inventory.repository.js';
 import { createSaleRouter } from './modules/sale/sale.routes.js';
 import type { SaleRepository } from './modules/sale/sale.repository.js';
 import { InMemorySaleRepository } from './modules/sale/in-memory-sale.repository.js';
@@ -37,7 +39,7 @@ export type AppOptions = {
   catalogRepository?: CatalogRepository;
   customerRepository?: CustomerRepository;
   logger: AppLogger;
-  saleRepository?: SaleRepository;
+  saleRepository?: SaleRepository & InventoryRepository;
   tenantCoreRepository?: TenantCoreRepository;
 };
 
@@ -67,6 +69,7 @@ export const createApp = (options: AppOptions): Express => {
   app.use('/api/v1/auth', createAuthRouter(authRepository, tenantCoreRepository, authConfig));
   app.use('/api/v1', createCatalogRouter(catalogRepository, tenantCoreRepository));
   app.use('/api/v1', createCustomerRouter(customerRepository, tenantCoreRepository));
+  app.use('/api/v1', createInventoryRouter(saleRepository, catalogRepository, tenantCoreRepository));
   app.use(
     '/api/v1',
     createSaleRouter(saleRepository, catalogRepository, customerRepository, tenantCoreRepository)

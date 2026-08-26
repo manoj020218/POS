@@ -1,13 +1,12 @@
 # TODO
 
 NOW
-- Start Phase 6 inventory ledger foundation with immutable stock movements for finalized sales
+- Finish Phase 6 with corrective `SALE_RETURN` movement support that never mutates prior ledger rows
 
 NEXT
-- Add inventory balance queries plus sale-return corrective movement support
+- Start Phase 7 purchase and supplier foundation once sale returns are recorded through the ledger
 
 LATER
-- Purchase and supplier foundation
 - Shared contracts package
 - Admin and POS client apps
 - Sync package and offline client data layer

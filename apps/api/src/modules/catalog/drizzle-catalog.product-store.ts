@@ -93,6 +93,25 @@ export const createDrizzleCatalogProductStore = (db: AppDatabase) => ({
     };
   },
 
+  async listInventoryProducts(tenantId: string, businessIds: string[], productId?: string) {
+    if (businessIds.length === 0) {
+      return [];
+    }
+
+    const filters = [
+      eq(products.tenantId, tenantId),
+      inArray(products.businessId, businessIds),
+      eq(products.trackInventory, true),
+      productId ? eq(products.id, productId) : null
+    ].filter(Boolean);
+    const records = await db
+      .select()
+      .from(products)
+      .where(and(filters[0]!, filters[1]!, filters[2]!, ...(filters.slice(3) as [])))
+      .orderBy(asc(products.name), asc(products.sku), asc(products.id));
+    return records.map(normalizeProduct);
+  },
+
   async searchProducts(tenantId: string, businessIds: string[], query: string, limit: number) {
     const exactBarcodeMatches = await db
       .select()

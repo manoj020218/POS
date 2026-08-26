@@ -1,9 +1,12 @@
 import { randomUUID } from 'node:crypto';
 
-import { sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import type { AppDatabase } from '../../db/client.js';
-import { saleItems, saleSequences, sales } from '../../db/schema/index.js';
+import { inventoryMovements, saleItems, saleSequences, sales } from '../../db/schema/index.js';
+import type { InventoryRepository } from '../inventory/inventory.repository.js';
+import type { InventoryBalanceLookupInput } from '../inventory/inventory.repository.js';
+import type { InventoryMovementBalanceRecord } from '../inventory/inventory.types.js';
 import { formatInvoiceNumber } from './sale-domain.js';
 import type { SaleRepository } from './sale.repository.js';
 import type {
@@ -19,7 +22,12 @@ type SaleRow = Omit<SaleRecord, 'customerId' | 'customerName' | 'paymentMethod'>
   paymentMethod: string;
 };
 
-export class DrizzleSaleRepository implements SaleRepository {
+type InventoryBalanceRow = Omit<InventoryMovementBalanceRecord, 'lastMovementAt' | 'netMovementQuantity'> & {
+  lastMovementAt: Date | null;
+  netMovementQuantity: number;
+};
+
+export class DrizzleSaleRepository implements SaleRepository, InventoryRepository {
   constructor(private readonly db: AppDatabase) {}
 
   async createSale(input: CreateSaleInput): Promise<SaleDetailRecord> {
@@ -70,12 +78,52 @@ export class DrizzleSaleRepository implements SaleRepository {
           }))
         )
         .returning();
+      if (input.inventoryMovements.length > 0) {
+        await tx.insert(inventoryMovements).values(
+          input.inventoryMovements.map((movement) => ({
+            ...movement,
+            id: randomUUID(),
+            referenceId: saleId
+          }))
+        );
+      }
 
       return {
         items: itemRows.map((item) => item),
         sale: normalizeSale(requireSale(saleRow))
       };
     });
+  }
+
+  async listInventoryBalances(
+    input: InventoryBalanceLookupInput
+  ): Promise<InventoryMovementBalanceRecord[]> {
+    if (input.businessIds.length === 0) {
+      return [];
+    }
+
+    const filters = [
+      eq(inventoryMovements.tenantId, input.tenantId),
+      inArray(inventoryMovements.businessId, input.businessIds),
+      input.productId ? eq(inventoryMovements.productId, input.productId) : null
+    ].filter(Boolean);
+    const rows = await this.db
+      .select({
+        businessId: inventoryMovements.businessId,
+        lastMovementAt: sql<Date | null>`max(${inventoryMovements.occurredAt})`,
+        netMovementQuantity: sql<number>`coalesce(sum(${inventoryMovements.quantityDelta}), 0)`,
+        productId: inventoryMovements.productId,
+        tenantId: inventoryMovements.tenantId
+      })
+      .from(inventoryMovements)
+      .where(and(filters[0]!, filters[1]!, ...(filters.slice(2) as [])))
+      .groupBy(
+        inventoryMovements.businessId,
+        inventoryMovements.productId,
+        inventoryMovements.tenantId
+      );
+
+    return rows.map(normalizeInventoryBalance);
   }
 }
 
@@ -94,6 +142,14 @@ const requireSequence = (sequence: { lastValue: number } | undefined) => {
 
   return sequence.lastValue;
 };
+
+const normalizeInventoryBalance = (row: InventoryBalanceRow): InventoryMovementBalanceRecord => ({
+  businessId: row.businessId,
+  lastMovementAt: row.lastMovementAt ?? undefined,
+  netMovementQuantity: Number(row.netMovementQuantity),
+  productId: row.productId,
+  tenantId: row.tenantId
+});
 
 const normalizeSale = (sale: SaleRow): SaleRecord => ({
   ...sale,
