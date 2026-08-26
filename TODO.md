@@ -1,10 +1,10 @@
 # TODO
 
 NOW
-- Start Customer master foundation with minimal optional customer create/list/update flows
+- Start Sales engine foundation as a domain service with sale-create contracts and persisted sale records
 
 NEXT
-- Add walk-in customer defaults so sales remain customer-optional before the sales-engine slice
+- Add invoice numbering rules once the first sale-create flow exists
 
 LATER
 - Shared contracts package

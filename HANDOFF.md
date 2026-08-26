@@ -1,10 +1,10 @@
 # HANDOFF
 
 Current Phase:
-- Phase 4 - Customer Master
+- Phase 5 - Sales Engine
 
 Current Subtask:
-- Phase 3 product master is complete; next safe unit is minimal customer create/list/update foundation with walk-in customer support
+- Phase 4 customer master is complete; next safe unit is sales-engine domain-service foundation with invoice numbering to follow
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -144,15 +144,32 @@ Completed:
 - Verified `pnpm typecheck`
 - Verified `pnpm lint`
 - Verified `pnpm build`
+- Added Phase 4 schema for `customers`
+- Generated customer migration `apps/api/drizzle/0006_parallel_mac_gargan.sql`
+- Added protected Phase 4 customer endpoints for `GET/POST/PATCH /api/v1/customers`
+- Added optional customer lookup on `GET /api/v1/customers` via `query` matching name/mobile/email within business scope
+- Added mobile-only quick-create support by deriving the stored customer name from `name`, then `mobile`, then `email`
+- Added idempotent `POST /api/v1/customers/walk-in` to provision the default walk-in customer per business
+- Added walk-in customer protection so the default customer cannot be deactivated through `PATCH /api/v1/customers/:customerId`
+- Added PostgreSQL-backed `DrizzleCustomerRepository` plus in-memory customer repository coverage
+- Added customer route coverage for business-context enforcement, cashier permissions, scoped lookup, and walk-in behavior
+- Added `DrizzleCustomerRepository` integration coverage for persisted create/update/list/query and walk-in lookup flows
+- Verified `pnpm db:generate`
+- Verified `pnpm db:migrate`
+- Verified `pnpm exec vitest run apps/api/test/customer.test.ts apps/api/test/drizzle-customer.repository.test.ts --reporter=verbose`
+- Verified `pnpm test`
+- Verified `pnpm typecheck`
+- Verified `pnpm lint`
+- Verified `pnpm build`
 
 Currently Working:
 - No active code changes in progress
-- Phase 3 product master is complete
-- Next safe unit is Phase 4 customer master foundation
+- Phase 4 customer master is complete
+- Next safe unit is Phase 5 sales engine foundation
 
 Next:
-- Start Phase 4 customer master foundation with minimal optional customer create/list/update flows
-- Add walk-in customer defaults so cashier sales remain customer-optional before sales-engine work
+- Start Phase 5 sales engine as a domain service instead of controller-bound business logic
+- Add invoice numbering rules immediately after the first sale-create flow is in place
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -195,12 +212,18 @@ Important Decisions:
 - Treat POS search as active-only and capped by limit, with exact barcode matches short-circuiting ahead of broader SKU/name/barcode ranking for checkout speed
 - Keep management product lists paginated with `page`/`pageSize` query params and response `meta` while preserving the existing `data` array shape for low-friction client adoption
 - Order management product lists by name, SKU, and ID so page boundaries stay stable across repeated reads
+- Keep customers business-scoped and branch-filtered through the existing business-scope helpers, matching the current catalog access model
+- Resolve quick-create customer names from `name`, then `mobile`, then `email` so checkout flows can create a valid customer from a mobile-only payload
+- Use an idempotent `POST /api/v1/customers/walk-in` endpoint to provision the default walk-in customer per business before sales-engine work exists
+- Protect the default walk-in customer from deactivation so normal sales can remain customer-optional without losing the fallback record
+- Reuse `GET /api/v1/customers?query=` for lightweight name/mobile/email lookup instead of adding a separate customer-search route in Phase 4
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
 - Local PostgreSQL-backed verification still depends on the developer maintaining an ignored root `.env`
 - Password reset delivery still defaults to a no-op sink at runtime; email/SMS/admin handoff for reset tokens is not implemented yet
 - `pnpm bootstrap:owner` requires the target tenant to already exist; it does not create tenant/business/branch/terminal hierarchy on its own
+- Walk-in customer uniqueness is currently enforced by the service-level ensure flow rather than a database uniqueness constraint
 
 Tests:
 - `pnpm lint`
@@ -246,6 +269,9 @@ Tests:
 - Catalog repository integration: persisted category/unit/tax-profile/product create-update flows plus per-business duplicate code and identifier enforcement via `DrizzleCatalogRepository`
 - Catalog repository integration: product lists now return stable name/SKU/ID ordering plus total-count pagination metadata via `DrizzleCatalogRepository`
 - Catalog repository integration: product search enforces exact barcode priority, active-only filtering, business scoping, and result limits via `DrizzleCatalogRepository`
+- Customer routes: mobile-only quick create, scoped lookup, walk-in ensure idempotency, walk-in deactivation protection, and cashier view/create vs update denial
+- Customer repository integration: persisted create/update/list/query flows plus business-scoped walk-in lookup via `DrizzleCustomerRepository`
+- Real DB verification: `pnpm db:migrate` after adding the customer migration
 - Real DB verification: `pnpm bootstrap:owner -- --tenant-id 11111111-1111-4111-8111-111111111111 --email owner@example.com --name "Dev Owner" --password Password123 --role BUSINESS_OWNER --user-id 99999999-9999-4999-8999-999999999999`
 - Real DB verification: `pnpm db:migrate` after adding the catalog migration
 
@@ -382,6 +408,13 @@ Last Successful Commands:
 - `cmd /c pnpm lint`
 - `cmd /c pnpm typecheck`
 - `cmd /c pnpm build`
+- `cmd /c pnpm db:generate`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm exec vitest run apps/api/test/customer.test.ts apps/api/test/drizzle-customer.repository.test.ts --reporter=verbose`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm build`
+- `cmd /c pnpm test`
+- `cmd /c pnpm db:migrate`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -402,6 +435,9 @@ Database Status:
 - Catalog schema added at `apps/api/drizzle/0005_ambitious_blacklash.sql`
 - `categories`, `units`, `tax_profiles`, and `products` are now persisted in PostgreSQL
 - Catalog migration generation and application verified against the local PostgreSQL database
+- Customer schema added at `apps/api/drizzle/0006_parallel_mac_gargan.sql`
+- `customers` are now persisted in PostgreSQL
+- Customer migration generation and application verified against the local PostgreSQL database
 
 API Status:
 - Phase 0 scaffold verified
@@ -434,9 +470,14 @@ API Status:
 - Catalog API now includes protected `GET /api/v1/products/search` with `query`, optional `businessId`, and optional `limit`
 - Catalog API now includes paginated management `GET /api/v1/products` with `page`, `pageSize`, and response `meta`
 - POS search returns slim active-only checkout results ranked by exact barcode first, then SKU/name matches, without reusing the full management product payload
+- Customer API now includes protected `GET/POST/PATCH /api/v1/customers` with business-scoped reads and writes
+- Minimal `POST /api/v1/customers` now accepts mobile-only, email-only, or name-bearing payloads by deriving the stored customer name from the first available identifier
+- Customer API now includes `POST /api/v1/customers/walk-in` for idempotent default-customer provisioning per business
+- Customer reads honor existing branch-scoped business access and support lightweight name/mobile/email lookup through the `query` parameter
+- Walk-in customers cannot be deactivated through the normal customer update endpoint
 
 Git Status:
-- clean after committing and pushing the current pagination slice
+- clean after committing and pushing the current customer slice
 
 Last Commit:
-- `feat(catalog): paginate management product list`
+- `feat(customer): add customer master foundation`

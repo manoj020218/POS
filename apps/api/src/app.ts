@@ -15,6 +15,9 @@ import { InMemoryAuthRepository } from './modules/auth/in-memory-auth.repository
 import { createCatalogRouter } from './modules/catalog/catalog.routes.js';
 import type { CatalogRepository } from './modules/catalog/catalog.repository.js';
 import { InMemoryCatalogRepository } from './modules/catalog/in-memory-catalog.repository.js';
+import { createCustomerRouter } from './modules/customer/customer.routes.js';
+import type { CustomerRepository } from './modules/customer/customer.repository.js';
+import { InMemoryCustomerRepository } from './modules/customer/in-memory-customer.repository.js';
 import {
   InMemoryTenantCoreRepository,
   type TenantCoreRepository
@@ -29,6 +32,7 @@ export type AppOptions = {
   authConfig?: AuthServiceConfig;
   authRepository?: AuthRepository;
   catalogRepository?: CatalogRepository;
+  customerRepository?: CustomerRepository;
   logger: AppLogger;
   tenantCoreRepository?: TenantCoreRepository;
 };
@@ -41,6 +45,7 @@ export const createApp = (options: AppOptions): Express => {
   };
   const authRepository = options.authRepository ?? new InMemoryAuthRepository();
   const catalogRepository = options.catalogRepository ?? new InMemoryCatalogRepository();
+  const customerRepository = options.customerRepository ?? new InMemoryCustomerRepository();
   const tenantCoreRepository =
     options.tenantCoreRepository ?? new InMemoryTenantCoreRepository();
   const accessContextResolver =
@@ -56,6 +61,7 @@ export const createApp = (options: AppOptions): Express => {
   app.use(attachAccessContext(accessContextResolver));
   app.use('/api/v1/auth', createAuthRouter(authRepository, tenantCoreRepository, authConfig));
   app.use('/api/v1', createCatalogRouter(catalogRepository, tenantCoreRepository));
+  app.use('/api/v1', createCustomerRouter(customerRepository, tenantCoreRepository));
   app.use('/api/v1', createTenantCoreRouter(tenantCoreRepository));
   app.use(notFoundHandler);
   app.use(errorHandler(options.logger));
