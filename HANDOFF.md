@@ -1,10 +1,10 @@
 # HANDOFF
 
 Current Phase:
-- Phase 5 - Sales Engine
+- Phase 6 - Inventory Ledger
 
 Current Subtask:
-- Phase 4 customer master is complete; next safe unit is sales-engine domain-service foundation with invoice numbering to follow
+- Phase 5 sales engine plus invoice numbering are complete; next safe unit is immutable inventory-movement creation and balance queries tied to finalized sales
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -161,15 +161,32 @@ Completed:
 - Verified `pnpm typecheck`
 - Verified `pnpm lint`
 - Verified `pnpm build`
+- Added Phase 5 schema for `sales`, `sale_items`, and terminal-scoped `sale_sequences`
+- Generated sales migration `apps/api/drizzle/0007_tense_polaris.sql`
+- Added protected Phase 5 sale endpoint `POST /api/v1/sales`
+- Implemented sales as a domain service with trusted server-side total recalculation, product snapshotting, and payment validation for `CASH`, `CARD`, `UPI`, and `OTHER`
+- Added branch-, terminal-, product-, and optional customer-validation to sale creation with persisted immutable sale-item snapshots
+- Added human-readable invoice numbering as `INV-{BRANCH}-{TERMINAL}-{SEQUENCE}` with a per-terminal persisted sequence allocator
+- Generated invoice-numbering migration `apps/api/drizzle/0008_burly_paibok.sql`
+- Hardened the invoice-numbering migration to backfill existing sale rows safely before enforcing `NOT NULL` and uniqueness constraints
+- Added sale route coverage for trusted totals, optional customer attachment, branch-scope denial, payment mismatch rejection, duplicate-item rejection, and terminal-scoped invoice sequencing
+- Added `DrizzleSaleRepository` integration coverage for immutable sale persistence and terminal-scoped invoice sequencing
+- Verified `pnpm db:generate`
+- Verified `pnpm exec vitest run apps/api/test/sale.test.ts apps/api/test/drizzle-sale.repository.test.ts --reporter=verbose`
+- Verified `pnpm typecheck`
+- Verified `pnpm lint`
+- Verified `pnpm test`
+- Verified `pnpm build`
+- Verified `pnpm db:migrate`
 
 Currently Working:
 - No active code changes in progress
-- Phase 4 customer master is complete
-- Next safe unit is Phase 5 sales engine foundation
+- Phase 5 sales engine and invoice numbering are complete
+- Next safe unit is Phase 6 inventory ledger foundation
 
 Next:
-- Start Phase 5 sales engine as a domain service instead of controller-bound business logic
-- Add invoice numbering rules immediately after the first sale-create flow is in place
+- Connect finalized sales to immutable inventory movements with negative stock deltas for tracked products
+- Add inventory balance queries plus regression coverage for sale and corrective return movement math
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -217,6 +234,9 @@ Important Decisions:
 - Use an idempotent `POST /api/v1/customers/walk-in` endpoint to provision the default walk-in customer per business before sales-engine work exists
 - Protect the default walk-in customer from deactivation so normal sales can remain customer-optional without losing the fallback record
 - Reuse `GET /api/v1/customers?query=` for lightweight name/mobile/email lookup instead of adding a separate customer-search route in Phase 4
+- Keep Phase 5 sales logic in a dedicated domain service so controllers stay thin and the repository boundary owns only persistence plus terminal-scoped invoice-sequence allocation
+- Persist immutable sale-item product snapshots (`name`, `sku`, `unitPrice`) at sale time so later catalog edits do not rewrite historical financial records
+- Allocate invoice numbers per terminal with a persisted `sale_sequences` table and expose `INV-{BRANCH}-{TERMINAL}-{SEQUENCE}` on each sale instead of deriving invoice ids from the primary key
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
@@ -438,6 +458,11 @@ Database Status:
 - Customer schema added at `apps/api/drizzle/0006_parallel_mac_gargan.sql`
 - `customers` are now persisted in PostgreSQL
 - Customer migration generation and application verified against the local PostgreSQL database
+- Sales schema added at `apps/api/drizzle/0007_tense_polaris.sql`
+- `sales` and `sale_items` are now persisted in PostgreSQL
+- Invoice numbering schema update added at `apps/api/drizzle/0008_burly_paibok.sql`
+- Terminal-scoped `sale_sequences` are now persisted in PostgreSQL
+- Sales and invoice-numbering migration generation and application verified against the local PostgreSQL database
 
 API Status:
 - Phase 0 scaffold verified
@@ -475,9 +500,11 @@ API Status:
 - Customer API now includes `POST /api/v1/customers/walk-in` for idempotent default-customer provisioning per business
 - Customer reads honor existing branch-scoped business access and support lightweight name/mobile/email lookup through the `query` parameter
 - Walk-in customers cannot be deactivated through the normal customer update endpoint
+- Sales API now includes protected `POST /api/v1/sales` with server-trusted total recalculation, payment validation, and immutable sale-item snapshots
+- Sale responses now include terminal-scoped human-readable invoice numbers and invoice sequence values alongside branch, terminal, customer, payment, and item totals
 
 Git Status:
-- clean after committing and pushing the current customer slice
+- clean after committing and pushing the current sales and invoice-numbering slice
 
 Last Commit:
-- `feat(customer): add customer master foundation`
+- `feat(sale): add sales engine foundation and invoice numbering`

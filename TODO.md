@@ -1,12 +1,13 @@
 # TODO
 
 NOW
-- Start Sales engine foundation as a domain service with sale-create contracts and persisted sale records
+- Start Phase 6 inventory ledger foundation with immutable stock movements for finalized sales
 
 NEXT
-- Add invoice numbering rules once the first sale-create flow exists
+- Add inventory balance queries plus sale-return corrective movement support
 
 LATER
+- Purchase and supplier foundation
 - Shared contracts package
 - Admin and POS client apps
 - Sync package and offline client data layer

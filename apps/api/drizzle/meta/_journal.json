@@ -50,6 +50,20 @@
       "when": 1787728303239,
       "tag": "0006_parallel_mac_gargan",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787731675713,
+      "tag": "0007_tense_polaris",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787734674471,
+      "tag": "0008_burly_paibok",
+      "breakpoints": true
     }
   ]
 }

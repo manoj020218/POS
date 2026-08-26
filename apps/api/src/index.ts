@@ -6,6 +6,7 @@ import { createLogger } from './lib/logger.js';
 import { DrizzleAuthRepository } from './modules/auth/drizzle-auth.repository.js';
 import { DrizzleCatalogRepository } from './modules/catalog/drizzle-catalog.repository.js';
 import { DrizzleCustomerRepository } from './modules/customer/drizzle-customer.repository.js';
+import { DrizzleSaleRepository } from './modules/sale/drizzle-sale.repository.js';
 import { DrizzleTenantCoreRepository } from './modules/tenant-core/drizzle-tenant-core.repository.js';
 
 const bootstrap = async () => {
@@ -16,6 +17,7 @@ const bootstrap = async () => {
   const authRepository = new DrizzleAuthRepository(database.db);
   const catalogRepository = new DrizzleCatalogRepository(database.db);
   const customerRepository = new DrizzleCustomerRepository(database.db);
+  const saleRepository = new DrizzleSaleRepository(database.db);
   const tenantCoreRepository = new DrizzleTenantCoreRepository(database.db);
 
   const app = createApp({
@@ -27,6 +29,7 @@ const bootstrap = async () => {
     catalogRepository,
     customerRepository,
     logger,
+    saleRepository,
     tenantCoreRepository
   });
   const server = app.listen(env.PORT, () => {

@@ -41,6 +41,19 @@ export const createCatalogTestContext = async () => {
     name: 'Store B Main',
     tenantId
   });
+  const branchB = (await tenantRepository.listBranches(tenantId, businessB.id))[0]!;
+  const terminalA = await tenantRepository.registerTerminal({
+    branchId: branchA.id,
+    code: 'TERM-A1',
+    name: 'Terminal A1',
+    tenantId
+  });
+  const terminalB = await tenantRepository.registerTerminal({
+    branchId: branchB.id,
+    code: 'TERM-B1',
+    name: 'Terminal B1',
+    tenantId
+  });
 
   const authRepository = new InMemoryAuthRepository([
     await buildUser('22222222-2222-4222-8222-222222222222', 'owner@example.com', 'Owner', 'BUSINESS_OWNER'),
@@ -67,12 +80,16 @@ export const createCatalogTestContext = async () => {
 
   return {
     app,
+    branchAId: branchA.id,
+    branchBId: branchB.id,
     businessAId: businessA.id,
     businessBId: businessB.id,
     loginAs: async (email: string) => {
       const response = await request(app).post('/api/v1/auth/login').send({ email, password });
       return { authorization: `Bearer ${response.body.data.accessToken}` };
-    }
+    },
+    terminalAId: terminalA.id,
+    terminalBId: terminalB.id
   };
 };
 

@@ -1,0 +1,112 @@
+export const paymentMethods = ['CASH', 'CARD', 'UPI', 'OTHER'] as const;
+export type PaymentMethod = (typeof paymentMethods)[number];
+
+export type SaleRecord = {
+  branchCode: string;
+  branchId: string;
+  businessId: string;
+  cashierUserId: string;
+  changeAmount: number;
+  createdAt: Date;
+  customerId?: string;
+  customerName?: string;
+  discountAmount: number;
+  id: string;
+  invoiceNumber: string;
+  invoiceSequence: number;
+  occurredAt: Date;
+  paymentMethod: PaymentMethod;
+  subtotalAmount: number;
+  taxAmount: number;
+  tenderedAmount: number;
+  tenantId: string;
+  terminalCode: string;
+  terminalId: string;
+  totalAmount: number;
+};
+
+export type SaleItemRecord = {
+  createdAt: Date;
+  discountAmount: number;
+  id: string;
+  productId: string;
+  productName: string;
+  productSku: string;
+  quantity: number;
+  saleId: string;
+  subtotalAmount: number;
+  taxAmount: number;
+  tenantId: string;
+  totalAmount: number;
+  unitPrice: number;
+};
+
+export type CreateSaleRecordInput = Omit<
+  SaleRecord,
+  'createdAt' | 'id' | 'invoiceNumber' | 'invoiceSequence'
+>;
+
+export type CreateSaleItemRecordInput = Omit<SaleItemRecord, 'createdAt' | 'id'>;
+
+export type CreateSaleInput = {
+  items: CreateSaleItemRecordInput[];
+  sale: CreateSaleRecordInput;
+};
+
+export type SaleDetailRecord = {
+  items: SaleItemRecord[];
+  sale: SaleRecord;
+};
+
+export type CreateSaleRequest = {
+  branchId: string;
+  customerId?: string;
+  items: Array<{
+    discountAmount: number;
+    productId: string;
+    quantity: number;
+    taxAmount: number;
+    unitPrice?: number;
+  }>;
+  occurredAt?: Date;
+  payment: {
+    method: PaymentMethod;
+    tenderedAmount?: number;
+  };
+  terminalId: string;
+};
+
+export type SaleItemView = {
+  discountAmount: number;
+  productId: string;
+  productName: string;
+  productSku: string;
+  quantity: number;
+  subtotalAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+  unitPrice: number;
+};
+
+export type SaleView = {
+  branchCode: string;
+  branchId: string;
+  businessId: string;
+  cashierUserId: string;
+  changeAmount: number;
+  customerId?: string;
+  customerName?: string;
+  discountAmount: number;
+  id: string;
+  invoiceNumber: string;
+  invoiceSequence: number;
+  items: SaleItemView[];
+  occurredAt: Date;
+  paymentMethod: PaymentMethod;
+  subtotalAmount: number;
+  taxAmount: number;
+  tenderedAmount: number;
+  terminalCode: string;
+  terminalId: string;
+  totalAmount: number;
+};
