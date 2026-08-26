@@ -61,6 +61,11 @@ export type SaleDetailRecord = {
   sale: SaleRecord;
 };
 
+export type SaleReturnQuantityRecord = {
+  productId: string;
+  quantity: number;
+};
+
 export type CreateSaleRequest = {
   branchId: string;
   customerId?: string;
@@ -77,6 +82,24 @@ export type CreateSaleRequest = {
     tenderedAmount?: number;
   };
   terminalId: string;
+};
+
+export type CreateSaleReturnRequest = {
+  items: Array<{
+    productId: string;
+    quantity: number;
+  }>;
+  occurredAt?: Date;
+};
+
+export type CreateSaleReturnInput = {
+  inventoryMovements: Array<
+    Omit<CreateSaleInventoryMovementInput, 'movementType'> & {
+      movementType: 'SALE_RETURN';
+    }
+  >;
+  saleId: string;
+  tenantId: string;
 };
 
 export type SaleItemView = {
@@ -112,4 +135,19 @@ export type SaleView = {
   terminalCode: string;
   terminalId: string;
   totalAmount: number;
+};
+
+export type SaleReturnView = {
+  branchId: string;
+  businessId: string;
+  items: Array<{
+    productId: string;
+    productName: string;
+    productSku: string;
+    quantity: number;
+    remainingQuantity: number;
+    returnedQuantityTotal: number;
+  }>;
+  occurredAt: Date;
+  saleId: string;
 };

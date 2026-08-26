@@ -8,7 +8,14 @@ import type {
 } from '../inventory/inventory.types.js';
 import { formatInvoiceNumber } from './sale-domain.js';
 import type { SaleRepository } from './sale.repository.js';
-import type { CreateSaleInput, SaleDetailRecord, SaleItemRecord, SaleRecord } from './sale.types.js';
+import type {
+  CreateSaleInput,
+  CreateSaleReturnInput,
+  SaleDetailRecord,
+  SaleItemRecord,
+  SaleRecord,
+  SaleReturnQuantityRecord
+} from './sale.types.js';
 
 export class InMemorySaleRepository implements SaleRepository, InventoryRepository {
   private readonly invoiceSequences = new Map<string, number>();
@@ -51,6 +58,58 @@ export class InMemorySaleRepository implements SaleRepository, InventoryReposito
     this.items.set(saleId, items);
 
     return { items, sale };
+  }
+
+  async createSaleReturn(input: CreateSaleReturnInput): Promise<void> {
+    input.inventoryMovements.forEach((movement) => {
+      const record: InventoryMovementRecord = {
+        ...movement,
+        createdAt: new Date(),
+        id: randomUUID(),
+        referenceId: input.saleId
+      };
+      this.inventoryMovements.set(record.id, record);
+    });
+  }
+
+  async findSaleDetailById(saleId: string, tenantId: string): Promise<SaleDetailRecord | null> {
+    const sale = this.sales.get(saleId);
+    if (!sale || sale.tenantId !== tenantId) {
+      return null;
+    }
+
+    return {
+      items: this.items.get(saleId) ?? [],
+      sale
+    };
+  }
+
+  async listSaleMovementQuantities(
+    saleId: string,
+    tenantId: string,
+    movementType: 'SALE' | 'SALE_RETURN'
+  ): Promise<SaleReturnQuantityRecord[]> {
+    const quantities = new Map<string, number>();
+
+    [...this.inventoryMovements.values()]
+      .filter((movement) => {
+        return (
+          movement.referenceId === saleId &&
+          movement.tenantId === tenantId &&
+          movement.movementType === movementType
+        );
+      })
+      .forEach((movement) => {
+        quantities.set(
+          movement.productId,
+          (quantities.get(movement.productId) ?? 0) + Math.abs(movement.quantityDelta)
+        );
+      });
+
+    return [...quantities.entries()].map(([productId, quantity]) => ({
+      productId,
+      quantity
+    }));
   }
 
   async listInventoryBalances(

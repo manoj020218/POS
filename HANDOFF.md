@@ -4,7 +4,7 @@ Current Phase:
 - Phase 6 - Inventory Ledger
 
 Current Subtask:
-- Phase 6 inventory sale-ledger foundation and balance queries are complete; next safe unit is corrective `SALE_RETURN` movement support without mutating prior ledger rows
+- Phase 6 inventory ledger now records corrective `SALE_RETURN` movements without mutating prior `SALE` rows; next safe unit is Phase 7 supplier and purchase foundation
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -193,15 +193,24 @@ Completed:
 - Verified `pnpm test`
 - Verified `pnpm build`
 - Verified `pnpm db:migrate`
+- Added protected `POST /api/v1/sales/:saleId/returns` for corrective tracked-item inventory returns
+- Added sale-return validation for duplicate products, branch scope, non-tracked items, and cumulative returned-quantity limits
+- Added repository support for sale-detail lookup, sale-linked movement quantity aggregation, and persisted `SALE_RETURN` inventory movements in both the Drizzle and in-memory stores
+- Added sale-return route and repository regression coverage plus a sale-service file split to keep manual source files under the 200-line project limit
+- Verified `pnpm exec vitest run apps/api/test/sale-return.test.ts apps/api/test/drizzle-sale.repository.test.ts --reporter=verbose`
+- Verified `pnpm lint`
+- Verified `pnpm typecheck`
+- Verified `pnpm test`
+- Verified `pnpm build`
 
 Currently Working:
 - No active code changes in progress
-- Phase 6 sale-linked inventory ledger foundation and balance queries are complete
-- Next safe unit is corrective `SALE_RETURN` movement support to finish the remaining Phase 6 return path
+- Phase 6 inventory ledger return-path support is complete and verified
+- Next safe unit is Phase 7 supplier master and purchase foundation
 
 Next:
-- Add corrective `SALE_RETURN` movement support so item returns create positive stock deltas without editing existing `SALE` rows
-- Start Phase 7 purchase and supplier foundation once sale-return ledger support is in place
+- Start Phase 7 with supplier master and minimal purchase-entry foundation
+- Add immutable `PURCHASE` inventory movements when finalized purchases begin increasing stock
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -255,6 +264,8 @@ Important Decisions:
 - Keep sale-triggered stock movements inside the sale repository transaction so finalized sales and ledger entries cannot commit independently
 - Expose Phase 6 balances at business scope because products and `openingStock` are currently business-scoped; branch IDs are still stored on each movement for traceability
 - Use `product.openingStock` as the current stock baseline and layer immutable movement deltas on top until explicit `OPENING_STOCK` or manual-adjustment flows are introduced
+- Model returns as additional `SALE_RETURN` inventory movements keyed to the original `saleId` instead of mutating historical sale rows or `SALE` movements
+- Validate partial returns from sale-linked inventory movement totals so repeated returns cannot exceed the originally sold tracked quantity
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
@@ -262,6 +273,7 @@ Known Issues:
 - Password reset delivery still defaults to a no-op sink at runtime; email/SMS/admin handoff for reset tokens is not implemented yet
 - `pnpm bootstrap:owner` requires the target tenant to already exist; it does not create tenant/business/branch/terminal hierarchy on its own
 - Walk-in customer uniqueness is currently enforced by the service-level ensure flow rather than a database uniqueness constraint
+- Sale returns currently restore inventory only; refund/payment reversal, credit-note issuance, and dedicated return-record persistence are not implemented yet
 - Inventory balances currently derive from mutable `product.openingStock` plus movement sums; explicit opening-stock ledger entries and manual inventory adjustments are not implemented yet
 
 Tests:
@@ -313,6 +325,10 @@ Tests:
 - Real DB verification: `pnpm db:migrate` after adding the customer migration
 - Real DB verification: `pnpm bootstrap:owner -- --tenant-id 11111111-1111-4111-8111-111111111111 --email owner@example.com --name "Dev Owner" --password Password123 --role BUSINESS_OWNER --user-id 99999999-9999-4999-8999-999999999999`
 - Real DB verification: `pnpm db:migrate` after adding the catalog migration
+- Sale return routes: corrective movement creation, duplicate-product rejection, over-return rejection, refund-permission enforcement, and branch-scope denial
+- Sale repository integration: persisted `SALE_RETURN` movements plus sale-linked movement-quantity aggregation via `DrizzleSaleRepository`
+- Targeted verification: `pnpm exec vitest run apps/api/test/sale-return.test.ts apps/api/test/drizzle-sale.repository.test.ts --reporter=verbose`
+- Full suite verification on 2026-08-26: `pnpm test` (117 tests passing)
 
 Last Successful Commands:
 - `git init -b main`
@@ -454,6 +470,11 @@ Last Successful Commands:
 - `cmd /c pnpm build`
 - `cmd /c pnpm test`
 - `cmd /c pnpm db:migrate`
+- `cmd /c pnpm exec vitest run apps/api/test/sale-return.test.ts apps/api/test/drizzle-sale.repository.test.ts --reporter=verbose`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm build`
+- `cmd /c pnpm test`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -486,6 +507,7 @@ Database Status:
 - `inventory_movements` are now persisted in PostgreSQL
 - Historical tracked-product sale rows are backfilled into `inventory_movements` during migration application
 - Inventory-ledger migration generation and application verified against the local PostgreSQL database
+- Sale-linked `SALE_RETURN` inventory movements are now persisted against the original `sales.id` reference for corrective stock increases
 
 API Status:
 - Phase 0 scaffold verified
@@ -526,10 +548,12 @@ API Status:
 - Sales API now includes protected `POST /api/v1/sales` with server-trusted total recalculation, payment validation, and immutable sale-item snapshots
 - Sale responses now include terminal-scoped human-readable invoice numbers and invoice sequence values alongside branch, terminal, customer, payment, and item totals
 - Finalized sales now create immutable `SALE` inventory movements for tracked products in the same repository transaction as sale persistence
+- Sales API now includes protected `POST /api/v1/sales/:saleId/returns` for corrective tracked-item inventory returns
+- Sale returns validate sold-item membership, reject non-tracked sale items, and cap cumulative returned quantity per sold tracked item
 - Inventory API now includes protected `GET /api/v1/inventory/balances` with business and optional product scoping plus opening-stock-plus-ledger balance calculation
 
 Git Status:
-- clean after committing and pushing the current inventory-ledger slice
+- changes pending for the completed Phase 6 sale-return slice before commit/push
 
 Last Commit:
 - `feat(inventory): add sale-linked ledger balances`

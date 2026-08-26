@@ -1,10 +1,10 @@
 # TODO
 
 NOW
-- Finish Phase 6 with corrective `SALE_RETURN` movement support that never mutates prior ledger rows
+- Start Phase 7 with supplier master and minimal purchase-entry foundation
 
 NEXT
-- Start Phase 7 purchase and supplier foundation once sale returns are recorded through the ledger
+- Add immutable `PURCHASE` inventory movements when finalized purchases begin increasing stock
 
 LATER
 - Shared contracts package

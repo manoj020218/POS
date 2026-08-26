@@ -27,3 +27,20 @@ export const createSaleSchema = z.object({
   }),
   terminalId: uuidSchema
 });
+
+export const saleIdSchema = z.object({
+  saleId: uuidSchema
+});
+
+export const createSaleReturnSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        productId: uuidSchema,
+        quantity: z.number().int().positive().max(10_000)
+      })
+    )
+    .min(1)
+    .max(500),
+  occurredAt: z.coerce.date().optional()
+});

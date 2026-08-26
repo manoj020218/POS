@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-08-26
+
+- Added protected `POST /api/v1/sales/:saleId/returns` so tracked sale items can be returned through corrective `SALE_RETURN` inventory movements
+- Validated duplicate return items, branch scope, non-tracked sale items, and cumulative return quantities against the original sale-linked ledger entries
+- Added repository support for sale-detail lookup, sale-linked movement quantity aggregation, and persisted `SALE_RETURN` movement writes in both Drizzle and in-memory stores
+- Added sale-return route and repository regression coverage and split the sale service into smaller files to keep manual source files under the 200-line project limit
+- Verified `pnpm exec vitest run apps/api/test/sale-return.test.ts apps/api/test/drizzle-sale.repository.test.ts --reporter=verbose`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, and `pnpm test`
+
 ## 2026-08-25
 
 - Hardened protected-route bearer auth so access tokens are revalidated against the current user and current session on every authenticated request

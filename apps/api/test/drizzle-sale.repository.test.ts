@@ -289,6 +289,42 @@ describe('DrizzleSaleRepository', () => {
       paymentMethod: 'UPI',
       terminalCode: 'TERM-A2'
     });
+    await expect(saleRepository.findSaleDetailById(firstSale.sale.id, tenantA)).resolves.toMatchObject({
+      sale: {
+        id: firstSale.sale.id
+      }
+    });
+    await expect(
+      saleRepository.listSaleMovementQuantities(firstSale.sale.id, tenantA, 'SALE')
+    ).resolves.toEqual([
+      expect.objectContaining({
+        productId: product.id,
+        quantity: 2
+      })
+    ]);
+    await saleRepository.createSaleReturn({
+      inventoryMovements: [
+        {
+          branchId: branch.id,
+          businessId: business.id,
+          movementType: 'SALE_RETURN',
+          occurredAt: new Date('2026-08-26T12:15:00.000Z'),
+          productId: product.id,
+          quantityDelta: 1,
+          tenantId: tenantA
+        }
+      ],
+      saleId: firstSale.sale.id,
+      tenantId: tenantA
+    });
+    await expect(
+      saleRepository.listSaleMovementQuantities(firstSale.sale.id, tenantA, 'SALE_RETURN')
+    ).resolves.toEqual([
+      expect.objectContaining({
+        productId: product.id,
+        quantity: 1
+      })
+    ]);
     await expect(
       saleRepository.listInventoryBalances({
         businessIds: [business.id],
@@ -297,7 +333,7 @@ describe('DrizzleSaleRepository', () => {
     ).resolves.toEqual([
       expect.objectContaining({
         businessId: business.id,
-        netMovementQuantity: -4,
+        netMovementQuantity: -3,
         productId: product.id,
         tenantId: tenantA
       })

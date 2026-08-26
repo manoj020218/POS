@@ -10,10 +10,12 @@ import type { InventoryMovementBalanceRecord } from '../inventory/inventory.type
 import { formatInvoiceNumber } from './sale-domain.js';
 import type { SaleRepository } from './sale.repository.js';
 import type {
+  CreateSaleReturnInput,
   CreateSaleInput,
   PaymentMethod,
   SaleDetailRecord,
-  SaleRecord
+  SaleRecord,
+  SaleReturnQuantityRecord
 } from './sale.types.js';
 
 type SaleRow = Omit<SaleRecord, 'customerId' | 'customerName' | 'paymentMethod'> & {
@@ -124,6 +126,67 @@ export class DrizzleSaleRepository implements SaleRepository, InventoryRepositor
       );
 
     return rows.map(normalizeInventoryBalance);
+  }
+
+  async createSaleReturn(input: CreateSaleReturnInput): Promise<void> {
+    if (input.inventoryMovements.length === 0) {
+      return;
+    }
+
+    await this.db.insert(inventoryMovements).values(
+      input.inventoryMovements.map((movement) => ({
+        ...movement,
+        id: randomUUID(),
+        referenceId: input.saleId
+      }))
+    );
+  }
+
+  async findSaleDetailById(saleId: string, tenantId: string): Promise<SaleDetailRecord | null> {
+    const [saleRow] = await this.db
+      .select()
+      .from(sales)
+      .where(and(eq(sales.id, saleId), eq(sales.tenantId, tenantId)))
+      .limit(1);
+    if (!saleRow) {
+      return null;
+    }
+
+    const itemRows = await this.db
+      .select()
+      .from(saleItems)
+      .where(and(eq(saleItems.saleId, saleId), eq(saleItems.tenantId, tenantId)));
+
+    return {
+      items: itemRows.map((item) => item),
+      sale: normalizeSale(saleRow)
+    };
+  }
+
+  async listSaleMovementQuantities(
+    saleId: string,
+    tenantId: string,
+    movementType: 'SALE' | 'SALE_RETURN'
+  ): Promise<SaleReturnQuantityRecord[]> {
+    const rows = await this.db
+      .select({
+        productId: inventoryMovements.productId,
+        quantity: sql<number>`coalesce(sum(abs(${inventoryMovements.quantityDelta})), 0)`
+      })
+      .from(inventoryMovements)
+      .where(
+        and(
+          eq(inventoryMovements.referenceId, saleId),
+          eq(inventoryMovements.tenantId, tenantId),
+          eq(inventoryMovements.movementType, movementType)
+        )
+      )
+      .groupBy(inventoryMovements.productId);
+
+    return rows.map((row) => ({
+      productId: row.productId,
+      quantity: Number(row.quantity)
+    }));
   }
 }
 
