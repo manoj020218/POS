@@ -1,7 +1,6 @@
 import { createHttpError } from '../../lib/http-error.js';
 import type { AccessContext } from '../tenant-core/access-context.js';
 import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
-import type { BusinessRecord } from '../tenant-core/tenant-core.types.js';
 import {
   ensureDefaultCategory,
   ensureDefaultTaxProfile,
@@ -10,7 +9,8 @@ import {
 } from './catalog-defaults.js';
 import { resolveReadBusinessIds, resolveWriteBusiness } from './catalog-business-scope.js';
 import type { CatalogRepository } from './catalog.repository.js';
-import type { CatalogQuery, CategoryRecord, ProductRecord, ProductView, TaxProfileRecord, UnitRecord } from './catalog.types.js';
+import type { CatalogQuery, ProductRecord, ProductView } from './catalog.types.js';
+import { requiredRecord, toProductView } from './product-view.js';
 
 type ProductInput = Omit<ProductRecord, 'businessId' | 'categoryId' | 'createdAt' | 'id' | 'sku' | 'taxProfileId' | 'tenantId' | 'unitId' | 'updatedAt'> & {
   businessId?: string;
@@ -64,7 +64,7 @@ export const createProductHandlers = (
     const taxProfileMap = new Map(taxProfiles.map((taxProfile) => [taxProfile.id, taxProfile]));
 
     return products.map((product) =>
-      toProductView(product, required(businessMap, product.businessId, 'BUSINESS_NOT_FOUND', 'Business not found'), required(categoryMap, product.categoryId, 'CATEGORY_NOT_FOUND', 'Category not found'), required(unitMap, product.unitId, 'UNIT_NOT_FOUND', 'Unit not found'), required(taxProfileMap, product.taxProfileId, 'TAX_PROFILE_NOT_FOUND', 'Tax profile not found'))
+      toProductView(product, requiredRecord(businessMap, product.businessId, 'BUSINESS_NOT_FOUND', 'Business not found'), requiredRecord(categoryMap, product.categoryId, 'CATEGORY_NOT_FOUND', 'Category not found'), requiredRecord(unitMap, product.unitId, 'UNIT_NOT_FOUND', 'Unit not found'), requiredRecord(taxProfileMap, product.taxProfileId, 'TAX_PROFILE_NOT_FOUND', 'Tax profile not found'))
     );
   },
   updateProduct: async (
@@ -152,47 +152,3 @@ const requireBusinessOwned = <T extends { businessId: string }>(
   }
   return record;
 };
-
-const required = <T>(map: Map<string, T>, id: string, code: string, message: string) => {
-  const record = map.get(id);
-  if (!record) throw createHttpError(404, code, message);
-  return record;
-};
-
-const toProductView = (
-  product: ProductRecord,
-  business: BusinessRecord,
-  category: CategoryRecord,
-  unit: UnitRecord,
-  taxProfile: TaxProfileRecord
-): ProductView => ({
-  barcode: product.barcode,
-  brand: product.brand,
-  businessCode: business.code,
-  businessId: business.id,
-  businessName: business.name,
-  categoryCode: category.code,
-  categoryId: category.id,
-  categoryName: category.name,
-  description: product.description,
-  hsnSac: product.hsnSac,
-  id: product.id,
-  imageUrl: product.imageUrl,
-  isActive: product.isActive,
-  lowStockLevel: product.lowStockLevel,
-  name: product.name,
-  openingStock: product.openingStock,
-  purchasePrice: product.purchasePrice,
-  sellingPrice: product.sellingPrice,
-  sku: product.sku,
-  taxProfileCode: taxProfile.code,
-  taxProfileId: taxProfile.id,
-  taxProfileName: taxProfile.name,
-  taxRateBasisPoints: taxProfile.rateBasisPoints,
-  trackInventory: product.trackInventory,
-  unitCode: unit.code,
-  unitId: unit.id,
-  unitName: unit.name,
-  unitPrecision: unit.precision,
-  unitSymbol: unit.symbol
-});

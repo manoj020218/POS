@@ -111,6 +111,11 @@ export type CatalogQuery = {
   businessId?: string;
 };
 
+export type ProductSearchQuery = CatalogQuery & {
+  limit: number;
+  query: string;
+};
+
 export type CategoryView = {
   businessCode: string;
   businessId: string;
@@ -173,5 +178,21 @@ export type ProductView = {
   unitId: string;
   unitName: string;
   unitPrecision: number;
+  unitSymbol?: string;
+};
+
+export type ProductSearchView = {
+  barcode?: string;
+  businessCode: string;
+  businessId: string;
+  businessName: string;
+  id: string;
+  name: string;
+  sellingPrice: number;
+  sku: string;
+  trackInventory: boolean;
+  unitCode: string;
+  unitId: string;
+  unitName: string;
   unitSymbol?: string;
 };

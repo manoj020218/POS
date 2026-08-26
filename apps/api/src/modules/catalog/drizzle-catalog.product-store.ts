@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, eq, inArray, or } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, or } from 'drizzle-orm';
 
 import type { AppDatabase } from '../../db/client.js';
 import { products } from '../../db/schema/index.js';
@@ -9,6 +9,7 @@ import {
   isDuplicateKeyError,
   normalizeProduct
 } from './drizzle-catalog.repository.utils.js';
+import { rankProductsForSearch } from './product-search-ranking.js';
 import type {
   CreateProductInput,
   ProductRecord,
@@ -70,6 +71,43 @@ export const createDrizzleCatalogProductStore = (db: AppDatabase) => ({
       .where(whereClause)
       .orderBy(asc(products.name), asc(products.sku));
     return records.map(normalizeProduct);
+  },
+
+  async searchProducts(tenantId: string, businessIds: string[], query: string, limit: number) {
+    const exactBarcodeMatches = await db
+      .select()
+      .from(products)
+      .where(
+        and(
+          eq(products.tenantId, tenantId),
+          inArray(products.businessId, businessIds),
+          eq(products.isActive, true),
+          eq(products.barcode, query.trim())
+        )
+      )
+      .orderBy(asc(products.name), asc(products.sku));
+    if (exactBarcodeMatches.length > 0) {
+      return exactBarcodeMatches.map(normalizeProduct).slice(0, limit);
+    }
+
+    const pattern = `%${query.trim()}%`;
+    const records = await db
+      .select()
+      .from(products)
+      .where(
+        and(
+          eq(products.tenantId, tenantId),
+          inArray(products.businessId, businessIds),
+          eq(products.isActive, true),
+          or(
+            ilike(products.name, pattern),
+            ilike(products.sku, pattern),
+            ilike(products.barcode, pattern)
+          )
+        )
+      )
+      .orderBy(asc(products.name), asc(products.sku));
+    return rankProductsForSearch(records.map(normalizeProduct), query).slice(0, limit);
   },
 
   async updateProduct(productId: string, tenantId: string, input: UpdateProductInput) {

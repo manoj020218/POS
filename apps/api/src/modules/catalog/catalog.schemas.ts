@@ -18,6 +18,11 @@ export const catalogQuerySchema = z.object({
   businessId: uuidSchema.optional()
 });
 
+export const productSearchQuerySchema = catalogQuerySchema.extend({
+  limit: z.coerce.number().int().min(1).max(50).optional().default(20),
+  query: z.string().trim().min(1).max(160)
+});
+
 export const categoryIdSchema = z.object({
   categoryId: uuidSchema
 });

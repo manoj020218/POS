@@ -1,12 +1,17 @@
 import { Router, type Router as ExpressRouter } from 'express';
 
 import { requirePermissions } from '../../http/middleware/require-permissions.js';
+import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
 import { createCategoryController, listCategoriesController, updateCategoryController } from './category.controller.js';
 import { createCatalogService } from './catalog.service.js';
-import { createProductController, listProductsController, updateProductController } from './product.controller.js';
+import {
+  createProductController,
+  listProductsController,
+  searchProductsController,
+  updateProductController
+} from './product.controller.js';
 import { createTaxProfileController, listTaxProfilesController, updateTaxProfileController } from './tax-profile.controller.js';
 import type { CatalogRepository } from './catalog.repository.js';
-import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
 import { createUnitController, listUnitsController, updateUnitController } from './unit.controller.js';
 
 export const createCatalogRouter = (
@@ -28,6 +33,7 @@ export const createCatalogRouter = (
   router.post('/tax-profiles', requirePermissions(['product:create']), createTaxProfileController(service));
   router.patch('/tax-profiles/:taxProfileId', requirePermissions(['product:update']), updateTaxProfileController(service));
 
+  router.get('/products/search', requirePermissions(['product:view']), searchProductsController(service));
   router.get('/products', requirePermissions(['product:view']), listProductsController(service));
   router.post('/products', requirePermissions(['product:create']), createProductController(service));
   router.patch('/products/:productId', requirePermissions(['product:update']), updateProductController(service));

@@ -7,6 +7,7 @@ import {
   catalogQuerySchema,
   createProductSchema,
   productIdSchema,
+  productSearchQuerySchema,
   updateProductSchema
 } from './catalog.schemas.js';
 import type { CatalogService } from './catalog.service.js';
@@ -25,6 +26,15 @@ export const listProductsController = (service: CatalogService): RequestHandler 
     const products = await service.listProducts(
       getAccessContext(request),
       parseSchema(catalogQuerySchema, request.query)
+    );
+    response.status(200).json({ data: products });
+  });
+
+export const searchProductsController = (service: CatalogService): RequestHandler =>
+  asyncHandler(async (request, response: Response) => {
+    const products = await service.searchProducts(
+      getAccessContext(request),
+      parseSchema(productSearchQuerySchema, request.query)
     );
     response.status(200).json({ data: products });
   });

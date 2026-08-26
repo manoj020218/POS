@@ -40,6 +40,12 @@ export interface CatalogRepository {
   findUnitById(unitId: string): Promise<UnitRecord | null>;
   listCategories(tenantId: string, businessIds?: string[]): Promise<CategoryRecord[]>;
   listProducts(tenantId: string, businessIds?: string[]): Promise<ProductRecord[]>;
+  searchProducts(
+    tenantId: string,
+    businessIds: string[],
+    query: string,
+    limit: number
+  ): Promise<ProductRecord[]>;
   listTaxProfiles(tenantId: string, businessIds?: string[]): Promise<TaxProfileRecord[]>;
   listUnits(tenantId: string, businessIds?: string[]): Promise<UnitRecord[]>;
   updateCategory(

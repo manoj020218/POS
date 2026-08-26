@@ -120,4 +120,81 @@ describe('catalog routes', () => {
     expect(created.status).toBe(403);
     expect(created.body.code).toBe('FORBIDDEN');
   });
+
+  it('searches with exact barcode priority and returns a slim POS payload', async () => {
+    const managerAccess = await loginAs('manager@example.com');
+    await request(app).post('/api/v1/products').set(managerAccess).send({
+      name: '8900000000012 Soda',
+      sellingPrice: 3200,
+      sku: 'MATCH-890'
+    });
+    const exactBarcode = await request(app).post('/api/v1/products').set(managerAccess).send({
+      barcode: '8900000000012',
+      name: 'Barcode Cola',
+      sellingPrice: 4000,
+      sku: 'BAR-890'
+    });
+    const searched = await request(app)
+      .get('/api/v1/products/search')
+      .query({ query: '8900000000012' })
+      .set(managerAccess);
+
+    expect(exactBarcode.status).toBe(201);
+    expect(searched.status).toBe(200);
+    expect(searched.body.data).toHaveLength(1);
+    expect(searched.body.data[0]).toMatchObject({
+      barcode: '8900000000012',
+      businessCode: 'STORE-A',
+      businessId: businessAId,
+      id: exactBarcode.body.data.id,
+      name: 'Barcode Cola',
+      sellingPrice: 4000,
+      sku: 'BAR-890',
+      trackInventory: true,
+      unitCode: 'PCS',
+      unitName: 'PCS'
+    });
+    expect(searched.body.data[0].categoryName).toBeUndefined();
+    expect(searched.body.data[0].taxProfileName).toBeUndefined();
+  });
+
+  it('searches by name and sku within the caller business scope', async () => {
+    const managerAccess = await loginAs('manager@example.com');
+    const ownerAccess = await loginAs('owner@example.com');
+    await request(app).post('/api/v1/products').set(managerAccess).send({
+      name: 'Ginger Ale',
+      sellingPrice: 2500,
+      sku: 'GINGER-A'
+    });
+    await request(app).post('/api/v1/products').set(ownerAccess).send({
+      businessId: businessBId,
+      name: 'Other Drink',
+      sellingPrice: 2600,
+      sku: 'GINGER-B'
+    });
+
+    const managerSearch = await request(app)
+      .get('/api/v1/products/search')
+      .query({ query: 'GINGER' })
+      .set(managerAccess);
+    const ownerBusinessSearch = await request(app)
+      .get('/api/v1/products/search')
+      .query({ businessId: businessBId, query: 'GINGER-B' })
+      .set(ownerAccess);
+
+    expect(managerSearch.status).toBe(200);
+    expect(managerSearch.body.data).toHaveLength(1);
+    expect(managerSearch.body.data[0]).toMatchObject({
+      businessId: businessAId,
+      name: 'Ginger Ale',
+      sku: 'GINGER-A'
+    });
+    expect(ownerBusinessSearch.status).toBe(200);
+    expect(ownerBusinessSearch.body.data).toHaveLength(1);
+    expect(ownerBusinessSearch.body.data[0]).toMatchObject({
+      businessId: businessBId,
+      name: 'Other Drink',
+      sku: 'GINGER-B'
+    });
+  });
 });
