@@ -3,6 +3,7 @@ import type { AccessContext } from '../tenant-core/access-context.js';
 import { assertBranchAccess } from '../tenant-core/branch-scope.js';
 import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
 import { assertSyncEventMatches } from './sync-event-signature.js';
+import { toSyncEventFailure } from './sync-failure.js';
 import { SyncEventConflictError, type SyncRepository } from './sync.repository.js';
 import type {
   CreateSyncEventInput,
@@ -81,17 +82,32 @@ const applyReplayForEvent = async (
     return event;
   }
 
-  const wasApplied = await replayEvent(context, event);
-  if (!wasApplied) {
-    return event;
-  }
+  try {
+    const wasApplied = await replayEvent(context, event);
+    if (!wasApplied) {
+      return event;
+    }
 
-  const updated = await repository.updateEventState(event.tenantId, event.eventId, 'APPLIED');
-  if (!updated) {
-    throw new Error('Sync event missing after apply');
-  }
+    const updated = await repository.updateEventState(event.tenantId, event.eventId, {
+      failure: null,
+      state: 'APPLIED'
+    });
+    if (!updated) {
+      throw new Error('Sync event missing after apply');
+    }
 
-  return updated;
+    return updated;
+  } catch (error) {
+    const failed = await repository.updateEventState(event.tenantId, event.eventId, {
+      failure: toSyncEventFailure(error),
+      state: 'FAILED'
+    });
+    if (!failed) {
+      throw new Error('Sync event missing after failure');
+    }
+
+    throw error;
+  }
 };
 
 const assertAccessibleBranches = async (

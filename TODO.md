@@ -1,10 +1,10 @@
 # TODO
 
 NOW
-- Add sync processing failure capture so replay errors can move stored events from `RECEIVED` to `FAILED` with actionable diagnostics
+- Add cursor-based `GET /api/v1/sync/pull` foundation for incremental downstream change delivery
 
 NEXT
-- Add cursor-based `GET /api/v1/sync/pull` foundation for incremental downstream change delivery
+- Define the first outbound change-feed cursor contract so `sync/pull` can return `changes`, `nextCursor`, and `serverTime` without full-table reloads
 
 LATER
 - Shared contracts package

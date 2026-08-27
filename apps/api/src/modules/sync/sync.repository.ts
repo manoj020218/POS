@@ -1,7 +1,7 @@
 import type {
   CreateSyncEventInput,
   SyncEventRecord,
-  SyncEventState
+  UpdateSyncEventStateInput
 } from './sync.types.js';
 
 export type SyncEventWriteResult = {
@@ -21,6 +21,6 @@ export interface SyncRepository {
   updateEventState(
     tenantId: string,
     eventId: string,
-    state: SyncEventState
+    input: UpdateSyncEventStateInput
   ): Promise<SyncEventRecord | null>;
 }

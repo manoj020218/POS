@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
-import { index, jsonb, pgTable, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar
+} from 'drizzle-orm/pg-core';
 
 import { branches } from './branch.js';
 import { tenants } from './tenant.js';
@@ -15,6 +24,10 @@ export const syncEvents = pgTable(
     eventCreatedAt: timestamp('event_created_at', { withTimezone: true }).notNull(),
     eventId: varchar('event_id', { length: 128 }).notNull(),
     eventType: varchar('event_type', { length: 64 }).notNull(),
+    failedAt: timestamp('failed_at', { withTimezone: true }),
+    failureCode: varchar('failure_code', { length: 64 }),
+    failureMessage: varchar('failure_message', { length: 500 }),
+    failureStatusCode: integer('failure_status_code'),
     id: uuid('id').primaryKey(),
     payload: jsonb('payload').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
     receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),

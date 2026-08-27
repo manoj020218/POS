@@ -6,7 +6,12 @@ import type { AppDatabase } from '../../db/client.js';
 import { syncEvents } from '../../db/schema/index.js';
 import { assertSyncEventMatches } from './sync-event-signature.js';
 import type { SyncEventWriteResult, SyncRepository } from './sync.repository.js';
-import type { CreateSyncEventInput, SyncEventRecord } from './sync.types.js';
+import type {
+  CreateSyncEventInput,
+  SyncEventFailure,
+  SyncEventRecord,
+  UpdateSyncEventStateInput
+} from './sync.types.js';
 
 type SyncEventRow = typeof syncEvents.$inferSelect;
 
@@ -56,10 +61,16 @@ export class DrizzleSyncRepository implements SyncRepository {
     });
   }
 
-  async updateEventState(tenantId: string, eventId: string, state: SyncEventRecord['state']) {
+  async updateEventState(tenantId: string, eventId: string, input: UpdateSyncEventStateInput) {
     const [updated] = await this.db
       .update(syncEvents)
-      .set({ state })
+      .set({
+        failedAt: input.failure?.failedAt ?? null,
+        failureCode: input.failure?.code ?? null,
+        failureMessage: input.failure?.message ?? null,
+        failureStatusCode: input.failure?.statusCode ?? null,
+        state: input.state
+      })
       .where(and(eq(syncEvents.tenantId, tenantId), eq(syncEvents.eventId, eventId)))
       .returning();
 
@@ -73,6 +84,7 @@ const toSyncEventRecord = (record: SyncEventRow): SyncEventRecord => ({
   entityId: record.entityId,
   eventCreatedAt: record.eventCreatedAt,
   eventId: record.eventId,
+  failure: toSyncEventFailure(record),
   id: record.id,
   payload: record.payload,
   receivedAt: record.receivedAt,
@@ -80,6 +92,19 @@ const toSyncEventRecord = (record: SyncEventRow): SyncEventRecord => ({
   tenantId: record.tenantId,
   type: record.eventType
 });
+
+const toSyncEventFailure = (record: SyncEventRow): SyncEventFailure | null => {
+  if (!record.failedAt || !record.failureCode || !record.failureMessage || !record.failureStatusCode) {
+    return null;
+  }
+
+  return {
+    code: record.failureCode,
+    failedAt: record.failedAt,
+    message: record.failureMessage,
+    statusCode: record.failureStatusCode
+  };
+};
 
 const toComparableEvent = (
   event:
@@ -89,7 +114,7 @@ const toComparableEvent = (
   branchId: event.branchId,
   deviceId: event.deviceId,
   entityId: event.entityId,
-  eventCreatedAt: 'eventType' in event ? event.eventCreatedAt : event.eventCreatedAt,
+  eventCreatedAt: event.eventCreatedAt,
   payload: event.payload,
   type: 'eventType' in event ? event.eventType : event.type
 });

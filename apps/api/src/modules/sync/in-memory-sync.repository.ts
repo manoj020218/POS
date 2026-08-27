@@ -2,7 +2,11 @@ import { randomUUID } from 'node:crypto';
 
 import { assertSyncEventMatches } from './sync-event-signature.js';
 import type { SyncEventWriteResult, SyncRepository } from './sync.repository.js';
-import type { CreateSyncEventInput, SyncEventRecord } from './sync.types.js';
+import type {
+  CreateSyncEventInput,
+  SyncEventRecord,
+  UpdateSyncEventStateInput
+} from './sync.types.js';
 
 export class InMemorySyncRepository implements SyncRepository {
   private readonly events = new Map<string, SyncEventRecord>();
@@ -24,6 +28,7 @@ export class InMemorySyncRepository implements SyncRepository {
 
       const record: SyncEventRecord = {
         ...event,
+        failure: null,
         id: randomUUID(),
         receivedAt: new Date(),
         state: 'RECEIVED'
@@ -34,7 +39,7 @@ export class InMemorySyncRepository implements SyncRepository {
     });
   }
 
-  async updateEventState(tenantId: string, eventId: string, state: SyncEventRecord['state']) {
+  async updateEventState(tenantId: string, eventId: string, input: UpdateSyncEventStateInput) {
     const key = getEventKey(tenantId, eventId);
     const existing = this.events.get(key);
     if (!existing) {
@@ -43,7 +48,8 @@ export class InMemorySyncRepository implements SyncRepository {
 
     const updated = {
       ...existing,
-      state
+      failure: input.failure,
+      state: input.state
     };
     this.events.set(key, updated);
 

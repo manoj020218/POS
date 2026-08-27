@@ -4,6 +4,8 @@ import { createApp } from '../../src/app.js';
 import { createLogger } from '../../src/lib/logger.js';
 import { InMemoryAuthRepository } from '../../src/modules/auth/in-memory-auth.repository.js';
 import { hashPassword } from '../../src/modules/auth/password.js';
+import { InMemorySyncRepository } from '../../src/modules/sync/in-memory-sync.repository.js';
+import type { SyncRepository } from '../../src/modules/sync/sync.repository.js';
 import { InMemoryTenantCoreRepository } from '../../src/modules/tenant-core/in-memory-tenant-core.repository.js';
 
 const authConfig = {
@@ -14,7 +16,11 @@ const authConfig = {
 const password = 'Password123';
 const tenantId = '11111111-1111-4111-8111-111111111111';
 
-export const createCatalogTestContext = async () => {
+type CatalogTestContextOptions = {
+  syncRepository?: SyncRepository;
+};
+
+export const createCatalogTestContext = async (options: CatalogTestContextOptions = {}) => {
   const tenantRepository = new InMemoryTenantCoreRepository();
   await tenantRepository.createTenant({ id: tenantId, name: 'Tenant A', slug: 'tenant-a' });
   const businessA = await tenantRepository.createBusiness({
@@ -81,11 +87,13 @@ export const createCatalogTestContext = async () => {
     tenantId,
     [branchA.id]
   );
+  const syncRepository = options.syncRepository ?? new InMemorySyncRepository();
 
   const app = createApp({
     authConfig,
     authRepository,
     logger: createLogger('silent'),
+    syncRepository,
     tenantCoreRepository: tenantRepository
   });
 
@@ -99,6 +107,7 @@ export const createCatalogTestContext = async () => {
       const response = await request(app).post('/api/v1/auth/login').send({ email, password });
       return { authorization: `Bearer ${response.body.data.accessToken}` };
     },
+    syncRepository,
     terminalAId: terminalA.id,
     terminalBId: terminalB.id
   };

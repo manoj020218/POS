@@ -28,7 +28,10 @@ describe('DrizzleSyncRepository', () => {
       buildSyncEvent(branchId, 'evt-sale-1', 'sale-1', { saleId: 'sale-1' })
     ]);
     const accepted = acceptedResults[0]!;
-    const applied = await repository.updateEventState(tenantA, 'evt-sale-1', 'APPLIED');
+    const applied = await repository.updateEventState(tenantA, 'evt-sale-1', {
+      failure: null,
+      state: 'APPLIED'
+    });
     const duplicateResults = await repository.createReceivedEvents([
       buildSyncEvent(branchId, 'evt-sale-1', 'sale-1', { saleId: 'sale-1' })
     ]);
@@ -41,6 +44,7 @@ describe('DrizzleSyncRepository', () => {
     expect(duplicate.event.id).toBe(accepted.event.id);
     expect(duplicate.event.receivedAt.toISOString()).toBe(accepted.event.receivedAt.toISOString());
     expect(duplicate.event.state).toBe('APPLIED');
+    expect(duplicate.event.failure).toBeNull();
   });
 
   it('rolls back a batch when an existing event id is reused with different content', async () => {
@@ -64,6 +68,48 @@ describe('DrizzleSyncRepository', () => {
     const retriedResults = await repository.createReceivedEvents([newEvent]);
     const retriedNewEvent = retriedResults[0]!;
     expect(retriedNewEvent.result).toBe('accepted');
+  });
+
+  it('persists and clears failure diagnostics across replay state updates', async () => {
+    const { branchId } = await seedBranch(database.db);
+    const repository = new DrizzleSyncRepository(database.db);
+    const failedAt = new Date('2026-08-27T10:15:00.000Z');
+
+    await repository.createReceivedEvents([
+      buildSyncEvent(branchId, 'evt-sale-2', 'sale-2', { saleId: 'sale-2' })
+    ]);
+
+    const failed = await repository.updateEventState(tenantA, 'evt-sale-2', {
+      failure: {
+        code: 'VALIDATION_ERROR',
+        failedAt,
+        message: 'Too small: expected array to have >=1 items',
+        statusCode: 400
+      },
+      state: 'FAILED'
+    });
+    const duplicateWhileFailed = (
+      await repository.createReceivedEvents([
+        buildSyncEvent(branchId, 'evt-sale-2', 'sale-2', { saleId: 'sale-2' })
+      ])
+    )[0]!;
+    const applied = await repository.updateEventState(tenantA, 'evt-sale-2', {
+      failure: null,
+      state: 'APPLIED'
+    });
+
+    expect(failed).not.toBeNull();
+    expect(failed?.state).toBe('FAILED');
+    expect(failed?.failure).toMatchObject({
+      code: 'VALIDATION_ERROR',
+      message: 'Too small: expected array to have >=1 items',
+      statusCode: 400
+    });
+    expect(failed?.failure?.failedAt.toISOString()).toBe(failedAt.toISOString());
+    expect(duplicateWhileFailed.event.state).toBe('FAILED');
+    expect(duplicateWhileFailed.event.failure?.failedAt.toISOString()).toBe(failedAt.toISOString());
+    expect(applied?.state).toBe('APPLIED');
+    expect(applied?.failure).toBeNull();
   });
 });
 

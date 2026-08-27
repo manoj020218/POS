@@ -4,7 +4,7 @@ Current Phase:
 - Phase 8 - Offline Sync Protocol
 
 Current Subtask:
-- Phase 8 sync replay now applies supported sale and purchase events; next safe unit is failure capture for replay errors and stuck `RECEIVED` events
+- Phase 8 sync replay now persists actionable `FAILED` diagnostics for replay errors; next safe unit is the cursor-based `GET /api/v1/sync/pull` foundation
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -243,15 +243,26 @@ Completed:
 - Verified `pnpm lint`
 - Verified `pnpm test`
 - Verified `pnpm build`
+- Added sync failure diagnostics migration `apps/api/drizzle/0012_smooth_energizer.sql`
+- Persisted sync replay failures now move stored `sync_events.state` from `RECEIVED` to `FAILED` with `failureCode`, `failureMessage`, `failureStatusCode`, and `failedAt`
+- Successful retries now clear stored sync failure diagnostics when a previously failed event is replayed and marked `APPLIED`
+- Added sync replay failure regression coverage for permission-denied and validation-error failures plus Drizzle repository failure-state persistence
+- Verified `pnpm exec vitest run apps/api/test/sync.test.ts apps/api/test/sync-failure.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`
+- Verified `pnpm db:generate`
+- Verified `pnpm db:migrate`
+- Verified `pnpm typecheck`
+- Verified `pnpm lint`
+- Verified `pnpm build`
+- Full suite verification on 2026-08-27: `pnpm test` (133 tests passing)
 
 Currently Working:
 - No active code changes in progress
-- Phase 8 sale and purchase sync replay foundation is complete and verified
-- Next safe unit is failure capture for replay errors and stuck `RECEIVED` events
+- Phase 8 sale and purchase sync replay foundation plus replay failure capture are complete and verified
+- Next safe unit is the cursor-based `GET /api/v1/sync/pull` foundation
 
 Next:
-- Add sync processing failure capture so replay errors can move stored events from `RECEIVED` to `FAILED` with actionable diagnostics
 - Add cursor-based `GET /api/v1/sync/pull` foundation for incremental downstream change delivery
+- Define the first outbound change-feed cursor contract so `sync/pull` can return `changes`, `nextCursor`, and `serverTime` without full-table reloads
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -316,7 +327,7 @@ Important Decisions:
 - Require explicit event `branchId` values on sync push so existing branch-scope authorization can be enforced before an event is accepted
 - Replay supported sync events through the existing sale and purchase domain services so sync writes reuse the same validation, totals, supplier, terminal, and inventory rules as direct API writes
 - Reattempt replay for duplicate supported events only while the stored sync-event state remains `RECEIVED`; once an event is marked `APPLIED`, later retries stay side-effect free
-- Keep unsupported event types and replay failures stored in `RECEIVED` for now until explicit failure capture and pull/retry workflows are implemented
+- Keep unsupported event types stored in `RECEIVED` for now until explicit pull/retry workflows are implemented
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
@@ -326,7 +337,7 @@ Known Issues:
 - Walk-in customer uniqueness is currently enforced by the service-level ensure flow rather than a database uniqueness constraint
 - Sale returns currently restore inventory only; refund/payment reversal, credit-note issuance, and dedicated return-record persistence are not implemented yet
 - Purchase flows currently support creation and listing only; purchase updates, purchase returns, cancellations, and vendor invoice reconciliation are not implemented yet
-- Sync replay currently leaves unsupported event types and replay failures in `RECEIVED`; `FAILED` state transitions and persisted error diagnostics are not implemented yet
+- Sync replay still leaves unsupported event types in `RECEIVED`; downstream pull/retry workflows for those events are not implemented yet
 - Sync replay currently attributes created sales and purchases to the authenticated sync caller; preserving the original offline actor independently from the sync session is not implemented yet
 - Cursor-based `GET /api/v1/sync/pull` is not implemented yet
 - Inventory balances currently derive from mutable `product.openingStock` plus movement sums; explicit opening-stock ledger entries and manual inventory adjustments are not implemented yet
@@ -394,7 +405,10 @@ Tests:
 - Sync routes: sale replay decreases inventory once, purchase replay increases inventory once, and duplicate `APPLIED` events stay side-effect free
 - Sync routes: a stored `RECEIVED` purchase event can be replayed successfully on a later authorized retry after an initial `403`
 - Sync repository integration: persisted `APPLIED` state updates are returned on later duplicate reads
-- Full suite verification on 2026-08-27: `pnpm test` (131 tests passing)
+- Sync routes: replay failures now persist `FAILED` state diagnostics and successful retries clear them on later duplicate replay
+- Sync repository integration: persisted failure diagnostics survive duplicate reads and clear on later `APPLIED` transitions
+- Targeted verification: `pnpm exec vitest run apps/api/test/sync.test.ts apps/api/test/sync-failure.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`
+- Full suite verification on 2026-08-27: `pnpm test` (133 tests passing)
 
 Last Successful Commands:
 - `git init -b main`
@@ -563,6 +577,13 @@ Last Successful Commands:
 - `cmd /c pnpm lint`
 - `cmd /c pnpm test`
 - `cmd /c pnpm build`
+- `cmd /c pnpm db:generate`
+- `cmd /c pnpm exec vitest run apps/api/test/sync.test.ts apps/api/test/sync-failure.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`
+- `cmd /c pnpm db:migrate`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm build`
+- `cmd /c pnpm test`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -605,6 +626,9 @@ Database Status:
 - Inbound sync events are accepted into the `RECEIVED` state with tenant-plus-event uniqueness enforced at the database layer
 - Supported sale and purchase sync events now transition persisted `sync_events.state` from `RECEIVED` to `APPLIED` after successful replay
 - Sync migration generation and application verified against the local PostgreSQL database
+- Sync failure-diagnostics schema update added at `apps/api/drizzle/0012_smooth_energizer.sql`
+- `sync_events` now persist `failure_code`, `failure_message`, `failure_status_code`, and `failed_at` for replay failures
+- Successful sync replays clear any previously stored failure diagnostics when the event is later marked `APPLIED`
 
 API Status:
 - Phase 0 scaffold verified
@@ -655,10 +679,13 @@ API Status:
 - Sync push accepts explicit event `branchId`, `deviceId`, `eventId`, `type`, `entityId`, `createdAt`, and JSON `payload` fields
 - Sync push stores new inbound events as raw `RECEIVED` records, replays supported sale and purchase events through the existing domain services, and marks successful replays as `APPLIED`
 - Sync push returns duplicate statuses on retry, reattempts supported duplicates still in `RECEIVED`, and rejects reused event ids when the event content changes
+- Replay failures during sync push now mark the stored event `FAILED` before the original error is returned to the caller
+- Stored sync failures now retain actionable diagnostic fields for permission, validation, and internal replay errors without exposing stack traces in the API response
+- Later authorized or corrected retries can reapply previously failed events and clear the stored failure diagnostics on success
 - Inventory API now includes protected `GET /api/v1/inventory/balances` with business and optional product scoping plus opening-stock-plus-ledger balance calculation
 
 Git Status:
-- clean after pushing the Phase 8 sync replay foundation
+- previous pushed state before this session was clean after the Phase 8 sync replay foundation; current session adds sync failure capture plus handoff updates
 
 Last Commit:
-- `829f4e6 feat(sync): replay sale and purchase sync events`
+- previous published checkpoint before this session: `829f4e6 feat(sync): replay sale and purchase sync events`
