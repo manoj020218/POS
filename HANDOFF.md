@@ -555,6 +555,8 @@ Last Successful Commands:
 - `cmd /c pnpm lint`
 - `cmd /c pnpm test`
 - `cmd /c pnpm build`
+- `git commit -m "feat(sync): replay sale and purchase sync events"`
+- `git push origin main`
 - `cmd /c pnpm db:migrate`
 - `cmd /c pnpm exec vitest run apps/api/test/sync.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`
 - `cmd /c pnpm typecheck`
@@ -656,7 +658,7 @@ API Status:
 - Inventory API now includes protected `GET /api/v1/inventory/balances` with business and optional product scoping plus opening-stock-plus-ledger balance calculation
 
 Git Status:
-- changes pending for the completed Phase 8 sync replay foundation before commit/push
+- clean after pushing the Phase 8 sync replay foundation
 
 Last Commit:
-- `ba2e32d feat(sync): add sync push ingestion foundation`
+- `829f4e6 feat(sync): replay sale and purchase sync events`
