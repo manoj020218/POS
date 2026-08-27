@@ -1,10 +1,10 @@
 # TODO
 
 NOW
-- Add cursor-based `GET /api/v1/sync/pull` foundation for incremental downstream change delivery
+- Define the first server-authored outbound change-feed contract for `GET /api/v1/sync/pull`
 
 NEXT
-- Define the first outbound change-feed cursor contract so `sync/pull` can return `changes`, `nextCursor`, and `serverTime` without full-table reloads
+- Implement the first pullable master-data change slice, starting with product updates
 
 LATER
 - Shared contracts package

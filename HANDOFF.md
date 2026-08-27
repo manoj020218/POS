@@ -4,7 +4,7 @@ Current Phase:
 - Phase 8 - Offline Sync Protocol
 
 Current Subtask:
-- Phase 8 sync replay now persists actionable `FAILED` diagnostics for replay errors; next safe unit is the cursor-based `GET /api/v1/sync/pull` foundation
+- Phase 8 cursor-based `GET /api/v1/sync/pull` foundation is complete and verified; next safe unit is defining the first server-authored outbound change-feed contract
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -253,16 +253,27 @@ Completed:
 - Verified `pnpm typecheck`
 - Verified `pnpm lint`
 - Verified `pnpm build`
-- Full suite verification on 2026-08-27: `pnpm test` (133 tests passing)
+- Added protected cursor-based `GET /api/v1/sync/pull` with opaque cursor pagination and branch-scoped pull access
+- Added shared sync branch-access helpers plus split sync push/pull services to keep the sync module under the manual file-size limit
+- Added sync pull cursor encoding over `(updatedAt, eventId)` and repository support for ordered applied-event pull queries
+- Added sync pull route coverage for incremental pagination, branch-scope filtering, and previously failed events that become visible after a later successful retry
+- Added Drizzle sync repository coverage for branch-scoped pull ordering by `updated_at` cursor
+- Verified `pnpm exec vitest run apps/api/test/sync-pull.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`
+- Verified `pnpm db:generate`
+- Verified `pnpm typecheck`
+- Verified `pnpm lint`
+- Verified `pnpm build`
+- Verified `pnpm db:migrate`
+- Full suite verification on 2026-08-27: `pnpm test` (137 tests passing)
 
 Currently Working:
 - No active code changes in progress
-- Phase 8 sale and purchase sync replay foundation plus replay failure capture are complete and verified
-- Next safe unit is the cursor-based `GET /api/v1/sync/pull` foundation
+- Phase 8 sync push replay, replay failure capture, and the initial sync pull foundation are complete and verified
+- Next safe unit is defining the first server-authored outbound change-feed contract for `GET /api/v1/sync/pull`
 
 Next:
-- Add cursor-based `GET /api/v1/sync/pull` foundation for incremental downstream change delivery
-- Define the first outbound change-feed cursor contract so `sync/pull` can return `changes`, `nextCursor`, and `serverTime` without full-table reloads
+- Define the first server-authored outbound change-feed contract so `GET /api/v1/sync/pull` can carry master-data changes in addition to replayed inbound events
+- Decide whether applied `sync_events` remain the canonical pull feed or whether Phase 8 needs a dedicated downstream change log before client sync work expands
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -339,7 +350,7 @@ Known Issues:
 - Purchase flows currently support creation and listing only; purchase updates, purchase returns, cancellations, and vendor invoice reconciliation are not implemented yet
 - Sync replay still leaves unsupported event types in `RECEIVED`; downstream pull/retry workflows for those events are not implemented yet
 - Sync replay currently attributes created sales and purchases to the authenticated sync caller; preserving the original offline actor independently from the sync session is not implemented yet
-- Cursor-based `GET /api/v1/sync/pull` is not implemented yet
+- `GET /api/v1/sync/pull` currently serves applied `sync_events`; dedicated server-authored master-data change projection is not implemented yet
 - Inventory balances currently derive from mutable `product.openingStock` plus movement sums; explicit opening-stock ledger entries and manual inventory adjustments are not implemented yet
 
 Tests:
@@ -358,6 +369,9 @@ Tests:
 - Protected-route auth tests: login to obtain bearer token, then create/list/update tenant-core resources through authenticated access
 - Auth access-context tests: invalid authorization header, refresh token rejected on protected routes, expired access token rejected
 - Runtime smoke: `GET /health`, `POST /api/v1/auth/login`, `POST /api/v1/businesses`, `GET /api/v1/businesses`
+- Sync pull tests: branch-scoped pagination, opaque cursor progression, and failed-then-retried event visibility
+- Repository integration: applied sync-event pull ordering and branch filtering validated with `PGlite`
+- Full suite verification on 2026-08-27: `pnpm test` (137 tests passing)
 - Auth repository integration: persisted user upsert/find plus session create/update/revoke lifecycle via `DrizzleAuthRepository`
 - Runtime smoke: `GET /health`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/businesses`, `GET /api/v1/businesses`
 - Tenant-core RBAC integration: unauthorized business/branch/terminal writes return `403`
@@ -584,6 +598,13 @@ Last Successful Commands:
 - `cmd /c pnpm lint`
 - `cmd /c pnpm build`
 - `cmd /c pnpm test`
+- `cmd /c pnpm exec vitest run apps/api/test/sync-pull.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`
+- `cmd /c pnpm db:generate`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm build`
+- `cmd /c pnpm test`
+- `cmd /c pnpm db:migrate`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -629,6 +650,9 @@ Database Status:
 - Sync failure-diagnostics schema update added at `apps/api/drizzle/0012_smooth_energizer.sql`
 - `sync_events` now persist `failure_code`, `failure_message`, `failure_status_code`, and `failed_at` for replay failures
 - Successful sync replays clear any previously stored failure diagnostics when the event is later marked `APPLIED`
+- Sync pull cursor schema update added at `apps/api/drizzle/0013_supreme_lockheed.sql`
+- `sync_events` now persist `updated_at` for stable applied-event pull ordering and incremental cursor pagination
+- Applied sync-event pull queries are now backed by the `sync_events_tenant_state_updated_idx` index
 
 API Status:
 - Phase 0 scaffold verified
@@ -682,10 +706,13 @@ API Status:
 - Replay failures during sync push now mark the stored event `FAILED` before the original error is returned to the caller
 - Stored sync failures now retain actionable diagnostic fields for permission, validation, and internal replay errors without exposing stack traces in the API response
 - Later authorized or corrected retries can reapply previously failed events and clear the stored failure diagnostics on success
+- Sync API now includes protected `GET /api/v1/sync/pull`
+- Sync pull returns branch-scoped applied changes plus `nextCursor` and `serverTime`, ordered by stable `(updatedAt, eventId)` pagination
+- Sync pull currently exposes applied inbound sync events as the initial downstream feed foundation
 - Inventory API now includes protected `GET /api/v1/inventory/balances` with business and optional product scoping plus opening-stock-plus-ledger balance calculation
 
 Git Status:
-- previous pushed state before this session was clean after the Phase 8 sync replay foundation; current session adds sync failure capture plus handoff updates
+- previous pushed state before this session was clean after the Phase 8 sync failure-capture checkpoint; current session adds sync pull foundation plus handoff/todo updates
 
 Last Commit:
-- previous published checkpoint before this session: `829f4e6 feat(sync): replay sale and purchase sync events`
+- previous published checkpoint before this session: `d2df83f feat(sync): capture replay failure diagnostics`

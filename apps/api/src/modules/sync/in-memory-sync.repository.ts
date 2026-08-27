@@ -4,6 +4,7 @@ import { assertSyncEventMatches } from './sync-event-signature.js';
 import type { SyncEventWriteResult, SyncRepository } from './sync.repository.js';
 import type {
   CreateSyncEventInput,
+  ListSyncPullEventsInput,
   SyncEventRecord,
   UpdateSyncEventStateInput
 } from './sync.types.js';
@@ -26,17 +27,34 @@ export class InMemorySyncRepository implements SyncRepository {
         return { event: existing, result: 'duplicate' };
       }
 
+      const now = new Date();
       const record: SyncEventRecord = {
         ...event,
         failure: null,
         id: randomUUID(),
-        receivedAt: new Date(),
-        state: 'RECEIVED'
+        receivedAt: now,
+        state: 'RECEIVED',
+        updatedAt: now
       };
       this.events.set(key, record);
 
       return { event: record, result: 'accepted' };
     });
+  }
+
+  async listPullEvents(input: ListSyncPullEventsInput): Promise<SyncEventRecord[]> {
+    const allowedBranchIds = new Set(input.branchIds);
+
+    return [...this.events.values()]
+      .filter(
+        (event) =>
+          event.tenantId === input.tenantId &&
+          event.state === 'APPLIED' &&
+          allowedBranchIds.has(event.branchId) &&
+          isAfterCursor(event, input.cursor)
+      )
+      .sort(compareForPull)
+      .slice(0, input.limit);
   }
 
   async updateEventState(tenantId: string, eventId: string, input: UpdateSyncEventStateInput) {
@@ -49,7 +67,8 @@ export class InMemorySyncRepository implements SyncRepository {
     const updated = {
       ...existing,
       failure: input.failure,
-      state: input.state
+      state: input.state,
+      updatedAt: new Date()
     };
     this.events.set(key, updated);
 
@@ -67,3 +86,18 @@ const toComparableEvent = (event: Pick<SyncEventRecord, 'branchId' | 'deviceId' 
   payload: event.payload,
   type: event.type
 });
+
+const compareForPull = (left: SyncEventRecord, right: SyncEventRecord) =>
+  left.updatedAt.getTime() - right.updatedAt.getTime() || left.eventId.localeCompare(right.eventId);
+
+const isAfterCursor = (event: SyncEventRecord, cursor?: ListSyncPullEventsInput['cursor']) => {
+  if (!cursor) {
+    return true;
+  }
+
+  return compareForPull(event, {
+    ...event,
+    eventId: cursor.eventId,
+    updatedAt: cursor.updatedAt
+  }) > 0;
+};

@@ -1,5 +1,6 @@
 import type {
   CreateSyncEventInput,
+  ListSyncPullEventsInput,
   SyncEventRecord,
   UpdateSyncEventStateInput
 } from './sync.types.js';
@@ -18,6 +19,7 @@ export class SyncEventConflictError extends Error {
 
 export interface SyncRepository {
   createReceivedEvents(input: CreateSyncEventInput[]): Promise<SyncEventWriteResult[]>;
+  listPullEvents(input: ListSyncPullEventsInput): Promise<SyncEventRecord[]>;
   updateEventState(
     tenantId: string,
     eventId: string,

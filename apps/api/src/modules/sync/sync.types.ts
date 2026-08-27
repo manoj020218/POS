@@ -8,6 +8,10 @@ export type SyncEventFailure = {
   message: string;
   statusCode: number;
 };
+export type SyncEventCursor = {
+  eventId: string;
+  updatedAt: Date;
+};
 
 export type SyncPushEventInput = {
   branchId: string;
@@ -33,11 +37,19 @@ export type SyncEventRecord = CreateSyncEventInput & {
   id: string;
   receivedAt: Date;
   state: SyncEventState;
+  updatedAt: Date;
 };
 
 export type UpdateSyncEventStateInput = {
   failure: SyncEventFailure | null;
   state: SyncEventState;
+};
+
+export type ListSyncPullEventsInput = {
+  branchIds: string[];
+  cursor?: SyncEventCursor;
+  limit: number;
+  tenantId: string;
 };
 
 export type SyncPushEventResult = Pick<SyncPushEventInput, 'branchId' | 'entityId' | 'eventId' | 'type'> & {
@@ -50,4 +62,24 @@ export type SyncPushResult = {
   acceptedCount: number;
   duplicateCount: number;
   events: SyncPushEventResult[];
+};
+
+export type SyncPullQuery = {
+  branchId?: string;
+  cursor?: string;
+  limit: number;
+};
+
+export type SyncPullChange = Pick<
+  SyncPushEventInput,
+  'branchId' | 'deviceId' | 'entityId' | 'eventId' | 'payload' | 'type'
+> & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SyncPullResult = {
+  changes: SyncPullChange[];
+  nextCursor: string | null;
+  serverTime: string;
 };

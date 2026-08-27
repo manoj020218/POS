@@ -9,7 +9,7 @@ import type { SaleRepository } from '../sale/sale.repository.js';
 import { createSaleService } from '../sale/sale.service.js';
 import type { SupplierRepository } from '../supplier/supplier.repository.js';
 import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
-import { pushSyncEventsController } from './sync.controller.js';
+import { pullSyncEventsController, pushSyncEventsController } from './sync.controller.js';
 import type { SyncRepository } from './sync.repository.js';
 import { createSyncReplayHandler } from './sync-replay.js';
 import { createSyncService } from './sync.service.js';
@@ -47,6 +47,7 @@ export const createSyncRouter = (
     })
   );
 
+  router.get('/sync/pull', requirePermissions(['sync:pull']), pullSyncEventsController(service));
   router.post('/sync/push', requirePermissions(['sync:push']), pushSyncEventsController(service));
 
   return router;

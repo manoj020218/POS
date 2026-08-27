@@ -54,6 +54,7 @@ const operatingPermissions = [
   'sale:view',
   'report:view',
   'settings:manage',
+  'sync:pull',
   'sync:push',
   'user:manage'
 ] as const;
@@ -103,6 +104,7 @@ export const rolePermissions = {
     'sale:refund',
     'sale:view',
     'report:view',
+    'sync:pull',
     'sync:push'
   ],
   CASHIER: [
@@ -111,6 +113,7 @@ export const rolePermissions = {
     'customer:create',
     'customer:view',
     'sale:create',
+    'sync:pull',
     'sync:push'
   ],
   INVENTORY_MANAGER: [
@@ -127,6 +130,7 @@ export const rolePermissions = {
     'purchase:view',
     'inventory:adjust',
     'inventory:view',
+    'sync:pull',
     'sync:push'
   ],
   REPORT_VIEWER: ['branch:view', 'product:view', 'inventory:view', 'sale:view', 'report:view']

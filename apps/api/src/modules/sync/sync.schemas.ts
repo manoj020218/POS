@@ -30,3 +30,9 @@ export const syncPushSchema = z.object({
     .min(1)
     .max(100)
 });
+
+export const syncPullQuerySchema = z.object({
+  branchId: uuidSchema.optional(),
+  cursor: z.string().trim().min(1).max(512).optional(),
+  limit: z.coerce.number().int().positive().max(100).optional().default(50)
+});

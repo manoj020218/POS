@@ -111,6 +111,37 @@ describe('DrizzleSyncRepository', () => {
     expect(applied?.state).toBe('APPLIED');
     expect(applied?.failure).toBeNull();
   });
+
+  it('lists applied pull events by branch scope and updated-at cursor order', async () => {
+    const { branchAId, branchBId } = await seedBranches(database.db);
+    const repository = new DrizzleSyncRepository(database.db);
+
+    await repository.createReceivedEvents([
+      buildSyncEvent(branchAId, 'evt-a-sale-1', 'sale-1', { saleId: 'sale-1' }),
+      buildSyncEvent(branchAId, 'evt-b-sale-2', 'sale-2', { saleId: 'sale-2' }),
+      buildSyncEvent(branchBId, 'evt-c-sale-3', 'sale-3', { saleId: 'sale-3' })
+    ]);
+
+    await repository.updateEventState(tenantA, 'evt-a-sale-1', { failure: null, state: 'APPLIED' });
+    await repository.updateEventState(tenantA, 'evt-b-sale-2', { failure: null, state: 'APPLIED' });
+    await repository.updateEventState(tenantA, 'evt-c-sale-3', { failure: null, state: 'APPLIED' });
+
+    const firstPage = await repository.listPullEvents({
+      branchIds: [branchAId],
+      limit: 1,
+      tenantId: tenantA
+    });
+    const secondPage = await repository.listPullEvents({
+      branchIds: [branchAId],
+      cursor: { eventId: firstPage[0]!.eventId, updatedAt: firstPage[0]!.updatedAt },
+      limit: 10,
+      tenantId: tenantA
+    });
+
+    expect(firstPage.map((event) => event.eventId)).toEqual(['evt-a-sale-1']);
+    expect(secondPage.map((event) => event.eventId)).toEqual(['evt-b-sale-2']);
+    expect(secondPage.every((event) => event.branchId === branchAId)).toBe(true);
+  });
 });
 
 const seedBranch = async (db: Awaited<ReturnType<typeof createMemoryDatabase>>['db']) => {
@@ -131,6 +162,33 @@ const seedBranch = async (db: Awaited<ReturnType<typeof createMemoryDatabase>>['
   });
 
   return { branchId: branch.id };
+};
+
+const seedBranches = async (db: Awaited<ReturnType<typeof createMemoryDatabase>>['db']) => {
+  const repository = new DrizzleTenantCoreRepository(db);
+
+  await repository.createTenant({ id: tenantA, name: 'Tenant A', slug: 'tenant-a' });
+  const business = await repository.createBusiness({
+    code: 'STORE-A',
+    name: 'Store A',
+    tenantId: tenantA
+  });
+  const branchA = await repository.createBranch({
+    address: 'Main Road',
+    businessId: business.id,
+    code: 'BR-A1',
+    name: 'Store A Main',
+    tenantId: tenantA
+  });
+  const branchB = await repository.createBranch({
+    address: 'Annex Road',
+    businessId: business.id,
+    code: 'BR-A2',
+    name: 'Store A Annex',
+    tenantId: tenantA
+  });
+
+  return { branchAId: branchA.id, branchBId: branchB.id };
 };
 
 const buildSyncEvent = (

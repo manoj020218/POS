@@ -32,6 +32,7 @@ export const syncEvents = pgTable(
     payload: jsonb('payload').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
     receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
     state: varchar('state', { length: 32 }).notNull().default('RECEIVED'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     tenantId: uuid('tenant_id')
       .notNull()
       .references(() => tenants.id)
@@ -47,6 +48,11 @@ export const syncEvents = pgTable(
       table.tenantId,
       table.state,
       table.receivedAt
+    ),
+    tenantStateUpdatedIndex: index('sync_events_tenant_state_updated_idx').on(
+      table.tenantId,
+      table.state,
+      table.updatedAt
     )
   })
 );

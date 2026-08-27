@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, eq } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, or } from 'drizzle-orm';
 
 import type { AppDatabase } from '../../db/client.js';
 import { syncEvents } from '../../db/schema/index.js';
@@ -8,6 +8,7 @@ import { assertSyncEventMatches } from './sync-event-signature.js';
 import type { SyncEventWriteResult, SyncRepository } from './sync.repository.js';
 import type {
   CreateSyncEventInput,
+  ListSyncPullEventsInput,
   SyncEventFailure,
   SyncEventRecord,
   UpdateSyncEventStateInput
@@ -61,6 +62,21 @@ export class DrizzleSyncRepository implements SyncRepository {
     });
   }
 
+  async listPullEvents(input: ListSyncPullEventsInput): Promise<SyncEventRecord[]> {
+    if (input.branchIds.length === 0) {
+      return [];
+    }
+
+    const rows = await this.db
+      .select()
+      .from(syncEvents)
+      .where(buildPullWhere(input))
+      .orderBy(asc(syncEvents.updatedAt), asc(syncEvents.eventId))
+      .limit(input.limit);
+
+    return rows.map(toSyncEventRecord);
+  }
+
   async updateEventState(tenantId: string, eventId: string, input: UpdateSyncEventStateInput) {
     const [updated] = await this.db
       .update(syncEvents)
@@ -69,7 +85,8 @@ export class DrizzleSyncRepository implements SyncRepository {
         failureCode: input.failure?.code ?? null,
         failureMessage: input.failure?.message ?? null,
         failureStatusCode: input.failure?.statusCode ?? null,
-        state: input.state
+        state: input.state,
+        updatedAt: new Date()
       })
       .where(and(eq(syncEvents.tenantId, tenantId), eq(syncEvents.eventId, eventId)))
       .returning();
@@ -90,8 +107,29 @@ const toSyncEventRecord = (record: SyncEventRow): SyncEventRecord => ({
   receivedAt: record.receivedAt,
   state: record.state as SyncEventRecord['state'],
   tenantId: record.tenantId,
-  type: record.eventType
+  type: record.eventType,
+  updatedAt: record.updatedAt
 });
+
+const buildPullWhere = (input: ListSyncPullEventsInput) => {
+  const base = [
+    eq(syncEvents.tenantId, input.tenantId),
+    eq(syncEvents.state, 'APPLIED'),
+    inArray(syncEvents.branchId, input.branchIds)
+  ];
+
+  if (!input.cursor) {
+    return and(...base);
+  }
+
+  return and(
+    ...base,
+    or(
+      gt(syncEvents.updatedAt, input.cursor.updatedAt),
+      and(eq(syncEvents.updatedAt, input.cursor.updatedAt), gt(syncEvents.eventId, input.cursor.eventId))
+    )
+  );
+};
 
 const toSyncEventFailure = (record: SyncEventRow): SyncEventFailure | null => {
   if (!record.failedAt || !record.failureCode || !record.failureMessage || !record.failureStatusCode) {
