@@ -1,4 +1,9 @@
-import type { ProductView } from '../catalog/catalog.types.js';
+import type {
+  CategoryView,
+  ProductView,
+  TaxProfileView,
+  UnitView
+} from '../catalog/catalog.types.js';
 
 export const syncEventStates = ['RECEIVED', 'APPLIED', 'FAILED'] as const;
 export type SyncEventState = (typeof syncEventStates)[number];
@@ -84,6 +89,21 @@ export type SyncPullProductRecord = ProductView & {
   updatedAt: string;
 };
 
+export type SyncPullCategoryRecord = CategoryView & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SyncPullTaxProfileRecord = TaxProfileView & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SyncPullUnitRecord = UnitView & {
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type SyncPullAppliedEventChange = {
   branchId: string;
   changeId: string;
@@ -102,7 +122,39 @@ export type SyncPullProductChange = {
   updatedAt: string;
 };
 
-export type SyncPullChange = SyncPullAppliedEventChange | SyncPullProductChange;
+export type SyncPullCategoryChange = {
+  businessId: string;
+  changeId: string;
+  changeType: 'CATEGORY_UPSERTED';
+  record: SyncPullCategoryRecord;
+  source: 'SERVER';
+  updatedAt: string;
+};
+
+export type SyncPullTaxProfileChange = {
+  businessId: string;
+  changeId: string;
+  changeType: 'TAX_PROFILE_UPSERTED';
+  record: SyncPullTaxProfileRecord;
+  source: 'SERVER';
+  updatedAt: string;
+};
+
+export type SyncPullUnitChange = {
+  businessId: string;
+  changeId: string;
+  changeType: 'UNIT_UPSERTED';
+  record: SyncPullUnitRecord;
+  source: 'SERVER';
+  updatedAt: string;
+};
+
+export type SyncPullChange =
+  | SyncPullAppliedEventChange
+  | SyncPullCategoryChange
+  | SyncPullProductChange
+  | SyncPullTaxProfileChange
+  | SyncPullUnitChange;
 
 export type SyncPullResult = {
   changes: SyncPullChange[];

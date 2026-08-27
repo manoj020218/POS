@@ -3,6 +3,11 @@ import type { AccessContext } from '../tenant-core/access-context.js';
 import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
 import type { BusinessRecord } from '../tenant-core/tenant-core.types.js';
 import { generateScopedCode } from './catalog-defaults.js';
+import {
+  toCategoryView,
+  toTaxProfileView,
+  toUnitView
+} from './catalog-master-view.js';
 import { resolveReadBusinessIds, resolveWriteBusiness } from './catalog-business-scope.js';
 import type { CatalogRepository } from './catalog.repository.js';
 import type {
@@ -143,36 +148,3 @@ const businessById = (businesses: BusinessRecord[], businessId: string) => {
   if (!business) throw createHttpError(404, 'BUSINESS_NOT_FOUND', 'Business not found');
   return business;
 };
-
-const toCategoryView = (category: CategoryRecord, business: BusinessRecord): CategoryView => ({
-  businessCode: business.code,
-  businessId: business.id,
-  businessName: business.name,
-  code: category.code,
-  id: category.id,
-  isActive: category.isActive,
-  name: category.name
-});
-
-const toTaxProfileView = (taxProfile: TaxProfileRecord, business: BusinessRecord): TaxProfileView => ({
-  businessCode: business.code,
-  businessId: business.id,
-  businessName: business.name,
-  code: taxProfile.code,
-  id: taxProfile.id,
-  isActive: taxProfile.isActive,
-  name: taxProfile.name,
-  rateBasisPoints: taxProfile.rateBasisPoints
-});
-
-const toUnitView = (unit: UnitRecord, business: BusinessRecord): UnitView => ({
-  businessCode: business.code,
-  businessId: business.id,
-  businessName: business.name,
-  code: unit.code,
-  id: unit.id,
-  isActive: unit.isActive,
-  name: unit.name,
-  precision: unit.precision,
-  symbol: unit.symbol
-});

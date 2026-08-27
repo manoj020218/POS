@@ -135,6 +135,14 @@ export type ProductSearchQuery = CatalogQuery & {
   query: string;
 };
 
+export type CatalogUpdatedSinceInput = {
+  cursor?: {
+    changeKey: string;
+    updatedAt: Date;
+  };
+  limit: number;
+};
+
 export type CategoryView = {
   businessCode: string;
   businessId: string;

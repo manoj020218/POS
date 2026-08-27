@@ -1,4 +1,5 @@
 import type {
+  CatalogUpdatedSinceInput,
   CategoryRecord,
   CreateCategoryInput,
   CreateProductInput,
@@ -41,6 +42,11 @@ export interface CatalogRepository {
   findUnitByCode(tenantId: string, businessId: string, code: string): Promise<UnitRecord | null>;
   findUnitById(unitId: string): Promise<UnitRecord | null>;
   listCategories(tenantId: string, businessIds?: string[]): Promise<CategoryRecord[]>;
+  listCategoriesUpdatedSince(
+    tenantId: string,
+    businessIds: string[],
+    input: CatalogUpdatedSinceInput
+  ): Promise<CategoryRecord[]>;
   listInventoryProducts(
     tenantId: string,
     businessIds: string[],
@@ -54,7 +60,7 @@ export interface CatalogRepository {
   listProductsUpdatedSince(
     tenantId: string,
     businessIds: string[],
-    input: { cursor?: { changeKey: string; updatedAt: Date }; limit: number }
+    input: CatalogUpdatedSinceInput
   ): Promise<ProductRecord[]>;
   searchProducts(
     tenantId: string,
@@ -63,7 +69,17 @@ export interface CatalogRepository {
     limit: number
   ): Promise<ProductRecord[]>;
   listTaxProfiles(tenantId: string, businessIds?: string[]): Promise<TaxProfileRecord[]>;
+  listTaxProfilesUpdatedSince(
+    tenantId: string,
+    businessIds: string[],
+    input: CatalogUpdatedSinceInput
+  ): Promise<TaxProfileRecord[]>;
   listUnits(tenantId: string, businessIds?: string[]): Promise<UnitRecord[]>;
+  listUnitsUpdatedSince(
+    tenantId: string,
+    businessIds: string[],
+    input: CatalogUpdatedSinceInput
+  ): Promise<UnitRecord[]>;
   updateCategory(
     categoryId: string,
     tenantId: string,

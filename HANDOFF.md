@@ -4,7 +4,7 @@ Current Phase:
 - Phase 8 - Offline Sync Protocol
 
 Current Subtask:
-- Phase 8 server-authored `GET /api/v1/sync/pull` contract now returns mixed `PRODUCT_UPSERTED` and `SYNC_EVENT_APPLIED` changes; next safe unit is adding first-class catalog master change types
+- Phase 8 server-authored `GET /api/v1/sync/pull` contract now returns first-class catalog master changes alongside `PRODUCT_UPSERTED` and `SYNC_EVENT_APPLIED`; next safe unit is deciding the broader downstream master-data strategy before customer sync expands
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -278,15 +278,24 @@ Completed:
 - Verified `pnpm build`
 - Verified `pnpm db:migrate`
 - Full suite verification on 2026-08-27: `pnpm test` (140 tests passing)
+- Added first-class `CATEGORY_UPSERTED`, `UNIT_UPSERTED`, and `TAX_PROFILE_UPSERTED` server-authored changes to `GET /api/v1/sync/pull`
+- Split catalog sync-feed helpers so the in-memory catalog repository and shared catalog master view mapping remain under the project file-size limit
+- Added route coverage for catalog master sync pull create/update visibility and branch-scoped business filtering
+- Added `DrizzleCatalogRepository` sync-feed coverage for category, unit, and tax-profile incremental ordering and business scoping
+- Verified `pnpm exec vitest run apps/api/test/sync-pull-masters.test.ts apps/api/test/sync-pull-products.test.ts apps/api/test/drizzle-catalog.sync-feed.test.ts --reporter=verbose`
+- Verified `pnpm lint`
+- Verified `pnpm typecheck`
+- Verified `pnpm build`
+- Full suite verification on 2026-08-27: `pnpm test` (143 tests passing)
 
 Currently Working:
 - No active code changes in progress
-- Phase 8 sync push replay, failure capture, and mixed product/event sync pull contract are complete and verified
-- Next safe unit is adding first-class `CATEGORY_UPSERTED`, `UNIT_UPSERTED`, and `TAX_PROFILE_UPSERTED` pull changes
+- Phase 8 sync push replay, failure capture, and mixed product/master/event sync pull contract are complete and verified
+- Next safe unit is deciding whether downstream master-data sync should remain snapshot-based before customer sync expands
 
 Next:
-- Add first-class downstream catalog master change types for categories, units, and tax profiles in `GET /api/v1/sync/pull`
 - Decide whether broader master-data sync should keep timestamp-based snapshot ordering or introduce explicit version columns / a dedicated downstream change log before customer sync expands
+- Add first-class `CUSTOMER_UPSERTED` pull changes after the downstream master-data strategy is chosen
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -441,6 +450,10 @@ Tests:
 - Catalog repository integration: business-scoped product snapshot ordering validated for sync pull cursors via `DrizzleCatalogRepository`
 - Targeted verification: `pnpm exec vitest run apps/api/test/sync-pull.test.ts apps/api/test/sync-pull-products.test.ts apps/api/test/drizzle-catalog.sync-feed.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`
 - Full suite verification on 2026-08-27: `pnpm test` (140 tests passing)
+- Sync pull routes: category/unit/tax-profile create-update visibility and branch-scoped business filtering for server-authored master changes
+- Catalog repository integration: category/unit/tax-profile sync-feed ordering and business scoping via `DrizzleCatalogRepository`
+- Targeted verification: `cmd /c pnpm exec vitest run apps/api/test/sync-pull-masters.test.ts apps/api/test/sync-pull-products.test.ts apps/api/test/drizzle-catalog.sync-feed.test.ts --reporter=verbose`
+- Full suite verification on 2026-08-27: `cmd /c pnpm test` (143 tests passing)
 
 Last Successful Commands:
 - `git init -b main`
@@ -630,6 +643,11 @@ Last Successful Commands:
 - `cmd /c pnpm build`
 - `cmd /c pnpm test`
 - `cmd /c pnpm db:migrate`
+- `cmd /c pnpm exec vitest run apps/api/test/sync-pull-masters.test.ts apps/api/test/sync-pull-products.test.ts apps/api/test/drizzle-catalog.sync-feed.test.ts --reporter=verbose`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm build`
+- `cmd /c pnpm test`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -734,12 +752,12 @@ API Status:
 - Later authorized or corrected retries can reapply previously failed events and clear the stored failure diagnostics on success
 - Sync API now includes protected `GET /api/v1/sync/pull`
 - Sync pull now returns a typed mixed change feed with `changeId`, `changeType`, `source`, `record`, `updatedAt`, and branch/business scope fields
-- Sync pull currently emits `SYNC_EVENT_APPLIED` records for applied inbound sync events and `PRODUCT_UPSERTED` records for server-authored product snapshots
-- Sync pull pagination now uses an opaque `(updatedAt, changeKey)` cursor so product and sync-event changes can share one ordered stream
+- Sync pull currently emits `SYNC_EVENT_APPLIED` records for applied inbound sync events plus server-authored `CATEGORY_UPSERTED`, `UNIT_UPSERTED`, `TAX_PROFILE_UPSERTED`, and `PRODUCT_UPSERTED` snapshots
+- Sync pull pagination now uses an opaque `(updatedAt, changeKey)` cursor so catalog masters, products, and sync-event changes can share one ordered stream without a new schema change in this slice
 - Inventory API now includes protected `GET /api/v1/inventory/balances` with business and optional product scoping plus opening-stock-plus-ledger balance calculation
 
 Git Status:
-- previous pushed state before this session was clean after the Phase 8 sync pull foundation checkpoint; current session adds the first server-authored product pull slice plus handoff/todo updates
+- previous pushed state before this session was clean after the first server-authored product pull slice; current session adds first-class catalog master pull changes plus handoff/todo updates
 
 Last Commit:
-- previous published checkpoint before this session: `da93bb6 feat(sync): add sync pull foundation`
+- previous published checkpoint before this session: `7c28501 feat(sync): add product pull change feed`

@@ -1,6 +1,18 @@
 import { randomUUID } from 'node:crypto';
 
-import { buildProductSyncPullChangeKey } from '../sync/sync-pull-cursor.js';
+import {
+  buildCategorySyncPullChangeKey,
+  buildProductSyncPullChangeKey,
+  buildTaxProfileSyncPullChangeKey,
+  buildUnitSyncPullChangeKey
+} from '../sync/sync-pull-cursor.js';
+import {
+  byBusiness,
+  byCodeThenName,
+  findMasterByCode,
+  listUpdatedRecordsSince,
+  updateRecord
+} from './catalog-change-feed.js';
 import { paginateItems } from './catalog-pagination.js';
 import type { CatalogRepository } from './catalog.repository.js';
 import { rankProductsForSearch } from './product-search-ranking.js';
@@ -9,8 +21,8 @@ import type {
   CreateCategoryInput,
   CreateProductInput,
   CreateTaxProfileInput,
-  PaginationInput,
   CreateUnitInput,
+  PaginationInput,
   ProductRecord,
   TaxProfileRecord,
   UnitRecord,
@@ -20,19 +32,6 @@ import type {
   UpdateUnitInput
 } from './catalog.types.js';
 
-type MasterRecord = CategoryRecord | UnitRecord | TaxProfileRecord;
-
-const byBusiness = <T extends { businessId: string; tenantId: string }>(
-  items: Iterable<T>,
-  tenantId: string,
-  businessIds?: string[]
-) => {
-  const allowed = businessIds ? new Set(businessIds) : null;
-  return [...items].filter(
-    (item) => item.tenantId === tenantId && (!allowed || allowed.has(item.businessId))
-  );
-};
-
 export class InMemoryCatalogRepository implements CatalogRepository {
   private readonly categories = new Map<string, CategoryRecord>();
   private readonly products = new Map<string, ProductRecord>();
@@ -40,20 +39,20 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   private readonly units = new Map<string, UnitRecord>();
 
   async createCategory(input: CreateCategoryInput) {
-    return this.store(this.categories, { ...input, createdAt: new Date(), id: randomUUID(), updatedAt: new Date() });
+    return this.store(this.categories, withTimestamps(input));
   }
   async createProduct(input: CreateProductInput) {
-    return this.store(this.products, { ...input, createdAt: new Date(), id: randomUUID(), updatedAt: new Date() });
+    return this.store(this.products, withTimestamps(input));
   }
   async createTaxProfile(input: CreateTaxProfileInput) {
-    return this.store(this.taxProfiles, { ...input, createdAt: new Date(), id: randomUUID(), updatedAt: new Date() });
+    return this.store(this.taxProfiles, withTimestamps(input));
   }
   async createUnit(input: CreateUnitInput) {
-    return this.store(this.units, { ...input, createdAt: new Date(), id: randomUUID(), updatedAt: new Date() });
+    return this.store(this.units, withTimestamps(input));
   }
 
   async findCategoryByCode(tenantId: string, businessId: string, code: string) {
-    return this.findMasterByCode(this.categories.values(), tenantId, businessId, code);
+    return findMasterByCode(this.categories.values(), tenantId, businessId, code);
   }
   async findCategoryById(categoryId: string) {
     return this.categories.get(categoryId) ?? null;
@@ -73,13 +72,13 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     );
   }
   async findTaxProfileByCode(tenantId: string, businessId: string, code: string) {
-    return this.findMasterByCode(this.taxProfiles.values(), tenantId, businessId, code);
+    return findMasterByCode(this.taxProfiles.values(), tenantId, businessId, code);
   }
   async findTaxProfileById(taxProfileId: string) {
     return this.taxProfiles.get(taxProfileId) ?? null;
   }
   async findUnitByCode(tenantId: string, businessId: string, code: string) {
-    return this.findMasterByCode(this.units.values(), tenantId, businessId, code);
+    return findMasterByCode(this.units.values(), tenantId, businessId, code);
   }
   async findUnitById(unitId: string) {
     return this.units.get(unitId) ?? null;
@@ -87,6 +86,19 @@ export class InMemoryCatalogRepository implements CatalogRepository {
 
   async listCategories(tenantId: string, businessIds?: string[]) {
     return byBusiness(this.categories.values(), tenantId, businessIds).sort(byCodeThenName);
+  }
+  async listCategoriesUpdatedSince(
+    tenantId: string,
+    businessIds: string[],
+    input: Parameters<CatalogRepository['listCategoriesUpdatedSince']>[2]
+  ) {
+    return listUpdatedRecordsSince(
+      this.categories.values(),
+      tenantId,
+      businessIds,
+      input,
+      buildCategorySyncPullChangeKey
+    );
   }
   async listInventoryProducts(tenantId: string, businessIds: string[], productId?: string) {
     return byBusiness(this.products.values(), tenantId, businessIds)
@@ -110,12 +122,15 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   async listProductsUpdatedSince(
     tenantId: string,
     businessIds: string[],
-    input: { cursor?: { changeKey: string; updatedAt: Date }; limit: number }
+    input: Parameters<CatalogRepository['listProductsUpdatedSince']>[2]
   ) {
-    return byBusiness(this.products.values(), tenantId, businessIds)
-      .filter((product) => isAfterProductSyncCursor(product, input.cursor))
-      .sort(compareProductSyncOrder)
-      .slice(0, input.limit);
+    return listUpdatedRecordsSince(
+      this.products.values(),
+      tenantId,
+      businessIds,
+      input,
+      buildProductSyncPullChangeKey
+    );
   }
   async searchProducts(tenantId: string, businessIds: string[], query: string, limit: number) {
     return rankProductsForSearch(byBusiness(this.products.values(), tenantId, businessIds), query).slice(
@@ -126,81 +141,58 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   async listTaxProfiles(tenantId: string, businessIds?: string[]) {
     return byBusiness(this.taxProfiles.values(), tenantId, businessIds).sort(byCodeThenName);
   }
+  async listTaxProfilesUpdatedSince(
+    tenantId: string,
+    businessIds: string[],
+    input: Parameters<CatalogRepository['listTaxProfilesUpdatedSince']>[2]
+  ) {
+    return listUpdatedRecordsSince(
+      this.taxProfiles.values(),
+      tenantId,
+      businessIds,
+      input,
+      buildTaxProfileSyncPullChangeKey
+    );
+  }
   async listUnits(tenantId: string, businessIds?: string[]) {
     return byBusiness(this.units.values(), tenantId, businessIds).sort(byCodeThenName);
   }
+  async listUnitsUpdatedSince(
+    tenantId: string,
+    businessIds: string[],
+    input: Parameters<CatalogRepository['listUnitsUpdatedSince']>[2]
+  ) {
+    return listUpdatedRecordsSince(
+      this.units.values(),
+      tenantId,
+      businessIds,
+      input,
+      buildUnitSyncPullChangeKey
+    );
+  }
 
   async updateCategory(categoryId: string, tenantId: string, input: UpdateCategoryInput) {
-    return this.updateRecord(this.categories, categoryId, tenantId, input as Partial<CategoryRecord>);
+    return updateRecord(this.categories, categoryId, tenantId, input as Partial<CategoryRecord>);
   }
   async updateProduct(productId: string, tenantId: string, input: UpdateProductInput) {
-    return this.updateRecord(this.products, productId, tenantId, input as Partial<ProductRecord>);
+    return updateRecord(this.products, productId, tenantId, input as Partial<ProductRecord>);
   }
   async updateTaxProfile(taxProfileId: string, tenantId: string, input: UpdateTaxProfileInput) {
-    return this.updateRecord(
-      this.taxProfiles,
-      taxProfileId,
-      tenantId,
-      input as Partial<TaxProfileRecord>
-    );
+    return updateRecord(this.taxProfiles, taxProfileId, tenantId, input as Partial<TaxProfileRecord>);
   }
   async updateUnit(unitId: string, tenantId: string, input: UpdateUnitInput) {
-    return this.updateRecord(this.units, unitId, tenantId, input as Partial<UnitRecord>);
-  }
-
-  private findMasterByCode<T extends MasterRecord>(
-    items: Iterable<T>,
-    tenantId: string,
-    businessId: string,
-    code: string
-  ) {
-    return (
-      [...items].find(
-        (item) => item.tenantId === tenantId && item.businessId === businessId && item.code === code
-      ) ?? null
-    );
+    return updateRecord(this.units, unitId, tenantId, input as Partial<UnitRecord>);
   }
 
   private store<T extends { id: string }>(map: Map<string, T>, record: T) {
     map.set(record.id, record);
     return record;
   }
-
-  private updateRecord<T extends { id: string; tenantId: string; updatedAt: Date }>(
-    map: Map<string, T>,
-    id: string,
-    tenantId: string,
-    input: Partial<T>
-  ): T | null {
-    const existing = map.get(id);
-    if (!existing || existing.tenantId !== tenantId) {
-      return null;
-    }
-
-    const updated = { ...existing, ...input, updatedAt: new Date() };
-    map.set(id, updated);
-    return updated;
-  }
 }
 
-const byCodeThenName = (left: { code: string; name: string }, right: { code: string; name: string }) =>
-  left.code.localeCompare(right.code) || left.name.localeCompare(right.name);
-
-const compareProductSyncOrder = (left: ProductRecord, right: ProductRecord) =>
-  left.updatedAt.getTime() - right.updatedAt.getTime() ||
-  buildProductSyncPullChangeKey(left.id).localeCompare(buildProductSyncPullChangeKey(right.id));
-
-const isAfterProductSyncCursor = (
-  product: ProductRecord,
-  cursor?: { changeKey: string; updatedAt: Date }
-) => {
-  if (!cursor) {
-    return true;
-  }
-
-  return (
-    product.updatedAt.getTime() > cursor.updatedAt.getTime() ||
-    (product.updatedAt.getTime() === cursor.updatedAt.getTime() &&
-      buildProductSyncPullChangeKey(product.id).localeCompare(cursor.changeKey) > 0)
-  );
-};
+const withTimestamps = <T>(input: T) => ({
+  ...input,
+  createdAt: new Date(),
+  id: randomUUID(),
+  updatedAt: new Date()
+});

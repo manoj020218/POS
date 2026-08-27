@@ -14,7 +14,7 @@ describe('sync pull product changes', () => {
     ({ app, businessAId, businessBId, loginAs } = await createCatalogTestContext());
   });
 
-  it('returns server-authored product upserts for create and later update', async () => {
+  it('returns product upserts alongside any required default-master upserts', async () => {
     const managerAccess = await loginAs('manager@example.com');
     const created = await request(app).post('/api/v1/products').set(managerAccess).send({
       name: 'Sync Cola',
@@ -28,11 +28,23 @@ describe('sync pull product changes', () => {
     const secondPull = await pullSyncChanges(app, managerAccess, {
       cursor: firstPull.body.data.nextCursor
     });
+    const firstProductChange = firstPull.body.data.changes.find(
+      (change: { changeType: string; record: { id: string } }) =>
+        change.changeType === 'PRODUCT_UPSERTED' && change.record.id === created.body.data.id
+    );
 
     expect(created.status).toBe(201);
     expect(firstPull.status).toBe(200);
-    expect(firstPull.body.data.changes).toHaveLength(1);
-    expect(firstPull.body.data.changes[0]).toMatchObject({
+    expect(firstPull.body.data.changes).toHaveLength(4);
+    expect(firstPull.body.data.changes.map((change: { changeType: string }) => change.changeType)).toEqual(
+      expect.arrayContaining([
+        'CATEGORY_UPSERTED',
+        'PRODUCT_UPSERTED',
+        'TAX_PROFILE_UPSERTED',
+        'UNIT_UPSERTED'
+      ])
+    );
+    expect(firstProductChange).toMatchObject({
       businessId: businessAId,
       changeType: 'PRODUCT_UPSERTED',
       source: 'SERVER',
@@ -57,7 +69,7 @@ describe('sync pull product changes', () => {
         sellingPrice: 4500
       })
     });
-    expect(secondPull.body.data.changes[0].changeId).not.toBe(firstPull.body.data.changes[0].changeId);
+    expect(secondPull.body.data.changes[0].changeId).not.toBe(firstProductChange.changeId);
   });
 
   it('limits product pull changes to businesses reachable through the caller branch scope', async () => {
@@ -76,10 +88,13 @@ describe('sync pull product changes', () => {
     });
 
     const pulled = await pullSyncChanges(app, cashierAccess);
+    const productChanges = pulled.body.data.changes.filter(
+      (change: { changeType: string }) => change.changeType === 'PRODUCT_UPSERTED'
+    );
 
     expect(pulled.status).toBe(200);
-    expect(pulled.body.data.changes).toHaveLength(1);
-    expect(pulled.body.data.changes[0]).toMatchObject({
+    expect(productChanges).toHaveLength(1);
+    expect(productChanges[0]).toMatchObject({
       businessId: businessAId,
       changeType: 'PRODUCT_UPSERTED',
       source: 'SERVER',
@@ -88,5 +103,10 @@ describe('sync pull product changes', () => {
         name: 'Branch A Product'
       })
     });
+    expect(
+      pulled.body.data.changes.every(
+        (change: { businessId?: string }) => !change.businessId || change.businessId === businessAId
+      )
+    ).toBe(true);
   });
 });

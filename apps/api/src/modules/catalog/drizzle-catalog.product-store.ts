@@ -12,6 +12,7 @@ import {
 } from './drizzle-catalog.repository.utils.js';
 import { rankProductsForSearch } from './product-search-ranking.js';
 import type {
+  CatalogUpdatedSinceInput,
   CreateProductInput,
   PaginatedResult,
   PaginationInput,
@@ -96,7 +97,7 @@ export const createDrizzleCatalogProductStore = (db: AppDatabase) => ({
   async listProductsUpdatedSince(
     tenantId: string,
     businessIds: string[],
-    input: { cursor?: { changeKey: string; updatedAt: Date }; limit: number }
+    input: CatalogUpdatedSinceInput
   ) {
     if (businessIds.length === 0) {
       return [];

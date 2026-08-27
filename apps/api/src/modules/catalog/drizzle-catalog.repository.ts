@@ -15,14 +15,17 @@ import type {
   UpdateUnitInput
 } from './catalog.types.js';
 import { createDrizzleCatalogMasterStore } from './drizzle-catalog.master-store.js';
+import { createDrizzleCatalogMasterSyncStore } from './drizzle-catalog.master-sync-store.js';
 import { createDrizzleCatalogProductStore } from './drizzle-catalog.product-store.js';
 
 export class DrizzleCatalogRepository implements CatalogRepository {
   private readonly masterStore;
+  private readonly masterSyncStore;
   private readonly productStore;
 
   constructor(private readonly db: AppDatabase) {
     this.masterStore = createDrizzleCatalogMasterStore(db);
+    this.masterSyncStore = createDrizzleCatalogMasterSyncStore(db);
     this.productStore = createDrizzleCatalogProductStore(db);
   }
 
@@ -65,6 +68,9 @@ export class DrizzleCatalogRepository implements CatalogRepository {
     this.masterStore.findUnitById(...args);
   listCategories = (...args: Parameters<CatalogRepository['listCategories']>) =>
     this.masterStore.listCategories(...args);
+  listCategoriesUpdatedSince = (
+    ...args: Parameters<CatalogRepository['listCategoriesUpdatedSince']>
+  ) => this.masterSyncStore.listCategoriesUpdatedSince(...args);
   listInventoryProducts = (...args: Parameters<CatalogRepository['listInventoryProducts']>) =>
     this.productStore.listInventoryProducts(...args);
   listProducts = (...args: Parameters<CatalogRepository['listProducts']>) =>
@@ -75,8 +81,13 @@ export class DrizzleCatalogRepository implements CatalogRepository {
     this.productStore.searchProducts(...args);
   listTaxProfiles = (...args: Parameters<CatalogRepository['listTaxProfiles']>) =>
     this.masterStore.listTaxProfiles(...args);
+  listTaxProfilesUpdatedSince = (
+    ...args: Parameters<CatalogRepository['listTaxProfilesUpdatedSince']>
+  ) => this.masterSyncStore.listTaxProfilesUpdatedSince(...args);
   listUnits = (...args: Parameters<CatalogRepository['listUnits']>) =>
     this.masterStore.listUnits(...args);
+  listUnitsUpdatedSince = (...args: Parameters<CatalogRepository['listUnitsUpdatedSince']>) =>
+    this.masterSyncStore.listUnitsUpdatedSince(...args);
   updateCategory = (...args: [string, string, UpdateCategoryInput]) =>
     this.masterStore.updateCategory(...args);
   updateProduct = (...args: [string, string, UpdateProductInput]) =>

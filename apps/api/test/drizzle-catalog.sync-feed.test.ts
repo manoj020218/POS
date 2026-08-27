@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { DrizzleCatalogRepository } from '../src/modules/catalog/drizzle-catalog.repository.js';
 import { DrizzleTenantCoreRepository } from '../src/modules/tenant-core/drizzle-tenant-core.repository.js';
-import { buildProductSyncPullChangeKey } from '../src/modules/sync/sync-pull-cursor.js';
+import {
+  buildCategorySyncPullChangeKey,
+  buildProductSyncPullChangeKey,
+  buildTaxProfileSyncPullChangeKey,
+  buildUnitSyncPullChangeKey
+} from '../src/modules/sync/sync-pull-cursor.js';
 import { createMemoryDatabase } from './helpers/memory-database.js';
 
 const tenantA = '11111111-1111-4111-8111-111111111111';
@@ -93,6 +98,47 @@ describe('DrizzleCatalogRepository sync feed', () => {
     expect(firstPage.map((product) => product.id)).toEqual([second.id]);
     expect(secondPage).toHaveLength(1);
     expect(secondPage[0]).toMatchObject({ id: first.id, sellingPrice: 1200 });
+  });
+
+  it('lists updated category, unit, and tax-profile records by business scope and pull cursor order', async () => {
+    const firstMasters = await createMasterSet(repository, businessA1);
+    const secondMasters = await createMasterSet(repository, businessA2);
+
+    await repository.updateCategory(firstMasters.categoryId, tenantA, { name: 'Cold Drinks' });
+    await repository.updateUnit(firstMasters.unitId, tenantA, { symbol: 'btl' });
+    await repository.updateTaxProfile(firstMasters.taxProfileId, tenantA, {
+      rateBasisPoints: 1800
+    });
+
+    const categoryPage = await repository.listCategoriesUpdatedSince(tenantA, [businessA1], {
+      limit: 1
+    });
+    const laterCategories = await repository.listCategoriesUpdatedSince(tenantA, [businessA1], {
+      cursor: {
+        changeKey: buildCategorySyncPullChangeKey(categoryPage[0]!.id),
+        updatedAt: categoryPage[0]!.updatedAt
+      },
+      limit: 10
+    });
+    const units = await repository.listUnitsUpdatedSince(tenantA, [businessA1], { limit: 10 });
+    const taxProfiles = await repository.listTaxProfilesUpdatedSince(tenantA, [businessA1], {
+      limit: 10
+    });
+    const otherBusinessCategories = await repository.listCategoriesUpdatedSince(tenantA, [businessA2], {
+      limit: 10
+    });
+
+    expect(categoryPage[0]).toMatchObject({ id: firstMasters.categoryId, name: 'Cold Drinks' });
+    expect(laterCategories).toEqual([]);
+    expect(units).toEqual([expect.objectContaining({ id: firstMasters.unitId, symbol: 'btl' })]);
+    expect(taxProfiles).toEqual([
+      expect.objectContaining({ id: firstMasters.taxProfileId, rateBasisPoints: 1800 })
+    ]);
+    expect(otherBusinessCategories).toEqual([
+      expect.objectContaining({ id: secondMasters.categoryId })
+    ]);
+    expect(buildUnitSyncPullChangeKey(units[0]!.id)).toMatch(/^unit:/);
+    expect(buildTaxProfileSyncPullChangeKey(taxProfiles[0]!.id)).toMatch(/^tax-profile:/);
   });
 });
 

@@ -10,7 +10,14 @@ const syncPullCursorSchema = z.object({
 
 export const buildProductSyncPullChangeKey = (productId: string) => `product:${productId}`;
 
+export const buildCategorySyncPullChangeKey = (categoryId: string) => `category:${categoryId}`;
+
 export const buildSyncEventPullChangeKey = (eventId: string) => `sync-event:${eventId}`;
+
+export const buildTaxProfileSyncPullChangeKey = (taxProfileId: string) =>
+  `tax-profile:${taxProfileId}`;
+
+export const buildUnitSyncPullChangeKey = (unitId: string) => `unit:${unitId}`;
 
 export const buildSyncPullChangeId = (changeKey: string, updatedAt: Date) =>
   `${changeKey}@${updatedAt.toISOString()}`;

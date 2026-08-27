@@ -1,10 +1,10 @@
 # TODO
 
 NOW
-- Add first-class `CATEGORY_UPSERTED`, `UNIT_UPSERTED`, and `TAX_PROFILE_UPSERTED` changes to `GET /api/v1/sync/pull`
+- Decide whether broader master-data sync should stay snapshot-based or introduce explicit version columns / a dedicated downstream change log before customer sync expands
 
 NEXT
-- Decide whether broader master-data sync should stay snapshot-based or introduce explicit version columns / a dedicated downstream change log before customer sync expands
+- Add first-class `CUSTOMER_UPSERTED` changes to `GET /api/v1/sync/pull` once the downstream master-data strategy is fixed
 
 LATER
 - Shared contracts package
