@@ -1,3 +1,5 @@
+import type { ProductView } from '../catalog/catalog.types.js';
+
 export const syncEventStates = ['RECEIVED', 'APPLIED', 'FAILED'] as const;
 export type SyncEventState = (typeof syncEventStates)[number];
 export type SyncEventPayload = Record<string, unknown>;
@@ -8,8 +10,8 @@ export type SyncEventFailure = {
   message: string;
   statusCode: number;
 };
-export type SyncEventCursor = {
-  eventId: string;
+export type SyncPullCursor = {
+  changeKey: string;
   updatedAt: Date;
 };
 
@@ -47,7 +49,7 @@ export type UpdateSyncEventStateInput = {
 
 export type ListSyncPullEventsInput = {
   branchIds: string[];
-  cursor?: SyncEventCursor;
+  cursor?: SyncPullCursor;
   limit: number;
   tenantId: string;
 };
@@ -70,13 +72,37 @@ export type SyncPullQuery = {
   limit: number;
 };
 
-export type SyncPullChange = Pick<
+export type SyncPullAppliedEventRecord = Pick<
   SyncPushEventInput,
-  'branchId' | 'deviceId' | 'entityId' | 'eventId' | 'payload' | 'type'
+  'deviceId' | 'entityId' | 'eventId' | 'payload' | 'type'
 > & {
+  createdAt: string;
+};
+
+export type SyncPullProductRecord = ProductView & {
   createdAt: string;
   updatedAt: string;
 };
+
+export type SyncPullAppliedEventChange = {
+  branchId: string;
+  changeId: string;
+  changeType: 'SYNC_EVENT_APPLIED';
+  record: SyncPullAppliedEventRecord;
+  source: 'CLIENT';
+  updatedAt: string;
+};
+
+export type SyncPullProductChange = {
+  businessId: string;
+  changeId: string;
+  changeType: 'PRODUCT_UPSERTED';
+  record: SyncPullProductRecord;
+  source: 'SERVER';
+  updatedAt: string;
+};
+
+export type SyncPullChange = SyncPullAppliedEventChange | SyncPullProductChange;
 
 export type SyncPullResult = {
   changes: SyncPullChange[];

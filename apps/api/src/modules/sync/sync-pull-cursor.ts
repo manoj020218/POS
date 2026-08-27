@@ -1,14 +1,26 @@
 import { z } from 'zod';
 
 import { createHttpError } from '../../lib/http-error.js';
-import type { SyncEventCursor } from './sync.types.js';
+import type { SyncPullCursor } from './sync.types.js';
 
 const syncPullCursorSchema = z.object({
-  eventId: z.string().trim().min(1).max(128),
+  changeKey: z.string().trim().min(1).max(256),
   updatedAt: z.coerce.date()
 });
 
-export const decodeSyncPullCursor = (value?: string): SyncEventCursor | undefined => {
+export const buildProductSyncPullChangeKey = (productId: string) => `product:${productId}`;
+
+export const buildSyncEventPullChangeKey = (eventId: string) => `sync-event:${eventId}`;
+
+export const buildSyncPullChangeId = (changeKey: string, updatedAt: Date) =>
+  `${changeKey}@${updatedAt.toISOString()}`;
+
+export const compareSyncPullOrder = (
+  left: Pick<SyncPullCursor, 'changeKey' | 'updatedAt'>,
+  right: Pick<SyncPullCursor, 'changeKey' | 'updatedAt'>
+) => left.updatedAt.getTime() - right.updatedAt.getTime() || left.changeKey.localeCompare(right.changeKey);
+
+export const decodeSyncPullCursor = (value?: string): SyncPullCursor | undefined => {
   if (!value) {
     return undefined;
   }
@@ -21,8 +33,8 @@ export const decodeSyncPullCursor = (value?: string): SyncEventCursor | undefine
   }
 };
 
-export const encodeSyncPullCursor = (value: SyncEventCursor) =>
+export const encodeSyncPullCursor = (value: SyncPullCursor) =>
   Buffer.from(
-    JSON.stringify({ eventId: value.eventId, updatedAt: value.updatedAt.toISOString() }),
+    JSON.stringify({ changeKey: value.changeKey, updatedAt: value.updatedAt.toISOString() }),
     'utf8'
   ).toString('base64url');

@@ -4,7 +4,7 @@ Current Phase:
 - Phase 8 - Offline Sync Protocol
 
 Current Subtask:
-- Phase 8 cursor-based `GET /api/v1/sync/pull` foundation is complete and verified; next safe unit is defining the first server-authored outbound change-feed contract
+- Phase 8 server-authored `GET /api/v1/sync/pull` contract now returns mixed `PRODUCT_UPSERTED` and `SYNC_EVENT_APPLIED` changes; next safe unit is adding first-class catalog master change types
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -265,15 +265,28 @@ Completed:
 - Verified `pnpm build`
 - Verified `pnpm db:migrate`
 - Full suite verification on 2026-08-27: `pnpm test` (137 tests passing)
+- Generalized `GET /api/v1/sync/pull` into a mixed change-feed contract with `changeType`, `source`, `changeId`, and typed `record` payloads
+- Added server-authored `PRODUCT_UPSERTED` pull changes backed by existing product snapshots and branch-derived business scope
+- Kept applied inbound events in the same pull stream as `SYNC_EVENT_APPLIED` changes under the shared opaque cursor contract
+- Added repository support for product snapshot pull queries ordered by `(updatedAt, changeKey)` without introducing a new downstream change-log table
+- Added sync pull product route coverage for product create/update visibility and business-scope filtering
+- Added Drizzle catalog repository sync-feed coverage for business-scoped product snapshot ordering under cursor pagination
+- Verified `pnpm exec vitest run apps/api/test/sync-pull.test.ts apps/api/test/sync-pull-products.test.ts apps/api/test/drizzle-catalog.sync-feed.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`
+- Verified `pnpm db:generate`
+- Verified `pnpm typecheck`
+- Verified `pnpm lint`
+- Verified `pnpm build`
+- Verified `pnpm db:migrate`
+- Full suite verification on 2026-08-27: `pnpm test` (140 tests passing)
 
 Currently Working:
 - No active code changes in progress
-- Phase 8 sync push replay, replay failure capture, and the initial sync pull foundation are complete and verified
-- Next safe unit is defining the first server-authored outbound change-feed contract for `GET /api/v1/sync/pull`
+- Phase 8 sync push replay, failure capture, and mixed product/event sync pull contract are complete and verified
+- Next safe unit is adding first-class `CATEGORY_UPSERTED`, `UNIT_UPSERTED`, and `TAX_PROFILE_UPSERTED` pull changes
 
 Next:
-- Define the first server-authored outbound change-feed contract so `GET /api/v1/sync/pull` can carry master-data changes in addition to replayed inbound events
-- Decide whether applied `sync_events` remain the canonical pull feed or whether Phase 8 needs a dedicated downstream change log before client sync work expands
+- Add first-class downstream catalog master change types for categories, units, and tax profiles in `GET /api/v1/sync/pull`
+- Decide whether broader master-data sync should keep timestamp-based snapshot ordering or introduce explicit version columns / a dedicated downstream change log before customer sync expands
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -350,7 +363,8 @@ Known Issues:
 - Purchase flows currently support creation and listing only; purchase updates, purchase returns, cancellations, and vendor invoice reconciliation are not implemented yet
 - Sync replay still leaves unsupported event types in `RECEIVED`; downstream pull/retry workflows for those events are not implemented yet
 - Sync replay currently attributes created sales and purchases to the authenticated sync caller; preserving the original offline actor independently from the sync session is not implemented yet
-- `GET /api/v1/sync/pull` currently serves applied `sync_events`; dedicated server-authored master-data change projection is not implemented yet
+- `GET /api/v1/sync/pull` now emits `PRODUCT_UPSERTED` snapshots, but categories, units, tax profiles, and customers are not yet exposed as first-class server-authored change types
+- Master-data pull currently uses latest-snapshot `updatedAt` ordering without explicit entity version columns or a dedicated downstream change log
 - Inventory balances currently derive from mutable `product.openingStock` plus movement sums; explicit opening-stock ledger entries and manual inventory adjustments are not implemented yet
 
 Tests:
@@ -422,7 +436,11 @@ Tests:
 - Sync routes: replay failures now persist `FAILED` state diagnostics and successful retries clear them on later duplicate replay
 - Sync repository integration: persisted failure diagnostics survive duplicate reads and clear on later `APPLIED` transitions
 - Targeted verification: `pnpm exec vitest run apps/api/test/sync.test.ts apps/api/test/sync-failure.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`
-- Full suite verification on 2026-08-27: `pnpm test` (133 tests passing)
+- Sync pull routes: event pagination, branch-scope enforcement, failed-then-retried event visibility, and typed mixed-feed contract coverage
+- Sync pull routes: product create/update snapshots and business-scope filtering for branch-restricted users
+- Catalog repository integration: business-scoped product snapshot ordering validated for sync pull cursors via `DrizzleCatalogRepository`
+- Targeted verification: `pnpm exec vitest run apps/api/test/sync-pull.test.ts apps/api/test/sync-pull-products.test.ts apps/api/test/drizzle-catalog.sync-feed.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`
+- Full suite verification on 2026-08-27: `pnpm test` (140 tests passing)
 
 Last Successful Commands:
 - `git init -b main`
@@ -605,6 +623,13 @@ Last Successful Commands:
 - `cmd /c pnpm build`
 - `cmd /c pnpm test`
 - `cmd /c pnpm db:migrate`
+- `cmd /c pnpm exec vitest run apps/api/test/sync-pull.test.ts apps/api/test/sync-pull-products.test.ts apps/api/test/drizzle-catalog.sync-feed.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm db:generate`
+- `cmd /c pnpm build`
+- `cmd /c pnpm test`
+- `cmd /c pnpm db:migrate`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -653,6 +678,7 @@ Database Status:
 - Sync pull cursor schema update added at `apps/api/drizzle/0013_supreme_lockheed.sql`
 - `sync_events` now persist `updated_at` for stable applied-event pull ordering and incremental cursor pagination
 - Applied sync-event pull queries are now backed by the `sync_events_tenant_state_updated_idx` index
+- Product snapshot pull queries now reuse existing `products.updated_at`; no additional schema changes were required for the first server-authored pull slice
 
 API Status:
 - Phase 0 scaffold verified
@@ -707,12 +733,13 @@ API Status:
 - Stored sync failures now retain actionable diagnostic fields for permission, validation, and internal replay errors without exposing stack traces in the API response
 - Later authorized or corrected retries can reapply previously failed events and clear the stored failure diagnostics on success
 - Sync API now includes protected `GET /api/v1/sync/pull`
-- Sync pull returns branch-scoped applied changes plus `nextCursor` and `serverTime`, ordered by stable `(updatedAt, eventId)` pagination
-- Sync pull currently exposes applied inbound sync events as the initial downstream feed foundation
+- Sync pull now returns a typed mixed change feed with `changeId`, `changeType`, `source`, `record`, `updatedAt`, and branch/business scope fields
+- Sync pull currently emits `SYNC_EVENT_APPLIED` records for applied inbound sync events and `PRODUCT_UPSERTED` records for server-authored product snapshots
+- Sync pull pagination now uses an opaque `(updatedAt, changeKey)` cursor so product and sync-event changes can share one ordered stream
 - Inventory API now includes protected `GET /api/v1/inventory/balances` with business and optional product scoping plus opening-stock-plus-ledger balance calculation
 
 Git Status:
-- previous pushed state before this session was clean after the Phase 8 sync failure-capture checkpoint; current session adds sync pull foundation plus handoff/todo updates
+- previous pushed state before this session was clean after the Phase 8 sync pull foundation checkpoint; current session adds the first server-authored product pull slice plus handoff/todo updates
 
 Last Commit:
-- previous published checkpoint before this session: `d2df83f feat(sync): capture replay failure diagnostics`
+- previous published checkpoint before this session: `da93bb6 feat(sync): add sync pull foundation`

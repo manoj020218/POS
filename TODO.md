@@ -1,10 +1,10 @@
 # TODO
 
 NOW
-- Define the first server-authored outbound change-feed contract for `GET /api/v1/sync/pull`
+- Add first-class `CATEGORY_UPSERTED`, `UNIT_UPSERTED`, and `TAX_PROFILE_UPSERTED` changes to `GET /api/v1/sync/pull`
 
 NEXT
-- Implement the first pullable master-data change slice, starting with product updates
+- Decide whether broader master-data sync should stay snapshot-based or introduce explicit version columns / a dedicated downstream change log before customer sync expands
 
 LATER
 - Shared contracts package

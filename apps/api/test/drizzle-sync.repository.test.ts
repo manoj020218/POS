@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { DrizzleSyncRepository } from '../src/modules/sync/drizzle-sync.repository.js';
+import { buildSyncEventPullChangeKey } from '../src/modules/sync/sync-pull-cursor.js';
 import { SyncEventConflictError } from '../src/modules/sync/sync.repository.js';
 import { DrizzleTenantCoreRepository } from '../src/modules/tenant-core/drizzle-tenant-core.repository.js';
 import { createMemoryDatabase } from './helpers/memory-database.js';
@@ -133,7 +134,10 @@ describe('DrizzleSyncRepository', () => {
     });
     const secondPage = await repository.listPullEvents({
       branchIds: [branchAId],
-      cursor: { eventId: firstPage[0]!.eventId, updatedAt: firstPage[0]!.updatedAt },
+      cursor: {
+        changeKey: buildSyncEventPullChangeKey(firstPage[0]!.eventId),
+        updatedAt: firstPage[0]!.updatedAt
+      },
       limit: 10,
       tenantId: tenantA
     });

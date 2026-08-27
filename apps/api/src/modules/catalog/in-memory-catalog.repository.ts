@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+import { buildProductSyncPullChangeKey } from '../sync/sync-pull-cursor.js';
 import { paginateItems } from './catalog-pagination.js';
 import type { CatalogRepository } from './catalog.repository.js';
 import { rankProductsForSearch } from './product-search-ranking.js';
@@ -106,6 +107,16 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     );
     return paginateItems(items, pagination);
   }
+  async listProductsUpdatedSince(
+    tenantId: string,
+    businessIds: string[],
+    input: { cursor?: { changeKey: string; updatedAt: Date }; limit: number }
+  ) {
+    return byBusiness(this.products.values(), tenantId, businessIds)
+      .filter((product) => isAfterProductSyncCursor(product, input.cursor))
+      .sort(compareProductSyncOrder)
+      .slice(0, input.limit);
+  }
   async searchProducts(tenantId: string, businessIds: string[], query: string, limit: number) {
     return rankProductsForSearch(byBusiness(this.products.values(), tenantId, businessIds), query).slice(
       0,
@@ -174,3 +185,22 @@ export class InMemoryCatalogRepository implements CatalogRepository {
 
 const byCodeThenName = (left: { code: string; name: string }, right: { code: string; name: string }) =>
   left.code.localeCompare(right.code) || left.name.localeCompare(right.name);
+
+const compareProductSyncOrder = (left: ProductRecord, right: ProductRecord) =>
+  left.updatedAt.getTime() - right.updatedAt.getTime() ||
+  buildProductSyncPullChangeKey(left.id).localeCompare(buildProductSyncPullChangeKey(right.id));
+
+const isAfterProductSyncCursor = (
+  product: ProductRecord,
+  cursor?: { changeKey: string; updatedAt: Date }
+) => {
+  if (!cursor) {
+    return true;
+  }
+
+  return (
+    product.updatedAt.getTime() > cursor.updatedAt.getTime() ||
+    (product.updatedAt.getTime() === cursor.updatedAt.getTime() &&
+      buildProductSyncPullChangeKey(product.id).localeCompare(cursor.changeKey) > 0)
+  );
+};

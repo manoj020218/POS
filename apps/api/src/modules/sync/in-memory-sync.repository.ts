@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { assertSyncEventMatches } from './sync-event-signature.js';
+import { buildSyncEventPullChangeKey, compareSyncPullOrder } from './sync-pull-cursor.js';
 import type { SyncEventWriteResult, SyncRepository } from './sync.repository.js';
 import type {
   CreateSyncEventInput,
@@ -88,16 +89,19 @@ const toComparableEvent = (event: Pick<SyncEventRecord, 'branchId' | 'deviceId' 
 });
 
 const compareForPull = (left: SyncEventRecord, right: SyncEventRecord) =>
-  left.updatedAt.getTime() - right.updatedAt.getTime() || left.eventId.localeCompare(right.eventId);
+  compareSyncPullOrder(
+    { changeKey: buildSyncEventPullChangeKey(left.eventId), updatedAt: left.updatedAt },
+    { changeKey: buildSyncEventPullChangeKey(right.eventId), updatedAt: right.updatedAt }
+  );
 
 const isAfterCursor = (event: SyncEventRecord, cursor?: ListSyncPullEventsInput['cursor']) => {
   if (!cursor) {
     return true;
   }
 
-  return compareForPull(event, {
-    ...event,
-    eventId: cursor.eventId,
-    updatedAt: cursor.updatedAt
-  }) > 0;
+  return (
+    event.updatedAt.getTime() > cursor.updatedAt.getTime() ||
+    (event.updatedAt.getTime() === cursor.updatedAt.getTime() &&
+      buildSyncEventPullChangeKey(event.eventId).localeCompare(cursor.changeKey) > 0)
+  );
 };

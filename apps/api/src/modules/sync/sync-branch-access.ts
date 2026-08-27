@@ -21,23 +21,28 @@ export const assertSyncEventBranchesAccessible = async (
   });
 };
 
-export const resolveSyncPullBranchIds = async (
+export const resolveSyncPullScope = async (
   context: AccessContext,
   repository: TenantCoreRepository,
   branchId?: string
 ) => {
   const branches = await repository.listBranches(context.tenantId);
+  const accessibleBranches = context.hasAllBranchAccess
+    ? branches
+    : branches.filter((item) => context.assignedBranchIds.includes(item.id));
 
   if (branchId) {
-    if (!branches.some((branch) => branch.id === branchId)) {
+    const branch = branches.find((item) => item.id === branchId);
+    if (!branch) {
       throw createHttpError(404, 'BRANCH_NOT_FOUND', 'Branch not found');
     }
 
     assertBranchAccess(context, branchId);
-    return [branchId];
+    return { branchIds: [branchId], businessIds: [branch.businessId] };
   }
 
-  return context.hasAllBranchAccess
-    ? branches.map((item) => item.id)
-    : branches.filter((item) => context.assignedBranchIds.includes(item.id)).map((item) => item.id);
+  return {
+    branchIds: accessibleBranches.map((item) => item.id),
+    businessIds: [...new Set(accessibleBranches.map((item) => item.businessId))]
+  };
 };

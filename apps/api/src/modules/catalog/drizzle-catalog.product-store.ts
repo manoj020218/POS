@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, ilike, inArray, or, sql } from 'drizzle-orm';
 
 import type { AppDatabase } from '../../db/client.js';
 import { products } from '../../db/schema/index.js';
@@ -91,6 +91,38 @@ export const createDrizzleCatalogProductStore = (db: AppDatabase) => ({
         totalItems
       })
     };
+  },
+
+  async listProductsUpdatedSince(
+    tenantId: string,
+    businessIds: string[],
+    input: { cursor?: { changeKey: string; updatedAt: Date }; limit: number }
+  ) {
+    if (businessIds.length === 0) {
+      return [];
+    }
+
+    const baseWhere = and(eq(products.tenantId, tenantId), inArray(products.businessId, businessIds));
+    const whereClause = !input.cursor
+      ? baseWhere
+      : and(
+          baseWhere,
+          or(
+            gt(products.updatedAt, input.cursor.updatedAt),
+            and(
+              eq(products.updatedAt, input.cursor.updatedAt),
+              sql<boolean>`concat('product:', ${products.id}) > ${input.cursor.changeKey}`
+            )
+          )
+        );
+    const records = await db
+      .select()
+      .from(products)
+      .where(whereClause)
+      .orderBy(asc(products.updatedAt), asc(products.id))
+      .limit(input.limit);
+
+    return records.map(normalizeProduct);
   },
 
   async listInventoryProducts(tenantId: string, businessIds: string[], productId?: string) {

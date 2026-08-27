@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, eq, gt, inArray, or } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, or, sql } from 'drizzle-orm';
 
 import type { AppDatabase } from '../../db/client.js';
 import { syncEvents } from '../../db/schema/index.js';
@@ -126,7 +126,10 @@ const buildPullWhere = (input: ListSyncPullEventsInput) => {
     ...base,
     or(
       gt(syncEvents.updatedAt, input.cursor.updatedAt),
-      and(eq(syncEvents.updatedAt, input.cursor.updatedAt), gt(syncEvents.eventId, input.cursor.eventId))
+      and(
+        eq(syncEvents.updatedAt, input.cursor.updatedAt),
+        sql<boolean>`concat('sync-event:', ${syncEvents.eventId}) > ${input.cursor.changeKey}`
+      )
     )
   );
 };

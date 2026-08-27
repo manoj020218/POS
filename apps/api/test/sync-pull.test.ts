@@ -2,6 +2,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createCatalogTestContext } from './helpers/catalog-app.js';
+import { buildSyncEvent, pullSyncChanges, pushSyncEvent } from './helpers/sync-pull.js';
 
 describe('sync pull routes', () => {
   let app: Awaited<ReturnType<typeof createCatalogTestContext>>['app'];
@@ -28,8 +29,9 @@ describe('sync pull routes', () => {
       sellingPrice: 4000,
       trackInventory: true
     });
+    const baseline = await pullSyncChanges(app, cashierAccess);
 
-    await pushEvent(
+    await pushSyncEvent(
       app,
       cashierAccess,
       buildSyncEvent(branchAId, 'evt-a-sale-1', 'sale-1', 'SALE_CREATED', {
@@ -38,7 +40,7 @@ describe('sync pull routes', () => {
         terminalId: terminalAId
       })
     );
-    await pushEvent(
+    await pushSyncEvent(
       app,
       cashierAccess,
       buildSyncEvent(branchAId, 'evt-b-sale-2', 'sale-2', 'SALE_CREATED', {
@@ -48,34 +50,44 @@ describe('sync pull routes', () => {
       })
     );
 
-    const firstPage = await pullEvents(app, cashierAccess, { limit: 1 });
-    const secondPage = await pullEvents(app, cashierAccess, {
+    const firstPage = await pullSyncChanges(app, cashierAccess, {
+      cursor: baseline.body.data.nextCursor,
+      limit: 1
+    });
+    const secondPage = await pullSyncChanges(app, cashierAccess, {
       cursor: firstPage.body.data.nextCursor,
       limit: 1
     });
-    const thirdPage = await pullEvents(app, cashierAccess, {
+    const thirdPage = await pullSyncChanges(app, cashierAccess, {
       cursor: secondPage.body.data.nextCursor,
       limit: 1
     });
 
     expect(product.status).toBe(201);
+    expect(baseline.status).toBe(200);
     expect(firstPage.status).toBe(200);
     expect(firstPage.body.data).toMatchObject({
       changes: [
         expect.objectContaining({
           branchId: branchAId,
-          createdAt: '2026-08-27T09:30:00.000Z',
-          eventId: 'evt-a-sale-1',
-          type: 'SALE_CREATED'
+          changeType: 'SYNC_EVENT_APPLIED',
+          source: 'CLIENT',
+          record: expect.objectContaining({
+            createdAt: '2026-08-27T09:30:00.000Z',
+            eventId: 'evt-a-sale-1',
+            type: 'SALE_CREATED'
+          })
         })
       ]
     });
     expect(typeof firstPage.body.data.nextCursor).toBe('string');
     expect(typeof firstPage.body.data.serverTime).toBe('string');
     expect(secondPage.status).toBe(200);
-    expect(secondPage.body.data.changes.map((change: { eventId: string }) => change.eventId)).toEqual([
-      'evt-b-sale-2'
-    ]);
+    expect(
+      secondPage.body.data.changes.map(
+        (change: { record: { eventId: string } }) => change.record.eventId
+      )
+    ).toEqual(['evt-b-sale-2']);
     expect(thirdPage.status).toBe(200);
     expect(thirdPage.body.data.changes).toEqual([]);
     expect(thirdPage.body.data.nextCursor).toBe(secondPage.body.data.nextCursor);
@@ -98,8 +110,9 @@ describe('sync pull routes', () => {
       sellingPrice: 4000,
       trackInventory: true
     });
+    const baseline = await pullSyncChanges(app, cashierAccess);
 
-    await pushEvent(
+    await pushSyncEvent(
       app,
       ownerAccess,
       buildSyncEvent(branchAId, 'evt-a-branch-a', 'sale-a', 'SALE_CREATED', {
@@ -108,7 +121,7 @@ describe('sync pull routes', () => {
         terminalId: terminalAId
       })
     );
-    await pushEvent(
+    await pushSyncEvent(
       app,
       ownerAccess,
       buildSyncEvent(branchBId, 'evt-b-branch-b', 'sale-b', 'SALE_CREATED', {
@@ -118,13 +131,15 @@ describe('sync pull routes', () => {
       })
     );
 
-    const scoped = await pullEvents(app, cashierAccess);
-    const denied = await pullEvents(app, cashierAccess, { branchId: branchBId });
+    const scoped = await pullSyncChanges(app, cashierAccess, {
+      cursor: baseline.body.data.nextCursor
+    });
+    const denied = await pullSyncChanges(app, cashierAccess, { branchId: branchBId });
 
     expect(scoped.status).toBe(200);
-    expect(scoped.body.data.changes.map((change: { eventId: string }) => change.eventId)).toEqual([
-      'evt-a-branch-a'
-    ]);
+    expect(
+      scoped.body.data.changes.map((change: { record: { eventId: string } }) => change.record.eventId)
+    ).toEqual(['evt-a-branch-a']);
     expect(denied.status).toBe(403);
     expect(denied.body.code).toBe('BRANCH_ACCESS_DENIED');
   });
@@ -168,51 +183,30 @@ describe('sync pull routes', () => {
       payment: { method: 'CARD' },
       terminalId: terminalAId
     });
+    const baseline = await pullSyncChanges(app, ownerAccess);
 
-    const denied = await pushEvent(app, cashierAccess, failedPurchase);
-    await pushEvent(app, ownerAccess, visibleSale);
-    const beforeRetry = await pullEvents(app, ownerAccess);
-    const retried = await pushEvent(app, inventoryAccess, failedPurchase);
-    const afterRetry = await pullEvents(app, ownerAccess, {
+    const denied = await pushSyncEvent(app, cashierAccess, failedPurchase);
+    await pushSyncEvent(app, ownerAccess, visibleSale);
+    const beforeRetry = await pullSyncChanges(app, ownerAccess, {
+      cursor: baseline.body.data.nextCursor
+    });
+    const retried = await pushSyncEvent(app, inventoryAccess, failedPurchase);
+    const afterRetry = await pullSyncChanges(app, ownerAccess, {
       cursor: beforeRetry.body.data.nextCursor
     });
 
     expect(denied.status).toBe(403);
-    expect(beforeRetry.body.data.changes.map((change: { eventId: string }) => change.eventId)).toEqual([
-      'evt-a-sale-visible'
-    ]);
+    expect(
+      beforeRetry.body.data.changes.map(
+        (change: { record: { eventId: string } }) => change.record.eventId
+      )
+    ).toEqual(['evt-a-sale-visible']);
     expect(retried.status).toBe(200);
     expect(afterRetry.status).toBe(200);
-    expect(afterRetry.body.data.changes.map((change: { eventId: string }) => change.eventId)).toEqual([
-      'evt-z-purchase-retry'
-    ]);
+    expect(
+      afterRetry.body.data.changes.map(
+        (change: { record: { eventId: string } }) => change.record.eventId
+      )
+    ).toEqual(['evt-z-purchase-retry']);
   });
 });
-
-const buildSyncEvent = (
-  branchId: string,
-  eventId: string,
-  entityId: string,
-  type: string,
-  payload: Record<string, unknown>
-) => ({
-  branchId,
-  createdAt: '2026-08-27T09:30:00.000Z',
-  deviceId: 'device-01',
-  entityId,
-  eventId,
-  payload,
-  type
-});
-
-const pushEvent = (
-  app: Awaited<ReturnType<typeof createCatalogTestContext>>['app'],
-  access: { authorization: string },
-  event: ReturnType<typeof buildSyncEvent>
-) => request(app).post('/api/v1/sync/push').set(access).send({ events: [event] });
-
-const pullEvents = (
-  app: Awaited<ReturnType<typeof createCatalogTestContext>>['app'],
-  access: { authorization: string },
-  query: Record<string, string | number> = {}
-) => request(app).get('/api/v1/sync/pull').query(query).set(access);

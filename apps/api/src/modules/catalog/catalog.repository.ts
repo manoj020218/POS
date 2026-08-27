@@ -51,6 +51,11 @@ export interface CatalogRepository {
     businessIds: string[] | undefined,
     pagination: PaginationInput
   ): Promise<PaginatedResult<ProductRecord>>;
+  listProductsUpdatedSince(
+    tenantId: string,
+    businessIds: string[],
+    input: { cursor?: { changeKey: string; updatedAt: Date }; limit: number }
+  ): Promise<ProductRecord[]>;
   searchProducts(
     tenantId: string,
     businessIds: string[],
