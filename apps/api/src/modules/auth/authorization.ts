@@ -54,6 +54,7 @@ const operatingPermissions = [
   'sale:view',
   'report:view',
   'settings:manage',
+  'sync:push',
   'user:manage'
 ] as const;
 
@@ -101,9 +102,17 @@ export const rolePermissions = {
     'sale:create',
     'sale:refund',
     'sale:view',
-    'report:view'
+    'report:view',
+    'sync:push'
   ],
-  CASHIER: ['terminal:view', 'product:view', 'customer:create', 'customer:view', 'sale:create'],
+  CASHIER: [
+    'terminal:view',
+    'product:view',
+    'customer:create',
+    'customer:view',
+    'sale:create',
+    'sync:push'
+  ],
   INVENTORY_MANAGER: [
     'branch:view',
     'terminal:view',
@@ -117,7 +126,8 @@ export const rolePermissions = {
     'purchase:update',
     'purchase:view',
     'inventory:adjust',
-    'inventory:view'
+    'inventory:view',
+    'sync:push'
   ],
   REPORT_VIEWER: ['branch:view', 'product:view', 'inventory:view', 'sale:view', 'report:view']
 } satisfies Record<AppRole, readonly AppPermission[]>;

@@ -1,10 +1,10 @@
 # HANDOFF
 
 Current Phase:
-- Phase 7 - Purchase and Supplier Foundation
+- Phase 8 - Offline Sync Protocol
 
 Current Subtask:
-- Phase 7 supplier master and finalized purchase stock-in foundation are complete; next safe unit is Phase 8 sync protocol foundation
+- Phase 8 inbound sync push foundation is complete; next safe unit is replaying stored sale and purchase sync events through the existing domain flows
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -217,15 +217,30 @@ Completed:
 - Verified `pnpm build`
 - Verified `pnpm db:migrate`
 - Verified `pnpm test`
+- Added Phase 8 schema for `sync_events`
+- Generated sync migration `apps/api/drizzle/0011_tiresome_solo.sql`
+- Added protected idempotent `POST /api/v1/sync/push`
+- Added persisted raw inbound sync-event storage with tenant-plus-event uniqueness and conflict rejection for reused event ids with changed content
+- Added PostgreSQL-backed `DrizzleSyncRepository` plus in-memory sync repository support
+- Enforced branch-scoped sync push access using explicit event `branchId` values and the new `sync:push` permission
+- Added sync route coverage for retry idempotency, branch-scope denial, and event-conflict rejection
+- Added `DrizzleSyncRepository` integration coverage for duplicate handling and transactional rollback when a conflicting reused event id appears in a batch
+- Verified `pnpm db:generate`
+- Verified `pnpm exec vitest run apps/api/test/sync.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`
+- Verified `pnpm typecheck`
+- Verified `pnpm lint`
+- Verified `pnpm test`
+- Verified `pnpm build`
+- Verified `pnpm db:migrate`
 
 Currently Working:
 - No active code changes in progress
-- Phase 7 supplier master and purchase stock-in foundation are complete and verified
-- Next safe unit is Phase 8 sync protocol foundation
+- Phase 8 inbound sync push foundation is complete and verified
+- Next safe unit is replaying stored `SALE_CREATED` and `PURCHASE_CREATED` events through the existing sale and purchase domain services
 
 Next:
-- Start Phase 8 with sync event/outbox persistence and an idempotent `POST /api/v1/sync/push` foundation
-- Add processed-event tracking so repeated sync pushes cannot duplicate sales or purchases
+- Apply stored `SALE_CREATED` and `PURCHASE_CREATED` sync events through the existing domain flows while keeping `POST /api/v1/sync/push` idempotent
+- Add sync processing state transitions plus failure capture so stored events can move beyond `RECEIVED`
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -285,6 +300,9 @@ Important Decisions:
 - Model finalized purchases as immutable branch-scoped transactions with item snapshots and optional supplier snapshots, mirroring the sale immutability pattern
 - Reuse the existing `inventory_movements` ledger for purchase stock-ins via `PURCHASE` entries instead of introducing a parallel stock table
 - Share the in-memory inventory movement map between sale and purchase repositories so route-level inventory balance tests reflect both movement sources
+- Store inbound sync pushes as raw tenant-scoped `sync_events` records first, so later replay logic can remain idempotent and auditable
+- Enforce sync idempotency with a unique `(tenant_id, event_id)` key and reject reused event ids when the stored and incoming event envelopes do not match
+- Require explicit event `branchId` values on sync push so existing branch-scope authorization can be enforced before an event is accepted
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
@@ -294,6 +312,8 @@ Known Issues:
 - Walk-in customer uniqueness is currently enforced by the service-level ensure flow rather than a database uniqueness constraint
 - Sale returns currently restore inventory only; refund/payment reversal, credit-note issuance, and dedicated return-record persistence are not implemented yet
 - Purchase flows currently support creation and listing only; purchase updates, purchase returns, cancellations, and vendor invoice reconciliation are not implemented yet
+- Sync push currently stores inbound events in the `RECEIVED` state only; replay into sales, purchases, and other domain records is not implemented yet
+- Cursor-based `GET /api/v1/sync/pull` is not implemented yet
 - Inventory balances currently derive from mutable `product.openingStock` plus movement sums; explicit opening-stock ledger entries and manual inventory adjustments are not implemented yet
 
 Tests:
@@ -353,7 +373,10 @@ Tests:
 - Supplier repository integration: persisted create/list/update flows via `DrizzleSupplierRepository`
 - Purchase repository integration: persisted purchase snapshots plus `PURCHASE` movement visibility through `inventory_movements`
 - Targeted verification: `pnpm exec vitest run apps/api/test/supplier.test.ts apps/api/test/purchase.test.ts apps/api/test/purchase-access.test.ts apps/api/test/drizzle-supplier.repository.test.ts apps/api/test/drizzle-purchase.repository.test.ts --reporter=verbose`
-- Full suite verification on 2026-08-26: `pnpm test` (125 tests passing)
+- Sync routes: retry idempotency, branch-scope denial, and reused-event conflict rejection for `POST /api/v1/sync/push`
+- Sync repository integration: duplicate detection and transactional rollback on conflicting reused event ids via `DrizzleSyncRepository`
+- Targeted verification: `pnpm exec vitest run apps/api/test/sync.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`
+- Full suite verification on 2026-08-27: `pnpm test` (130 tests passing)
 
 Last Successful Commands:
 - `git init -b main`
@@ -507,6 +530,14 @@ Last Successful Commands:
 - `cmd /c pnpm build`
 - `cmd /c pnpm db:migrate`
 - `cmd /c pnpm test`
+- `git commit -m "feat(procurement): add supplier and purchase foundation"`
+- `cmd /c pnpm db:generate`
+- `cmd /c pnpm exec vitest run apps/api/test/sync.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm test`
+- `cmd /c pnpm build`
+- `cmd /c pnpm db:migrate`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -544,6 +575,10 @@ Database Status:
 - `suppliers`, `purchases`, and `purchase_items` are now persisted in PostgreSQL
 - Finalized purchase stock-ins now reuse the existing `inventory_movements` ledger through `PURCHASE` rows
 - Procurement migration generation and application verified against the local PostgreSQL database
+- Sync schema added at `apps/api/drizzle/0011_tiresome_solo.sql`
+- `sync_events` are now persisted in PostgreSQL
+- Inbound sync events are accepted into the `RECEIVED` state with tenant-plus-event uniqueness enforced at the database layer
+- Sync migration generation and application verified against the local PostgreSQL database
 
 API Status:
 - Phase 0 scaffold verified
@@ -590,10 +625,13 @@ API Status:
 - Purchase API now includes protected `GET/POST /api/v1/purchases` with branch-scoped reads and finalized stock-in writes
 - Finalized purchases now persist immutable purchase-item snapshots, optional supplier snapshots, and `PURCHASE` inventory movements in one repository transaction
 - Inventory balances now reflect purchase-ledger stock increases as well as sale-linked stock decreases/returns
+- Sync API now includes protected idempotent `POST /api/v1/sync/push`
+- Sync push accepts explicit event `branchId`, `deviceId`, `eventId`, `type`, `entityId`, `createdAt`, and JSON `payload` fields
+- Sync push stores new inbound events as raw `RECEIVED` records, returns duplicate statuses on retry, and rejects reused event ids when the event content changes
 - Inventory API now includes protected `GET /api/v1/inventory/balances` with business and optional product scoping plus opening-stock-plus-ledger balance calculation
 
 Git Status:
-- changes pending for the completed Phase 7 supplier and purchase slice before commit/push
+- changes pending for the completed Phase 8 sync push foundation before commit/push
 
 Last Commit:
-- `d69446e feat(inventory): add sale return ledger support`
+- `7371eff feat(procurement): add supplier and purchase foundation`

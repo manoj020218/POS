@@ -27,6 +27,9 @@ import type { PurchaseRepository } from './modules/purchase/purchase.repository.
 import { createSaleRouter } from './modules/sale/sale.routes.js';
 import type { SaleRepository } from './modules/sale/sale.repository.js';
 import { InMemorySaleRepository } from './modules/sale/in-memory-sale.repository.js';
+import { InMemorySyncRepository } from './modules/sync/in-memory-sync.repository.js';
+import { createSyncRouter } from './modules/sync/sync.routes.js';
+import type { SyncRepository } from './modules/sync/sync.repository.js';
 import { InMemorySupplierRepository } from './modules/supplier/in-memory-supplier.repository.js';
 import { createSupplierRouter } from './modules/supplier/supplier.routes.js';
 import type { SupplierRepository } from './modules/supplier/supplier.repository.js';
@@ -48,6 +51,7 @@ export type AppOptions = {
   logger: AppLogger;
   purchaseRepository?: PurchaseRepository;
   saleRepository?: SaleRepository & InventoryRepository;
+  syncRepository?: SyncRepository;
   supplierRepository?: SupplierRepository;
   tenantCoreRepository?: TenantCoreRepository;
 };
@@ -66,6 +70,7 @@ export const createApp = (options: AppOptions): Express => {
   const purchaseRepository =
     options.purchaseRepository ?? new InMemoryPurchaseRepository(sharedInventoryMovements);
   const supplierRepository = options.supplierRepository ?? new InMemorySupplierRepository();
+  const syncRepository = options.syncRepository ?? new InMemorySyncRepository();
   const tenantCoreRepository =
     options.tenantCoreRepository ?? new InMemoryTenantCoreRepository();
   const accessContextResolver =
@@ -82,6 +87,7 @@ export const createApp = (options: AppOptions): Express => {
   app.use('/api/v1/auth', createAuthRouter(authRepository, tenantCoreRepository, authConfig));
   app.use('/api/v1', createCatalogRouter(catalogRepository, tenantCoreRepository));
   app.use('/api/v1', createCustomerRouter(customerRepository, tenantCoreRepository));
+  app.use('/api/v1', createSyncRouter(syncRepository, tenantCoreRepository));
   app.use('/api/v1', createSupplierRouter(supplierRepository, tenantCoreRepository));
   app.use(
     '/api/v1',

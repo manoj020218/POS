@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-08-27
+
+- Added Phase 8 sync foundation with persisted `sync_events` storage plus migration `0011_tiresome_solo.sql`
+- Added protected idempotent `POST /api/v1/sync/push` with branch-scoped access checks and the new `sync:push` permission
+- Stored inbound sync events exactly once per tenant/event id, returned duplicate statuses on retries, and rejected event-id reuse when the event content changed
+- Added sync route coverage for retry idempotency, branch-scope denial, and conflict detection plus Drizzle repository coverage for duplicate handling and transactional rollback on conflicts
+- Verified `pnpm db:generate`, `pnpm exec vitest run apps/api/test/sync.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, and `pnpm db:migrate`
+
 ## 2026-08-26
 
 - Added protected `POST /api/v1/sales/:saleId/returns` so tracked sale items can be returned through corrective `SALE_RETURN` inventory movements

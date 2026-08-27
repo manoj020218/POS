@@ -14,6 +14,7 @@ export * from './purchase.js';
 export * from './sale-sequence.js';
 export * from './sale-item.js';
 export * from './sale.js';
+export * from './sync-event.js';
 export * from './supplier.js';
 export * from './tax-profile.js';
 export * from './tenant.js';
