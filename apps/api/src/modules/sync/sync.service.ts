@@ -6,13 +6,15 @@ import { assertSyncEventMatches } from './sync-event-signature.js';
 import { SyncEventConflictError, type SyncRepository } from './sync.repository.js';
 import type {
   CreateSyncEventInput,
+  SyncEventRecord,
   SyncPushRequest,
   SyncPushResult
 } from './sync.types.js';
 
 export const createSyncService = (
   repository: SyncRepository,
-  tenantCoreRepository: TenantCoreRepository
+  tenantCoreRepository: TenantCoreRepository,
+  replayEvent: (context: AccessContext, event: SyncEventRecord) => Promise<boolean>
 ) => ({
   pushEvents: async (context: AccessContext, input: SyncPushRequest): Promise<SyncPushResult> => {
     const events = input.events.map(toCreateSyncEventInput(context.tenantId));
@@ -21,17 +23,19 @@ export const createSyncService = (
 
     try {
       const results = await repository.createReceivedEvents(events);
+      const finalEvents = await applyReplay(context, results, repository, replayEvent);
+
       return {
         acceptedCount: results.filter((item) => item.result === 'accepted').length,
         duplicateCount: results.filter((item) => item.result === 'duplicate').length,
         events: results.map(({ event, result }) => ({
-          branchId: event.branchId,
-          entityId: event.entityId,
+          branchId: finalEvents.get(event.eventId)?.branchId ?? event.branchId,
+          entityId: finalEvents.get(event.eventId)?.entityId ?? event.entityId,
           eventId: event.eventId,
-          receivedAt: event.receivedAt.toISOString(),
+          receivedAt: (finalEvents.get(event.eventId) ?? event).receivedAt.toISOString(),
           result,
-          state: event.state,
-          type: event.type
+          state: finalEvents.get(event.eventId)?.state ?? event.state,
+          type: finalEvents.get(event.eventId)?.type ?? event.type
         }))
       };
     } catch (error) {
@@ -47,6 +51,48 @@ export const createSyncService = (
     }
   }
 });
+
+const applyReplay = async (
+  context: AccessContext,
+  results: Awaited<ReturnType<SyncRepository['createReceivedEvents']>>,
+  repository: SyncRepository,
+  replayEvent: (context: AccessContext, event: SyncEventRecord) => Promise<boolean>
+) => {
+  const finalEvents = new Map<string, SyncEventRecord>();
+
+  for (const { event } of results) {
+    if (finalEvents.has(event.eventId)) {
+      continue;
+    }
+
+    finalEvents.set(event.eventId, await applyReplayForEvent(context, event, repository, replayEvent));
+  }
+
+  return finalEvents;
+};
+
+const applyReplayForEvent = async (
+  context: AccessContext,
+  event: SyncEventRecord,
+  repository: SyncRepository,
+  replayEvent: (context: AccessContext, event: SyncEventRecord) => Promise<boolean>
+) => {
+  if (event.state === 'APPLIED') {
+    return event;
+  }
+
+  const wasApplied = await replayEvent(context, event);
+  if (!wasApplied) {
+    return event;
+  }
+
+  const updated = await repository.updateEventState(event.tenantId, event.eventId, 'APPLIED');
+  if (!updated) {
+    throw new Error('Sync event missing after apply');
+  }
+
+  return updated;
+};
 
 const assertAccessibleBranches = async (
   context: AccessContext,

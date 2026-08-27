@@ -87,7 +87,18 @@ export const createApp = (options: AppOptions): Express => {
   app.use('/api/v1/auth', createAuthRouter(authRepository, tenantCoreRepository, authConfig));
   app.use('/api/v1', createCatalogRouter(catalogRepository, tenantCoreRepository));
   app.use('/api/v1', createCustomerRouter(customerRepository, tenantCoreRepository));
-  app.use('/api/v1', createSyncRouter(syncRepository, tenantCoreRepository));
+  app.use(
+    '/api/v1',
+    createSyncRouter(
+      syncRepository,
+      saleRepository,
+      purchaseRepository,
+      supplierRepository,
+      catalogRepository,
+      customerRepository,
+      tenantCoreRepository
+    )
+  );
   app.use('/api/v1', createSupplierRouter(supplierRepository, tenantCoreRepository));
   app.use(
     '/api/v1',

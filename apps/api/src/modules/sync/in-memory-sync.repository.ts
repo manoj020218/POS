@@ -33,6 +33,22 @@ export class InMemorySyncRepository implements SyncRepository {
       return { event: record, result: 'accepted' };
     });
   }
+
+  async updateEventState(tenantId: string, eventId: string, state: SyncEventRecord['state']) {
+    const key = getEventKey(tenantId, eventId);
+    const existing = this.events.get(key);
+    if (!existing) {
+      return null;
+    }
+
+    const updated = {
+      ...existing,
+      state
+    };
+    this.events.set(key, updated);
+
+    return updated;
+  }
 }
 
 const getEventKey = (tenantId: string, eventId: string) => `${tenantId}:${eventId}`;

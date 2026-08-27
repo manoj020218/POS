@@ -7,6 +7,11 @@
 - Stored inbound sync events exactly once per tenant/event id, returned duplicate statuses on retries, and rejected event-id reuse when the event content changed
 - Added sync route coverage for retry idempotency, branch-scope denial, and conflict detection plus Drizzle repository coverage for duplicate handling and transactional rollback on conflicts
 - Verified `pnpm db:generate`, `pnpm exec vitest run apps/api/test/sync.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, and `pnpm db:migrate`
+- Replayed supported `SALE_CREATED` and `PURCHASE_CREATED` sync events through the existing sale and purchase domain services instead of adding a separate sync-only write path
+- Added sync event state updates so successfully replayed sale and purchase events move from `RECEIVED` to `APPLIED`
+- Kept sync retries idempotent by reprocessing only supported duplicate events still in `RECEIVED`, while duplicate `APPLIED` events now return without creating extra sales, purchases, or inventory movements
+- Added sync route coverage for sale replay inventory effects, purchase replay inventory effects, and permission-gated retry of a stored `RECEIVED` purchase event
+- Verified `pnpm exec vitest run apps/api/test/sync.test.ts apps/api/test/drizzle-sync.repository.test.ts --reporter=verbose`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, and `pnpm build`
 
 ## 2026-08-26
 

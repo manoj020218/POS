@@ -55,6 +55,16 @@ export class DrizzleSyncRepository implements SyncRepository {
       return results;
     });
   }
+
+  async updateEventState(tenantId: string, eventId: string, state: SyncEventRecord['state']) {
+    const [updated] = await this.db
+      .update(syncEvents)
+      .set({ state })
+      .where(and(eq(syncEvents.tenantId, tenantId), eq(syncEvents.eventId, eventId)))
+      .returning();
+
+    return updated ? toSyncEventRecord(updated) : null;
+  }
 }
 
 const toSyncEventRecord = (record: SyncEventRow): SyncEventRecord => ({

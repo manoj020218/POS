@@ -20,24 +20,27 @@ describe('DrizzleSyncRepository', () => {
     await close();
   });
 
-  it('stores each tenant event once and reports duplicates on retry', async () => {
+  it('stores each tenant event once and returns applied duplicates after state updates', async () => {
     const { branchId } = await seedBranch(database.db);
     const repository = new DrizzleSyncRepository(database.db);
 
     const acceptedResults = await repository.createReceivedEvents([
       buildSyncEvent(branchId, 'evt-sale-1', 'sale-1', { saleId: 'sale-1' })
     ]);
+    const accepted = acceptedResults[0]!;
+    const applied = await repository.updateEventState(tenantA, 'evt-sale-1', 'APPLIED');
     const duplicateResults = await repository.createReceivedEvents([
       buildSyncEvent(branchId, 'evt-sale-1', 'sale-1', { saleId: 'sale-1' })
     ]);
-    const accepted = acceptedResults[0]!;
     const duplicate = duplicateResults[0]!;
 
     expect(accepted.result).toBe('accepted');
     expect(accepted.event.state).toBe('RECEIVED');
+    expect(applied).toMatchObject({ eventId: 'evt-sale-1', state: 'APPLIED' });
     expect(duplicate.result).toBe('duplicate');
     expect(duplicate.event.id).toBe(accepted.event.id);
     expect(duplicate.event.receivedAt.toISOString()).toBe(accepted.event.receivedAt.toISOString());
+    expect(duplicate.event.state).toBe('APPLIED');
   });
 
   it('rolls back a batch when an existing event id is reused with different content', async () => {

@@ -1,4 +1,8 @@
-import type { CreateSyncEventInput, SyncEventRecord } from './sync.types.js';
+import type {
+  CreateSyncEventInput,
+  SyncEventRecord,
+  SyncEventState
+} from './sync.types.js';
 
 export type SyncEventWriteResult = {
   event: SyncEventRecord;
@@ -14,4 +18,9 @@ export class SyncEventConflictError extends Error {
 
 export interface SyncRepository {
   createReceivedEvents(input: CreateSyncEventInput[]): Promise<SyncEventWriteResult[]>;
+  updateEventState(
+    tenantId: string,
+    eventId: string,
+    state: SyncEventState
+  ): Promise<SyncEventRecord | null>;
 }
