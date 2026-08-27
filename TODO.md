@@ -1,10 +1,10 @@
 # TODO
 
 NOW
-- Start Phase 7 with supplier master and minimal purchase-entry foundation
+- Start Phase 8 with sync event/outbox persistence and an idempotent `POST /api/v1/sync/push` foundation
 
 NEXT
-- Add immutable `PURCHASE` inventory movements when finalized purchases begin increasing stock
+- Add processed-event tracking and regression coverage so repeated sync pushes cannot duplicate sales or purchases
 
 LATER
 - Shared contracts package

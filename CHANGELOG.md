@@ -7,6 +7,11 @@
 - Added repository support for sale-detail lookup, sale-linked movement quantity aggregation, and persisted `SALE_RETURN` movement writes in both Drizzle and in-memory stores
 - Added sale-return route and repository regression coverage and split the sale service into smaller files to keep manual source files under the 200-line project limit
 - Verified `pnpm exec vitest run apps/api/test/sale-return.test.ts apps/api/test/drizzle-sale.repository.test.ts --reporter=verbose`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, and `pnpm test`
+- Added Phase 7 supplier and purchase foundation with persisted `suppliers`, `purchases`, and `purchase_items` plus migration `0010_mushy_klaw.sql`
+- Added protected `GET/POST/PATCH /api/v1/suppliers` and protected `GET/POST /api/v1/purchases` with existing RBAC and branch/business scoping rules
+- Finalized purchases now create immutable purchase-item snapshots, optional supplier snapshots, and positive `PURCHASE` inventory movements that feed the existing balance endpoint
+- Added supplier and purchase route coverage plus Drizzle repository integration coverage, and shared the in-memory inventory movement ledger between sale and purchase repositories for route-test consistency
+- Verified `pnpm db:generate`, `pnpm exec vitest run apps/api/test/supplier.test.ts apps/api/test/purchase.test.ts apps/api/test/purchase-access.test.ts apps/api/test/drizzle-supplier.repository.test.ts apps/api/test/drizzle-purchase.repository.test.ts --reporter=verbose`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm db:migrate`, and `pnpm test`
 
 ## 2026-08-25
 

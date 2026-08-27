@@ -26,10 +26,12 @@ export type InventoryMovementRecord = {
   tenantId: string;
 };
 
-export type CreateSaleInventoryMovementInput = Pick<
+export type CreateInventoryMovementInput = Pick<
   InventoryMovementRecord,
   'branchId' | 'businessId' | 'movementType' | 'occurredAt' | 'productId' | 'quantityDelta' | 'tenantId'
-> & {
+>;
+
+export type CreateSaleInventoryMovementInput = CreateInventoryMovementInput & {
   movementType: 'SALE';
 };
 

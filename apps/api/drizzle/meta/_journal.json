@@ -71,6 +71,13 @@
       "when": 1787736121961,
       "tag": "0009_past_wolf_cub",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787753168855,
+      "tag": "0010_mushy_klaw",
+      "breakpoints": true
     }
   ]
 }

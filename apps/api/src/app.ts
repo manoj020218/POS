@@ -20,9 +20,16 @@ import type { CustomerRepository } from './modules/customer/customer.repository.
 import { InMemoryCustomerRepository } from './modules/customer/in-memory-customer.repository.js';
 import { createInventoryRouter } from './modules/inventory/inventory.routes.js';
 import type { InventoryRepository } from './modules/inventory/inventory.repository.js';
+import type { InventoryMovementRecord } from './modules/inventory/inventory.types.js';
+import { InMemoryPurchaseRepository } from './modules/purchase/in-memory-purchase.repository.js';
+import { createPurchaseRouter } from './modules/purchase/purchase.routes.js';
+import type { PurchaseRepository } from './modules/purchase/purchase.repository.js';
 import { createSaleRouter } from './modules/sale/sale.routes.js';
 import type { SaleRepository } from './modules/sale/sale.repository.js';
 import { InMemorySaleRepository } from './modules/sale/in-memory-sale.repository.js';
+import { InMemorySupplierRepository } from './modules/supplier/in-memory-supplier.repository.js';
+import { createSupplierRouter } from './modules/supplier/supplier.routes.js';
+import type { SupplierRepository } from './modules/supplier/supplier.repository.js';
 import {
   InMemoryTenantCoreRepository,
   type TenantCoreRepository
@@ -39,7 +46,9 @@ export type AppOptions = {
   catalogRepository?: CatalogRepository;
   customerRepository?: CustomerRepository;
   logger: AppLogger;
+  purchaseRepository?: PurchaseRepository;
   saleRepository?: SaleRepository & InventoryRepository;
+  supplierRepository?: SupplierRepository;
   tenantCoreRepository?: TenantCoreRepository;
 };
 
@@ -52,7 +61,11 @@ export const createApp = (options: AppOptions): Express => {
   const authRepository = options.authRepository ?? new InMemoryAuthRepository();
   const catalogRepository = options.catalogRepository ?? new InMemoryCatalogRepository();
   const customerRepository = options.customerRepository ?? new InMemoryCustomerRepository();
-  const saleRepository = options.saleRepository ?? new InMemorySaleRepository();
+  const sharedInventoryMovements = new Map<string, InventoryMovementRecord>();
+  const saleRepository = options.saleRepository ?? new InMemorySaleRepository(sharedInventoryMovements);
+  const purchaseRepository =
+    options.purchaseRepository ?? new InMemoryPurchaseRepository(sharedInventoryMovements);
+  const supplierRepository = options.supplierRepository ?? new InMemorySupplierRepository();
   const tenantCoreRepository =
     options.tenantCoreRepository ?? new InMemoryTenantCoreRepository();
   const accessContextResolver =
@@ -69,6 +82,16 @@ export const createApp = (options: AppOptions): Express => {
   app.use('/api/v1/auth', createAuthRouter(authRepository, tenantCoreRepository, authConfig));
   app.use('/api/v1', createCatalogRouter(catalogRepository, tenantCoreRepository));
   app.use('/api/v1', createCustomerRouter(customerRepository, tenantCoreRepository));
+  app.use('/api/v1', createSupplierRouter(supplierRepository, tenantCoreRepository));
+  app.use(
+    '/api/v1',
+    createPurchaseRouter(
+      purchaseRepository,
+      supplierRepository,
+      catalogRepository,
+      tenantCoreRepository
+    )
+  );
   app.use('/api/v1', createInventoryRouter(saleRepository, catalogRepository, tenantCoreRepository));
   app.use(
     '/api/v1',

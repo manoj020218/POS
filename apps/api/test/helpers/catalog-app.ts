@@ -58,7 +58,13 @@ export const createCatalogTestContext = async () => {
   const authRepository = new InMemoryAuthRepository([
     await buildUser('22222222-2222-4222-8222-222222222222', 'owner@example.com', 'Owner', 'BUSINESS_OWNER'),
     await buildUser('33333333-3333-4333-8333-333333333333', 'manager@example.com', 'Manager', 'BRANCH_MANAGER'),
-    await buildUser('44444444-4444-4444-8444-444444444444', 'cashier@example.com', 'Cashier', 'CASHIER')
+    await buildUser('44444444-4444-4444-8444-444444444444', 'cashier@example.com', 'Cashier', 'CASHIER'),
+    await buildUser(
+      '55555555-5555-4555-8555-555555555555',
+      'inventory@example.com',
+      'Inventory Manager',
+      'INVENTORY_MANAGER'
+    )
   ]);
   await authRepository.replaceBranchAccessForUser(
     '33333333-3333-4333-8333-333333333333',
@@ -67,6 +73,11 @@ export const createCatalogTestContext = async () => {
   );
   await authRepository.replaceBranchAccessForUser(
     '44444444-4444-4444-8444-444444444444',
+    tenantId,
+    [branchA.id]
+  );
+  await authRepository.replaceBranchAccessForUser(
+    '55555555-5555-4555-8555-555555555555',
     tenantId,
     [branchA.id]
   );
@@ -97,7 +108,7 @@ const buildUser = async (
   id: string,
   email: string,
   displayName: string,
-  role: 'BUSINESS_OWNER' | 'BRANCH_MANAGER' | 'CASHIER'
+  role: 'BUSINESS_OWNER' | 'BRANCH_MANAGER' | 'CASHIER' | 'INVENTORY_MANAGER'
 ) => ({
   displayName,
   email,

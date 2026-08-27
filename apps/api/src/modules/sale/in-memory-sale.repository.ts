@@ -19,9 +19,12 @@ import type {
 
 export class InMemorySaleRepository implements SaleRepository, InventoryRepository {
   private readonly invoiceSequences = new Map<string, number>();
-  private readonly inventoryMovements = new Map<string, InventoryMovementRecord>();
   private readonly items = new Map<string, SaleItemRecord[]>();
   private readonly sales = new Map<string, SaleRecord>();
+
+  constructor(
+    private readonly inventoryMovements: Map<string, InventoryMovementRecord> = new Map()
+  ) {}
 
   async createSale(input: CreateSaleInput): Promise<SaleDetailRecord> {
     const saleId = randomUUID();

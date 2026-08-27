@@ -1,10 +1,10 @@
 # HANDOFF
 
 Current Phase:
-- Phase 6 - Inventory Ledger
+- Phase 7 - Purchase and Supplier Foundation
 
 Current Subtask:
-- Phase 6 inventory ledger now records corrective `SALE_RETURN` movements without mutating prior `SALE` rows; next safe unit is Phase 7 supplier and purchase foundation
+- Phase 7 supplier master and finalized purchase stock-in foundation are complete; next safe unit is Phase 8 sync protocol foundation
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -202,15 +202,30 @@ Completed:
 - Verified `pnpm typecheck`
 - Verified `pnpm test`
 - Verified `pnpm build`
+- Added Phase 7 schema for `suppliers`, `purchases`, and `purchase_items`
+- Generated procurement migration `apps/api/drizzle/0010_mushy_klaw.sql`
+- Added protected Phase 7 supplier endpoints for `GET/POST/PATCH /api/v1/suppliers`
+- Added protected Phase 7 purchase endpoints for `GET/POST /api/v1/purchases`
+- Implemented finalized purchase entry with supplier snapshots, default/explicit unit cost handling, immutable purchase-item snapshots, and positive `PURCHASE` stock movements
+- Added PostgreSQL-backed `DrizzleSupplierRepository` and `DrizzlePurchaseRepository` plus in-memory supplier/purchase repository support
+- Shared the in-memory inventory movement ledger between sale and purchase repositories so purchase stock-ins appear in inventory balance reads during route tests
+- Added supplier and purchase route coverage plus repository integration coverage for stock increases and branch/permission enforcement
+- Verified `pnpm db:generate`
+- Verified `pnpm exec vitest run apps/api/test/supplier.test.ts apps/api/test/purchase.test.ts apps/api/test/purchase-access.test.ts apps/api/test/drizzle-supplier.repository.test.ts apps/api/test/drizzle-purchase.repository.test.ts --reporter=verbose`
+- Verified `pnpm lint`
+- Verified `pnpm typecheck`
+- Verified `pnpm build`
+- Verified `pnpm db:migrate`
+- Verified `pnpm test`
 
 Currently Working:
 - No active code changes in progress
-- Phase 6 inventory ledger return-path support is complete and verified
-- Next safe unit is Phase 7 supplier master and purchase foundation
+- Phase 7 supplier master and purchase stock-in foundation are complete and verified
+- Next safe unit is Phase 8 sync protocol foundation
 
 Next:
-- Start Phase 7 with supplier master and minimal purchase-entry foundation
-- Add immutable `PURCHASE` inventory movements when finalized purchases begin increasing stock
+- Start Phase 8 with sync event/outbox persistence and an idempotent `POST /api/v1/sync/push` foundation
+- Add processed-event tracking so repeated sync pushes cannot duplicate sales or purchases
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -266,6 +281,10 @@ Important Decisions:
 - Use `product.openingStock` as the current stock baseline and layer immutable movement deltas on top until explicit `OPENING_STOCK` or manual-adjustment flows are introduced
 - Model returns as additional `SALE_RETURN` inventory movements keyed to the original `saleId` instead of mutating historical sale rows or `SALE` movements
 - Validate partial returns from sale-linked inventory movement totals so repeated returns cannot exceed the originally sold tracked quantity
+- Treat suppliers as business-scoped master data resolved through the existing accessible-business helper rather than through branch-specific ownership
+- Model finalized purchases as immutable branch-scoped transactions with item snapshots and optional supplier snapshots, mirroring the sale immutability pattern
+- Reuse the existing `inventory_movements` ledger for purchase stock-ins via `PURCHASE` entries instead of introducing a parallel stock table
+- Share the in-memory inventory movement map between sale and purchase repositories so route-level inventory balance tests reflect both movement sources
 
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
@@ -274,6 +293,7 @@ Known Issues:
 - `pnpm bootstrap:owner` requires the target tenant to already exist; it does not create tenant/business/branch/terminal hierarchy on its own
 - Walk-in customer uniqueness is currently enforced by the service-level ensure flow rather than a database uniqueness constraint
 - Sale returns currently restore inventory only; refund/payment reversal, credit-note issuance, and dedicated return-record persistence are not implemented yet
+- Purchase flows currently support creation and listing only; purchase updates, purchase returns, cancellations, and vendor invoice reconciliation are not implemented yet
 - Inventory balances currently derive from mutable `product.openingStock` plus movement sums; explicit opening-stock ledger entries and manual inventory adjustments are not implemented yet
 
 Tests:
@@ -328,7 +348,12 @@ Tests:
 - Sale return routes: corrective movement creation, duplicate-product rejection, over-return rejection, refund-permission enforcement, and branch-scope denial
 - Sale repository integration: persisted `SALE_RETURN` movements plus sale-linked movement-quantity aggregation via `DrizzleSaleRepository`
 - Targeted verification: `pnpm exec vitest run apps/api/test/sale-return.test.ts apps/api/test/drizzle-sale.repository.test.ts --reporter=verbose`
-- Full suite verification on 2026-08-26: `pnpm test` (117 tests passing)
+- Supplier routes: create/list/update flows, tenant-wide business-context enforcement, permission denial, and branch-scoped business denial
+- Purchase routes: finalized stock-in creation, default purchase-price fallback, duplicate-item rejection, missing-cost rejection, non-tracked-product rejection, permission denial, and branch-scope denial
+- Supplier repository integration: persisted create/list/update flows via `DrizzleSupplierRepository`
+- Purchase repository integration: persisted purchase snapshots plus `PURCHASE` movement visibility through `inventory_movements`
+- Targeted verification: `pnpm exec vitest run apps/api/test/supplier.test.ts apps/api/test/purchase.test.ts apps/api/test/purchase-access.test.ts apps/api/test/drizzle-supplier.repository.test.ts apps/api/test/drizzle-purchase.repository.test.ts --reporter=verbose`
+- Full suite verification on 2026-08-26: `pnpm test` (125 tests passing)
 
 Last Successful Commands:
 - `git init -b main`
@@ -475,6 +500,13 @@ Last Successful Commands:
 - `cmd /c pnpm typecheck`
 - `cmd /c pnpm build`
 - `cmd /c pnpm test`
+- `cmd /c pnpm db:generate`
+- `cmd /c pnpm exec vitest run apps/api/test/supplier.test.ts apps/api/test/purchase.test.ts apps/api/test/purchase-access.test.ts apps/api/test/drizzle-supplier.repository.test.ts apps/api/test/drizzle-purchase.repository.test.ts --reporter=verbose`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm build`
+- `cmd /c pnpm db:migrate`
+- `cmd /c pnpm test`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -508,6 +540,10 @@ Database Status:
 - Historical tracked-product sale rows are backfilled into `inventory_movements` during migration application
 - Inventory-ledger migration generation and application verified against the local PostgreSQL database
 - Sale-linked `SALE_RETURN` inventory movements are now persisted against the original `sales.id` reference for corrective stock increases
+- Procurement schema added at `apps/api/drizzle/0010_mushy_klaw.sql`
+- `suppliers`, `purchases`, and `purchase_items` are now persisted in PostgreSQL
+- Finalized purchase stock-ins now reuse the existing `inventory_movements` ledger through `PURCHASE` rows
+- Procurement migration generation and application verified against the local PostgreSQL database
 
 API Status:
 - Phase 0 scaffold verified
@@ -550,10 +586,14 @@ API Status:
 - Finalized sales now create immutable `SALE` inventory movements for tracked products in the same repository transaction as sale persistence
 - Sales API now includes protected `POST /api/v1/sales/:saleId/returns` for corrective tracked-item inventory returns
 - Sale returns validate sold-item membership, reject non-tracked sale items, and cap cumulative returned quantity per sold tracked item
+- Supplier API now includes protected `GET/POST/PATCH /api/v1/suppliers` with business-scoped reads and writes
+- Purchase API now includes protected `GET/POST /api/v1/purchases` with branch-scoped reads and finalized stock-in writes
+- Finalized purchases now persist immutable purchase-item snapshots, optional supplier snapshots, and `PURCHASE` inventory movements in one repository transaction
+- Inventory balances now reflect purchase-ledger stock increases as well as sale-linked stock decreases/returns
 - Inventory API now includes protected `GET /api/v1/inventory/balances` with business and optional product scoping plus opening-stock-plus-ledger balance calculation
 
 Git Status:
-- changes pending for the completed Phase 6 sale-return slice before commit/push
+- changes pending for the completed Phase 7 supplier and purchase slice before commit/push
 
 Last Commit:
-- `feat(inventory): add sale-linked ledger balances`
+- `d69446e feat(inventory): add sale return ledger support`
