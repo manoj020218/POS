@@ -1,9 +1,9 @@
 import { createHttpError } from '../../lib/http-error.js';
-import type { SalesSummaryQuery, SalesSummaryRange } from './reporting.types.js';
+import type { SalesReportQuery, SalesSummaryRange } from './reporting.types.js';
 
 // Until Phase 10 business settings land, "today" uses the server local calendar day.
 export const resolveSalesSummaryRange = (
-  query: Pick<SalesSummaryQuery, 'dateFrom' | 'dateTo'>,
+  query: Pick<SalesReportQuery, 'dateFrom' | 'dateTo'>,
   now = new Date()
 ): SalesSummaryRange => {
   if (!query.dateFrom && !query.dateTo) {

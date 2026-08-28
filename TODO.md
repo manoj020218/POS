@@ -1,10 +1,10 @@
 # TODO
 
 NOW
-- Add branch, terminal, cashier, payment-method, and top-products reporting summaries on top of the persisted sales ledger
+- Add tax summary, low stock, current stock, stock movement, and sales return reporting endpoints
 
 NEXT
-- Add tax summary, low stock, current stock, stock movement, and sales return reporting endpoints
+- Begin Phase 10 business settings with configurable defaults for currency, timezone, invoice prefix, default unit, tax profile, and inventory tracking behavior
 
 LATER
 - Shared contracts package

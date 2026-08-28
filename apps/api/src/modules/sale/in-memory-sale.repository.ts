@@ -6,10 +6,16 @@ import type {
   InventoryMovementBalanceRecord,
   InventoryMovementRecord
 } from '../inventory/inventory.types.js';
-import { emptySalesSummaryRecord } from '../reporting/reporting.types.js';
 import type { ReportingRepository } from '../reporting/reporting.repository.js';
-import type { SalesSummaryLookupInput } from '../reporting/reporting.types.js';
 import { formatInvoiceNumber } from './sale-domain.js';
+import {
+  listInMemoryBranchSales,
+  listInMemoryCashierSales,
+  listInMemoryPaymentMethodSales,
+  listInMemoryTerminalSales,
+  listInMemoryTopProducts,
+  summarizeInMemorySales
+} from './in-memory-sale-reporting.js';
 import type { SaleRepository } from './sale.repository.js';
 import type {
   CreateSaleInput,
@@ -165,33 +171,29 @@ export class InMemorySaleRepository
     );
   }
 
-  async summarizeSales(input: SalesSummaryLookupInput) {
-    if (input.businessIds.length === 0) {
-      return emptySalesSummaryRecord();
-    }
+  async summarizeSales(input: Parameters<ReportingRepository['summarizeSales']>[0]) {
+    return summarizeInMemorySales(this.sales, this.items, input);
+  }
 
-    const allowedBusinessIds = new Set(input.businessIds);
-    const sales = [...this.sales.values()].filter((sale) => {
-      return (
-        sale.tenantId === input.tenantId &&
-        allowedBusinessIds.has(sale.businessId) &&
-        sale.occurredAt >= input.occurredAtFrom &&
-        sale.occurredAt < input.occurredAtTo
-      );
-    });
+  async listSalesByBranch(input: Parameters<ReportingRepository['listSalesByBranch']>[0]) {
+    return listInMemoryBranchSales(this.sales, this.items, input);
+  }
 
-    return sales.reduce(
-      (summary, sale) => ({
-        discountAmount: summary.discountAmount + sale.discountAmount,
-        saleCount: summary.saleCount + 1,
-        subtotalAmount: summary.subtotalAmount + sale.subtotalAmount,
-        taxAmount: summary.taxAmount + sale.taxAmount,
-        totalAmount: summary.totalAmount + sale.totalAmount,
-        totalQuantity:
-          summary.totalQuantity +
-          (this.items.get(sale.id) ?? []).reduce((quantity, item) => quantity + item.quantity, 0)
-      }),
-      emptySalesSummaryRecord()
-    );
+  async listSalesByTerminal(input: Parameters<ReportingRepository['listSalesByTerminal']>[0]) {
+    return listInMemoryTerminalSales(this.sales, this.items, input);
+  }
+
+  async listSalesByCashier(input: Parameters<ReportingRepository['listSalesByCashier']>[0]) {
+    return listInMemoryCashierSales(this.sales, this.items, input);
+  }
+
+  async listSalesByPaymentMethod(
+    input: Parameters<ReportingRepository['listSalesByPaymentMethod']>[0]
+  ) {
+    return listInMemoryPaymentMethodSales(this.sales, this.items, input);
+  }
+
+  async listTopProducts(input: Parameters<ReportingRepository['listTopProducts']>[0]) {
+    return listInMemoryTopProducts(this.sales, this.items, input);
   }
 }

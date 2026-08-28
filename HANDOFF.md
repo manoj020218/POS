@@ -4,7 +4,7 @@ Current Phase:
 - Phase 9 - Reporting APIs
 
 Current Subtask:
-- Continue Phase 9 with branch, terminal, cashier, payment-method, and top-products reporting summaries; the initial server-side "Today's Sales" and date-range sales summary slice is complete and verified
+- Continue Phase 9 with tax summary, low stock, current stock, stock movement, and sales return reporting endpoints; grouped sales reporting summaries are complete and verified as of 2026-08-28
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -716,8 +716,14 @@ Database Status:
 - Reporting summaries now respect existing tenant/business scope rules and require `report:view`
 - Added reporting route coverage for default today scope, explicit date ranges, permission enforcement, and business-scope denial
 - Added `DrizzleSaleRepository` summary coverage for persisted business-scoped date-range aggregation
+- Tightened sales-summary reads to branch scope so restricted users do not see out-of-scope branch totals within a shared business
+- Added protected `GET /api/v1/reports/sales/by-branch`, `/by-terminal`, `/by-cashier`, `/by-payment-method`, and `/top-products`
+- Added grouped sales-report aggregation over persisted `sales` and `sale_items` for branch, terminal, cashier, payment-method, and top-product summaries
+- Added service-side branch, business, terminal, and cashier metadata enrichment for reporting rows while keeping repository aggregation ledger-backed
+- Added reporting route coverage for grouped summaries, branch-scope filtering, and top-product limit validation
+- Added `DrizzleSaleRepository` coverage for branch, terminal, cashier, payment-method, and top-product persisted aggregations
 - Verified `pnpm --filter @smart-pos/api typecheck`
-- Verified `pnpm exec vitest run apps/api/test/reporting.test.ts apps/api/test/drizzle-sales-summary.test.ts --reporter=verbose`
+- Verified `pnpm exec vitest run apps/api/test/reporting.test.ts apps/api/test/reporting-branch-scope.test.ts apps/api/test/reporting-breakdowns.test.ts apps/api/test/drizzle-sales-summary.test.ts apps/api/test/drizzle-sales-breakdowns.test.ts --reporter=verbose`
 - Verified `pnpm lint`
 - Verified `pnpm test`
 - Verified `pnpm build`
@@ -781,9 +787,11 @@ API Status:
 - Inventory API now includes protected `GET /api/v1/inventory/balances` with business and optional product scoping plus opening-stock-plus-ledger balance calculation
 - Reporting API now includes protected `GET /api/v1/reports/sales/summary` with default local-calendar "TODAY" behavior plus explicit `dateFrom`/`dateTo` date-range summaries
 - Sales-summary reads aggregate server-side over persisted sales totals and sale-item quantities instead of returning raw transactions to the client
+- Reporting API now includes protected grouped sales endpoints for branch, terminal, cashier, payment-method, and top-product summaries over the persisted sales ledger
+- Grouped and summary sales reports now honor assigned-branch scope, so restricted users only see totals for their accessible branches even inside a shared business
 
 Git Status:
-- working tree should be clean on `main` after publishing this Phase 9 reporting summary checkpoint to `origin/main`
+- working tree should be clean on `main` after publishing this grouped Phase 9 reporting checkpoint to `origin/main`
 
 Last Commit:
-- expected published checkpoint for this handoff: `feat(reporting): add sales summary api`
+- expected published checkpoint for this handoff: `feat(reporting): add grouped sales reports`

@@ -113,54 +113,64 @@ describe('DrizzleSaleRepository reporting summary', () => {
       branchId: branchA.id,
       businessId: businessA.id,
       cashierUserId: cashierId,
-      discountAmount: 100,
+      items: [
+        {
+          discountAmount: 100,
+          productId: productA.id,
+          productName: productA.name,
+          productSku: productA.sku,
+          quantity: 2,
+          taxAmount: 50,
+          unitPrice: 2000
+        }
+      ],
       occurredAt: '2026-08-27T10:00:00.000Z',
-      productId: productA.id,
-      productName: productA.name,
-      productSku: productA.sku,
-      quantity: 2,
-      taxAmount: 50,
       tenantId: tenantA,
       terminalCode: terminalA.code,
       terminalId: terminalA.id,
-      totalAmount: 3950,
-      unitPrice: 2000
     });
     await createRepositorySale(saleRepository, {
       branchCode: branchA.code,
       branchId: branchA.id,
       businessId: businessA.id,
       cashierUserId: cashierId,
+      items: [
+        {
+          productId: productA.id,
+          productName: productA.name,
+          productSku: productA.sku,
+          quantity: 1,
+          unitPrice: 2000
+        }
+      ],
       occurredAt: '2026-08-28T12:00:00.000Z',
-      productId: productA.id,
-      productName: productA.name,
-      productSku: productA.sku,
-      quantity: 1,
       tenantId: tenantA,
       terminalCode: terminalA.code,
       terminalId: terminalA.id,
-      totalAmount: 2000,
-      unitPrice: 2000
     });
     await createRepositorySale(saleRepository, {
       branchCode: branchB.code,
       branchId: branchB.id,
       businessId: businessB.id,
       cashierUserId: cashierId,
+      items: [
+        {
+          productId: productB.id,
+          productName: productB.name,
+          productSku: productB.sku,
+          quantity: 1,
+          unitPrice: 3000
+        }
+      ],
       occurredAt: '2026-08-28T13:00:00.000Z',
-      productId: productB.id,
-      productName: productB.name,
-      productSku: productB.sku,
-      quantity: 1,
       tenantId: tenantA,
       terminalCode: terminalB.code,
-      terminalId: terminalB.id,
-      totalAmount: 3000,
-      unitPrice: 3000
+      terminalId: terminalB.id
     });
 
     await expect(
       saleRepository.summarizeSales({
+        branchIds: [branchA.id],
         businessIds: [businessA.id],
         occurredAtFrom: new Date('2026-08-27T00:00:00.000Z'),
         occurredAtTo: new Date('2026-08-29T00:00:00.000Z'),
@@ -176,6 +186,7 @@ describe('DrizzleSaleRepository reporting summary', () => {
     });
     await expect(
       saleRepository.summarizeSales({
+        branchIds: [branchA.id],
         businessIds: [businessA.id],
         occurredAtFrom: new Date('2026-08-28T00:00:00.000Z'),
         occurredAtTo: new Date('2026-08-29T00:00:00.000Z'),

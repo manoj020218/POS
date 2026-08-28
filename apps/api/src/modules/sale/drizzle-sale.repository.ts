@@ -7,9 +7,15 @@ import { inventoryMovements, saleItems, saleSequences, sales } from '../../db/sc
 import type { InventoryRepository } from '../inventory/inventory.repository.js';
 import type { InventoryBalanceLookupInput } from '../inventory/inventory.repository.js';
 import type { ReportingRepository } from '../reporting/reporting.repository.js';
-import type { SalesSummaryLookupInput } from '../reporting/reporting.types.js';
+import type { SalesReportLookupInput, TopProductsLookupInput } from '../reporting/reporting.types.js';
+import {
+  listDrizzleBranchSales,
+  listDrizzleCashierSales,
+  listDrizzlePaymentMethodSales,
+  listDrizzleTerminalSales
+} from './drizzle-sale-breakdowns.js';
 import { formatInvoiceNumber } from './sale-domain.js';
-import { summarizeDrizzleSales } from './drizzle-sale-reporting.js';
+import { listDrizzleTopProducts, summarizeDrizzleSales } from './drizzle-sale-reporting.js';
 import type { SaleRepository } from './sale.repository.js';
 import {
   normalizeInventoryBalance,
@@ -125,8 +131,28 @@ export class DrizzleSaleRepository
     return rows.map(normalizeInventoryBalance);
   }
 
-  async summarizeSales(input: SalesSummaryLookupInput) {
+  async summarizeSales(input: SalesReportLookupInput) {
     return summarizeDrizzleSales(this.db, input);
+  }
+
+  async listSalesByBranch(input: SalesReportLookupInput) {
+    return listDrizzleBranchSales(this.db, input);
+  }
+
+  async listSalesByTerminal(input: SalesReportLookupInput) {
+    return listDrizzleTerminalSales(this.db, input);
+  }
+
+  async listSalesByCashier(input: SalesReportLookupInput) {
+    return listDrizzleCashierSales(this.db, input);
+  }
+
+  async listSalesByPaymentMethod(input: SalesReportLookupInput) {
+    return listDrizzlePaymentMethodSales(this.db, input);
+  }
+
+  async listTopProducts(input: TopProductsLookupInput) {
+    return listDrizzleTopProducts(this.db, input);
   }
 
   async createSaleReturn(input: CreateSaleReturnInput): Promise<void> {

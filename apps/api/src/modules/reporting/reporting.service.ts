@@ -1,52 +1,202 @@
-import { createHttpError } from '../../lib/http-error.js';
-import { listAccessibleBusinesses } from '../catalog/catalog-business-scope.js';
+import type { AuthRepository } from '../auth/auth.repository.js';
 import type { AccessContext } from '../tenant-core/access-context.js';
 import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
 import type { ReportingRepository } from './reporting.repository.js';
 import { resolveSalesSummaryRange } from './reporting-range.js';
-import type { SalesSummaryQuery, SalesSummaryView } from './reporting.types.js';
+import { resolveReportingScope } from './reporting-scope.js';
+import type {
+  BranchSalesSummaryRow,
+  CashierSalesSummaryRow,
+  PaymentMethodSummaryRow,
+  SalesBreakdownView,
+  SalesReportQuery,
+  SalesSummaryView,
+  TerminalSalesSummaryRow,
+  TopProductsQuery,
+  TopProductsView
+} from './reporting.types.js';
+import { requireReportRecord, toSalesAggregateView, toSalesReportMeta } from './reporting-view.js';
 
 export const createReportingService = (
   repository: ReportingRepository,
+  authRepository: AuthRepository,
   tenantCoreRepository: TenantCoreRepository
 ) => ({
   getSalesSummary: async (
     context: AccessContext,
-    query: SalesSummaryQuery
+    query: SalesReportQuery
   ): Promise<SalesSummaryView> => {
-    const accessibleBusinesses = await listAccessibleBusinesses(context, tenantCoreRepository);
-    const businessIds = resolveBusinessIds(accessibleBusinesses, query.businessId);
-    const range = resolveSalesSummaryRange(query);
-    const summary = await repository.summarizeSales({
-      businessIds,
-      occurredAtFrom: range.rangeStart,
-      occurredAtTo: range.rangeEndExclusive,
-      tenantId: context.tenantId
-    });
+    const report = await resolveReportLookup(context, query, tenantCoreRepository);
+    return {
+      ...report.meta,
+      ...toSalesAggregateView(await repository.summarizeSales(report.lookup))
+    };
+  },
+  listSalesByBranch: async (
+    context: AccessContext,
+    query: SalesReportQuery
+  ): Promise<SalesBreakdownView<BranchSalesSummaryRow>> => {
+    const report = await resolveReportLookup(context, query, tenantCoreRepository);
+    const branchesById = new Map(report.scope.branches.map((branch) => [branch.id, branch] as const));
+    const businessesById = new Map(
+      report.scope.businesses.map((business) => [business.id, business] as const)
+    );
 
     return {
-      ...summary,
-      averageSaleAmount: summary.saleCount ? Math.round(summary.totalAmount / summary.saleCount) : 0,
-      businessCount: businessIds.length,
-      businessId: query.businessId,
-      dateFrom: range.dateFrom,
-      dateTo: range.dateTo,
-      reportType: range.reportType
+      ...report.meta,
+      rows: (await repository.listSalesByBranch(report.lookup)).map((row) => {
+        const branch = requireReportRecord(
+          branchesById.get(row.branchId),
+          'BRANCH_NOT_FOUND',
+          'Branch not found'
+        );
+        const business = requireReportRecord(
+          businessesById.get(row.businessId),
+          'BUSINESS_NOT_FOUND',
+          'Business not found'
+        );
+
+        return {
+          ...toSalesAggregateView(row),
+          branchCode: row.branchCode,
+          branchId: row.branchId,
+          branchName: branch.name,
+          businessCode: business.code,
+          businessId: business.id,
+          businessName: business.name
+        };
+      })
+    };
+  },
+  listSalesByTerminal: async (
+    context: AccessContext,
+    query: SalesReportQuery
+  ): Promise<SalesBreakdownView<TerminalSalesSummaryRow>> => {
+    const report = await resolveReportLookup(context, query, tenantCoreRepository);
+    const branchesById = new Map(report.scope.branches.map((branch) => [branch.id, branch] as const));
+    const businessesById = new Map(
+      report.scope.businesses.map((business) => [business.id, business] as const)
+    );
+    const terminals = await tenantCoreRepository.listTerminals(context.tenantId);
+    const terminalsById = new Map(
+      terminals
+        .filter((terminal) => report.scope.branchIds.includes(terminal.branchId))
+        .map((terminal) => [terminal.id, terminal] as const)
+    );
+
+    return {
+      ...report.meta,
+      rows: (await repository.listSalesByTerminal(report.lookup)).map((row) => {
+        const branch = requireReportRecord(
+          branchesById.get(row.branchId),
+          'BRANCH_NOT_FOUND',
+          'Branch not found'
+        );
+        const business = requireReportRecord(
+          businessesById.get(row.businessId),
+          'BUSINESS_NOT_FOUND',
+          'Business not found'
+        );
+        const terminal = requireReportRecord(
+          terminalsById.get(row.terminalId),
+          'TERMINAL_NOT_FOUND',
+          'Terminal not found'
+        );
+
+        return {
+          ...toSalesAggregateView(row),
+          branchCode: branch.code,
+          branchId: branch.id,
+          branchName: branch.name,
+          businessCode: business.code,
+          businessId: business.id,
+          businessName: business.name,
+          terminalCode: row.terminalCode,
+          terminalId: row.terminalId,
+          terminalName: terminal.name
+        };
+      })
+    };
+  },
+  listSalesByCashier: async (
+    context: AccessContext,
+    query: SalesReportQuery
+  ): Promise<SalesBreakdownView<CashierSalesSummaryRow>> => {
+    const report = await resolveReportLookup(context, query, tenantCoreRepository);
+    const usersById = new Map(
+      (await authRepository.listUsersForTenant(context.tenantId)).map((user) => [user.id, user] as const)
+    );
+
+    return {
+      ...report.meta,
+      rows: (await repository.listSalesByCashier(report.lookup)).map((row) => {
+        const user = requireReportRecord(
+          usersById.get(row.cashierUserId),
+          'AUTH_USER_NOT_FOUND',
+          'Auth user not found'
+        );
+
+        return {
+          ...toSalesAggregateView(row),
+          cashierDisplayName: user.displayName,
+          cashierEmail: user.email,
+          cashierUserId: row.cashierUserId
+        };
+      })
+    };
+  },
+  listSalesByPaymentMethod: async (
+    context: AccessContext,
+    query: SalesReportQuery
+  ): Promise<SalesBreakdownView<PaymentMethodSummaryRow>> => {
+    const report = await resolveReportLookup(context, query, tenantCoreRepository);
+
+    return {
+      ...report.meta,
+      rows: (await repository.listSalesByPaymentMethod(report.lookup)).map((row) => ({
+        ...toSalesAggregateView(row),
+        paymentMethod: row.paymentMethod
+      }))
+    };
+  },
+  listTopProducts: async (
+    context: AccessContext,
+    query: TopProductsQuery
+  ): Promise<TopProductsView> => {
+    const report = await resolveReportLookup(context, query, tenantCoreRepository);
+    const rows = await repository.listTopProducts({ ...report.lookup, limit: query.limit });
+
+    return {
+      ...report.meta,
+      limit: query.limit,
+      rows: rows.map((row, index) => ({
+        ...row,
+        averageUnitPrice: row.totalQuantity ? Math.round(row.subtotalAmount / row.totalQuantity) : 0,
+        rank: index + 1
+      }))
     };
   }
 });
 
-const resolveBusinessIds = (
-  businesses: Array<{ id: string }>,
-  requestedBusinessId?: string
+const resolveReportLookup = async (
+  context: AccessContext,
+  query: SalesReportQuery,
+  tenantCoreRepository: TenantCoreRepository
 ) => {
-  if (!requestedBusinessId) {
-    return businesses.map((business) => business.id);
-  }
+  const [scope, range] = await Promise.all([
+    resolveReportingScope(context, tenantCoreRepository, query.businessId),
+    Promise.resolve(resolveSalesSummaryRange(query))
+  ]);
 
-  if (!businesses.some((business) => business.id === requestedBusinessId)) {
-    throw createHttpError(403, 'BRANCH_ACCESS_DENIED', 'Branch access denied');
-  }
-
-  return [requestedBusinessId];
+  return {
+    lookup: {
+      branchIds: scope.branchIds,
+      businessIds: scope.businessIds,
+      occurredAtFrom: range.rangeStart,
+      occurredAtTo: range.rangeEndExclusive,
+      tenantId: context.tenantId
+    },
+    meta: toSalesReportMeta(scope.businessIds.length, query.businessId, range),
+    scope
+  };
 };

@@ -1,5 +1,6 @@
 import type { DrizzleCatalogRepository } from '../../src/modules/catalog/drizzle-catalog.repository.js';
 import type { DrizzleSaleRepository } from '../../src/modules/sale/drizzle-sale.repository.js';
+import type { PaymentMethod } from '../../src/modules/sale/sale.types.js';
 
 export const createMasters = async (
   repository: DrizzleCatalogRepository,
@@ -40,62 +41,71 @@ export const createRepositorySale = (
     branchId: string;
     businessId: string;
     cashierUserId: string;
-    discountAmount?: number;
+    items: Array<{
+      discountAmount?: number;
+      productId: string;
+      productName: string;
+      productSku: string;
+      quantity: number;
+      taxAmount?: number;
+      unitPrice: number;
+    }>;
     occurredAt: string;
-    productId: string;
-    productName: string;
-    productSku: string;
-    quantity: number;
-    taxAmount?: number;
+    paymentMethod?: PaymentMethod;
     tenantId: string;
     terminalCode: string;
     terminalId: string;
-    totalAmount: number;
-    unitPrice: number;
   }
 ) =>
   repository.createSale({
-    items: [
-      {
-        discountAmount: input.discountAmount ?? 0,
-        productId: input.productId,
-        productName: input.productName,
-        productSku: input.productSku,
-        quantity: input.quantity,
-        saleId: '',
-        subtotalAmount: input.unitPrice * input.quantity,
-        taxAmount: input.taxAmount ?? 0,
-        tenantId: input.tenantId,
-        totalAmount: input.totalAmount,
-        unitPrice: input.unitPrice
-      }
-    ],
-    inventoryMovements: [
-      {
-        branchId: input.branchId,
-        businessId: input.businessId,
-        movementType: 'SALE',
-        occurredAt: new Date(input.occurredAt),
-        productId: input.productId,
-        quantityDelta: -input.quantity,
-        tenantId: input.tenantId
-      }
-    ],
+    items: input.items.map((item) => ({
+      discountAmount: item.discountAmount ?? 0,
+      productId: item.productId,
+      productName: item.productName,
+      productSku: item.productSku,
+      quantity: item.quantity,
+      saleId: '',
+      subtotalAmount: item.unitPrice * item.quantity,
+      taxAmount: item.taxAmount ?? 0,
+      tenantId: input.tenantId,
+      totalAmount:
+        item.unitPrice * item.quantity - (item.discountAmount ?? 0) + (item.taxAmount ?? 0),
+      unitPrice: item.unitPrice
+    })),
+    inventoryMovements: input.items.map((item) => ({
+      branchId: input.branchId,
+      businessId: input.businessId,
+      movementType: 'SALE' as const,
+      occurredAt: new Date(input.occurredAt),
+      productId: item.productId,
+      quantityDelta: -item.quantity,
+      tenantId: input.tenantId
+    })),
     sale: {
       branchCode: input.branchCode,
       branchId: input.branchId,
       businessId: input.businessId,
       cashierUserId: input.cashierUserId,
       changeAmount: 0,
-      discountAmount: input.discountAmount ?? 0,
+      discountAmount: input.items.reduce((sum, item) => sum + (item.discountAmount ?? 0), 0),
       occurredAt: new Date(input.occurredAt),
-      paymentMethod: 'CARD',
-      subtotalAmount: input.unitPrice * input.quantity,
-      taxAmount: input.taxAmount ?? 0,
-      tenderedAmount: input.totalAmount,
+      paymentMethod: input.paymentMethod ?? 'CARD',
+      subtotalAmount: input.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
+      taxAmount: input.items.reduce((sum, item) => sum + (item.taxAmount ?? 0), 0),
+      tenderedAmount: input.items.reduce(
+        (sum, item) =>
+          sum +
+          (item.unitPrice * item.quantity - (item.discountAmount ?? 0) + (item.taxAmount ?? 0)),
+        0
+      ),
       tenantId: input.tenantId,
       terminalCode: input.terminalCode,
       terminalId: input.terminalId,
-      totalAmount: input.totalAmount
+      totalAmount: input.items.reduce(
+        (sum, item) =>
+          sum +
+          (item.unitPrice * item.quantity - (item.discountAmount ?? 0) + (item.taxAmount ?? 0)),
+        0
+      )
     }
   });
