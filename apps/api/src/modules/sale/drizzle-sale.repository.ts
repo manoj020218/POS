@@ -14,6 +14,11 @@ import {
   listDrizzlePaymentMethodSales,
   listDrizzleTerminalSales
 } from './drizzle-sale-breakdowns.js';
+import {
+  listDrizzleSalesReturns,
+  listDrizzleStockMovements,
+  listDrizzleTaxSummary
+} from './drizzle-sale-operational-reporting.js';
 import { formatInvoiceNumber } from './sale-domain.js';
 import { listDrizzleTopProducts, summarizeDrizzleSales } from './drizzle-sale-reporting.js';
 import type { SaleRepository } from './sale.repository.js';
@@ -151,8 +156,20 @@ export class DrizzleSaleRepository
     return listDrizzlePaymentMethodSales(this.db, input);
   }
 
+  async listTaxSummary(input: SalesReportLookupInput) {
+    return listDrizzleTaxSummary(this.db, input);
+  }
+
   async listTopProducts(input: TopProductsLookupInput) {
     return listDrizzleTopProducts(this.db, input);
+  }
+
+  async listStockMovements(input: SalesReportLookupInput) {
+    return listDrizzleStockMovements(this.db, input);
+  }
+
+  async listSalesReturns(input: SalesReportLookupInput) {
+    return listDrizzleSalesReturns(this.db, input);
   }
 
   async createSaleReturn(input: CreateSaleReturnInput): Promise<void> {

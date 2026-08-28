@@ -12,7 +12,10 @@ import {
   listInMemoryBranchSales,
   listInMemoryCashierSales,
   listInMemoryPaymentMethodSales,
+  listInMemorySalesReturns,
   listInMemoryTerminalSales,
+  listInMemoryStockMovements,
+  listInMemoryTaxSummary,
   listInMemoryTopProducts,
   summarizeInMemorySales
 } from './in-memory-sale-reporting.js';
@@ -193,7 +196,19 @@ export class InMemorySaleRepository
     return listInMemoryPaymentMethodSales(this.sales, this.items, input);
   }
 
+  async listTaxSummary(input: Parameters<ReportingRepository['listTaxSummary']>[0]) {
+    return listInMemoryTaxSummary(this.sales, this.items, input);
+  }
+
   async listTopProducts(input: Parameters<ReportingRepository['listTopProducts']>[0]) {
     return listInMemoryTopProducts(this.sales, this.items, input);
+  }
+
+  async listStockMovements(input: Parameters<ReportingRepository['listStockMovements']>[0]) {
+    return listInMemoryStockMovements(this.inventoryMovements, input);
+  }
+
+  async listSalesReturns(input: Parameters<ReportingRepository['listSalesReturns']>[0]) {
+    return listInMemorySalesReturns(this.inventoryMovements, this.items, input);
   }
 }

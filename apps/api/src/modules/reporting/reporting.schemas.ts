@@ -14,6 +14,11 @@ export const salesReportQuerySchema = z.object(salesReportQueryFields).refine((v
   message: 'dateFrom and dateTo must be provided together'
 });
 
+export const inventoryReportQuerySchema = z.object({
+  businessId: uuidSchema.optional(),
+  productId: uuidSchema.optional()
+});
+
 export const topProductsQuerySchema = z.object({
   ...salesReportQueryFields,
   limit: z.coerce.number().int().min(1).max(50).default(10)

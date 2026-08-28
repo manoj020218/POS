@@ -111,7 +111,15 @@ export const createApp = (options: AppOptions): Express => {
       tenantCoreRepository
     )
   );
-  app.use('/api/v1', createReportingRouter(saleRepository, authRepository, tenantCoreRepository));
+  app.use(
+    '/api/v1',
+    createReportingRouter(
+      saleRepository,
+      authRepository,
+      catalogRepository,
+      tenantCoreRepository
+    )
+  );
   app.use('/api/v1', createInventoryRouter(saleRepository, catalogRepository, tenantCoreRepository));
   app.use(
     '/api/v1',

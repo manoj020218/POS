@@ -1,9 +1,18 @@
+import type {
+  InventoryBalanceView,
+  InventoryMovementType
+} from '../inventory/inventory.types.js';
 import type { PaymentMethod } from '../sale/sale.types.js';
 
 export type SalesReportQuery = {
   businessId?: string;
   dateFrom?: string;
   dateTo?: string;
+};
+
+export type InventoryReportQuery = {
+  businessId?: string;
+  productId?: string;
 };
 
 export type TopProductsQuery = SalesReportQuery & {
@@ -28,6 +37,10 @@ export type SalesReportLookupInput = {
 
 export type TopProductsLookupInput = SalesReportLookupInput & {
   limit: number;
+};
+
+export type TaxSummaryRecord = SalesSummaryRecord & {
+  businessId: string;
 };
 
 export type SalesSummaryRecord = {
@@ -72,6 +85,27 @@ export type TopProductSummaryRecord = {
   totalQuantity: number;
 };
 
+export type StockMovementSummaryRecord = {
+  branchId: string;
+  businessId: string;
+  lastMovementAt: Date;
+  movementCount: number;
+  movementType: InventoryMovementType;
+  productId: string;
+  quantityDelta: number;
+};
+
+export type SalesReturnSummaryRecord = {
+  branchId: string;
+  businessId: string;
+  lastReturnedAt: Date;
+  productId: string;
+  productName: string;
+  productSku: string;
+  returnCount: number;
+  returnedQuantity: number;
+};
+
 export type SalesReportMeta = {
   businessCount: number;
   businessId?: string;
@@ -80,11 +114,24 @@ export type SalesReportMeta = {
   reportType: SalesSummaryRange['reportType'];
 };
 
+export type InventoryReportMeta = {
+  asOf: Date;
+  businessCount: number;
+  businessId?: string;
+};
+
 export type SalesAggregateView = SalesSummaryRecord & {
   averageSaleAmount: number;
 };
 
 export type SalesSummaryView = SalesAggregateView & SalesReportMeta;
+
+export type TaxSummaryRow = SalesAggregateView & {
+  businessCode: string;
+  businessId: string;
+  businessName: string;
+  effectiveTaxRateBasisPoints: number;
+};
 
 export type BranchSalesSummaryRow = SalesAggregateView & {
   branchCode: string;
@@ -122,7 +169,42 @@ export type TopProductSummaryRow = TopProductSummaryRecord & {
   rank: number;
 };
 
+export type StockMovementSummaryRow = {
+  branchCode: string;
+  branchId: string;
+  branchName: string;
+  businessCode: string;
+  businessId: string;
+  businessName: string;
+  lastMovementAt: Date;
+  movementCount: number;
+  movementType: InventoryMovementType;
+  productId: string;
+  productName: string;
+  productSku: string;
+  quantityDelta: number;
+};
+
+export type SalesReturnSummaryRow = {
+  branchCode: string;
+  branchId: string;
+  branchName: string;
+  businessCode: string;
+  businessId: string;
+  businessName: string;
+  lastReturnedAt: Date;
+  productId: string;
+  productName: string;
+  productSku: string;
+  returnCount: number;
+  returnedQuantity: number;
+};
+
 export type SalesBreakdownView<TRow> = SalesReportMeta & {
+  rows: TRow[];
+};
+
+export type InventoryBreakdownView<TRow> = InventoryReportMeta & {
   rows: TRow[];
 };
 
@@ -130,6 +212,16 @@ export type TopProductsView = SalesReportMeta & {
   limit: number;
   rows: TopProductSummaryRow[];
 };
+
+export type TaxSummaryView = SalesBreakdownView<TaxSummaryRow>;
+
+export type CurrentStockView = InventoryBreakdownView<InventoryBalanceView>;
+
+export type LowStockView = InventoryBreakdownView<InventoryBalanceView>;
+
+export type StockMovementView = SalesBreakdownView<StockMovementSummaryRow>;
+
+export type SalesReturnsView = SalesBreakdownView<SalesReturnSummaryRow>;
 
 export const emptySalesSummaryRecord = (): SalesSummaryRecord => ({
   discountAmount: 0,

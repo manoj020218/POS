@@ -1,10 +1,11 @@
 # TODO
 
 NOW
-- Add tax summary, low stock, current stock, stock movement, and sales return reporting endpoints
+- Start Phase 10 business settings persistence and protected APIs for currency, timezone, invoice prefix, default unit, default tax profile, inventory tracking behavior, receipt footer, business logo, branch address, and receipt printer profile
 
 NEXT
-- Begin Phase 10 business settings with configurable defaults for currency, timezone, invoice prefix, default unit, tax profile, and inventory tracking behavior
+- Decide which Phase 10 settings stay business-scoped versus branch-scoped before locking the schema and routes
+- Begin Phase 11 printer domain only after the Phase 10 settings foundation is persisted and verified
 
 LATER
 - Shared contracts package

@@ -1,10 +1,10 @@
 # HANDOFF
 
 Current Phase:
-- Phase 9 - Reporting APIs
+- Phase 10 - Business Settings
 
 Current Subtask:
-- Continue Phase 9 with tax summary, low stock, current stock, stock movement, and sales return reporting endpoints; grouped sales reporting summaries are complete and verified as of 2026-08-28
+- Start Phase 10 with configurable business defaults for currency, timezone, invoice prefix, default unit, default tax profile, inventory tracking behavior, receipt footer, business logo, branch address, and receipt printer profile
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -301,13 +301,13 @@ Completed:
 
 Currently Working:
 - No active code changes in progress
-- Phase 8 sync push replay, failure capture, and mixed sync pull contract are complete and verified across applied client events plus server-authored catalog, product, and customer snapshots
-- Next safe unit is Phase 9 reporting API design and the first sales summary endpoints
+- Phase 9 reporting APIs are complete and verified across sales summary, grouped sales, tax summary, current stock, low stock, stock movement, and sales return endpoints
+- Next safe unit is Phase 10 business settings persistence and protected API design
 
 Next:
-- Start Phase 9 with server-side "Today's Sales" and date-range sales summaries
-- Add branch, terminal, cashier, and payment-method summaries on top of the persisted sales ledger
-- Keep reporting aggregations server-side; do not expose raw transaction dumps for reporting clients
+- Start Phase 10 with business-level defaults for currency, timezone, invoice prefix, default unit, default tax profile, inventory tracking behavior, receipt footer, business logo, branch address, and receipt printer profile
+- Decide which settings remain business-scoped versus branch-scoped before adding persistence
+- Keep the first settings slice typed and explicit; do not fall back to an unstructured JSON blob
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -365,6 +365,10 @@ Important Decisions:
 - Use `product.openingStock` as the current stock baseline and layer immutable movement deltas on top until explicit `OPENING_STOCK` or manual-adjustment flows are introduced
 - Model returns as additional `SALE_RETURN` inventory movements keyed to the original `saleId` instead of mutating historical sale rows or `SALE` movements
 - Validate partial returns from sale-linked inventory movement totals so repeated returns cannot exceed the originally sold tracked quantity
+- Reuse the existing inventory balance resolution for reporting current-stock and low-stock endpoints so report views and inventory balances stay aligned at business scope
+- Keep stock movement and sales return reports branch-scoped because ledger rows are branch-attributed, even though current stock remains business-scoped
+- Limit tax summary reporting to immutable tax amounts already stored on sales and sale items; historical tax-profile or rate breakdowns require extra snapshot fields that do not exist yet
+- Keep sales-return reporting quantity-based and ledger-backed until refund/payment reversal or credit-note persistence is introduced
 - Treat suppliers as business-scoped master data resolved through the existing accessible-business helper rather than through branch-specific ownership
 - Model finalized purchases as immutable branch-scoped transactions with item snapshots and optional supplier snapshots, mirroring the sale immutability pattern
 - Reuse the existing `inventory_movements` ledger for purchase stock-ins via `PURCHASE` entries instead of introducing a parallel stock table
@@ -383,6 +387,7 @@ Known Issues:
 - `pnpm bootstrap:owner` requires the target tenant to already exist; it does not create tenant/business/branch/terminal hierarchy on its own
 - Walk-in customer uniqueness is currently enforced by the service-level ensure flow rather than a database uniqueness constraint
 - Sale returns currently restore inventory only; refund/payment reversal, credit-note issuance, and dedicated return-record persistence are not implemented yet
+- Tax summary currently reports collected tax totals only; historical tax-profile or rate breakdowns are not available from the current immutable sale snapshot model
 - Purchase flows currently support creation and listing only; purchase updates, purchase returns, cancellations, and vendor invoice reconciliation are not implemented yet
 - Sync replay still leaves unsupported event types in `RECEIVED`; downstream pull/retry workflows for those events are not implemented yet
 - Sync replay currently attributes created sales and purchases to the authenticated sync caller; preserving the original offline actor independently from the sync session is not implemented yet
@@ -414,6 +419,9 @@ Tests:
 - Tenant-core RBAC integration: unauthorized business/branch/terminal writes return `403`
 - Auth password change: success, invalid current password, and missing access context
 - Auth repository integration: password-hash update plus user-session revocation via `DrizzleAuthRepository`
+- Reporting routes: tax summary, current stock, low stock, stock movement, sales returns, and branch-vs-business stock scope via `apps/api/test/reporting-operational.test.ts`
+- Reporting repository integration: tax summary, stock movement, and sales return aggregations via `apps/api/test/drizzle-reporting-operational.test.ts`
+- Full suite verification on 2026-08-28: `cmd /c pnpm test` (158 tests passing)
 - Auth sessions: current-session listing, targeted revocation, and cross-user revocation denial
 - Auth repository integration: tenant-scoped user session listing via `DrizzleAuthRepository`
 - Auth password reset: request/confirm flow, non-enumerating `202` responses, and expired token rejection
@@ -662,6 +670,9 @@ Last Successful Commands:
 - `cmd /c pnpm typecheck`
 - `cmd /c pnpm build`
 - `cmd /c pnpm test`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm test`
 
 Database Status:
 - Drizzle schema created for tenant/business/branch/terminal
@@ -722,11 +733,19 @@ Database Status:
 - Added service-side branch, business, terminal, and cashier metadata enrichment for reporting rows while keeping repository aggregation ledger-backed
 - Added reporting route coverage for grouped summaries, branch-scope filtering, and top-product limit validation
 - Added `DrizzleSaleRepository` coverage for branch, terminal, cashier, payment-method, and top-product persisted aggregations
+- Added protected `GET /api/v1/reports/sales/tax-summary`, `/api/v1/reports/sales/returns`, `/api/v1/reports/inventory/current-stock`, `/api/v1/reports/inventory/low-stock`, and `/api/v1/reports/inventory/stock-movement`
+- Reused a shared inventory-balance reporting helper so current-stock and low-stock reports stay aligned with `GET /api/v1/inventory/balances`
+- Added ledger-backed stock-movement and sales-return reporting over immutable `inventory_movements`, with sale-item snapshot metadata used for return rows
+- Added reporting route coverage for tax summary, current stock, low stock, stock movement, sales returns, and business-scope-vs-branch-scope stock visibility
+- Added `DrizzleSaleRepository` coverage for tax summary, stock movement, and sales-return persisted aggregations
 - Verified `pnpm --filter @smart-pos/api typecheck`
 - Verified `pnpm exec vitest run apps/api/test/reporting.test.ts apps/api/test/reporting-branch-scope.test.ts apps/api/test/reporting-breakdowns.test.ts apps/api/test/drizzle-sales-summary.test.ts apps/api/test/drizzle-sales-breakdowns.test.ts --reporter=verbose`
 - Verified `pnpm lint`
 - Verified `pnpm test`
 - Verified `pnpm build`
+- Verified `cmd /c pnpm lint`
+- Verified `cmd /c pnpm typecheck`
+- Verified `cmd /c pnpm test`
 
 API Status:
 - Phase 0 scaffold verified
@@ -789,9 +808,14 @@ API Status:
 - Sales-summary reads aggregate server-side over persisted sales totals and sale-item quantities instead of returning raw transactions to the client
 - Reporting API now includes protected grouped sales endpoints for branch, terminal, cashier, payment-method, and top-product summaries over the persisted sales ledger
 - Grouped and summary sales reports now honor assigned-branch scope, so restricted users only see totals for their accessible branches even inside a shared business
+- Reporting API now includes protected `GET /api/v1/reports/sales/tax-summary` with business-scoped collected-tax summaries derived from immutable sales totals
+- Reporting API now includes protected `GET /api/v1/reports/sales/returns` over persisted `SALE_RETURN` ledger rows enriched from immutable sale-item snapshots
+- Reporting API now includes protected `GET /api/v1/reports/inventory/current-stock` and `/api/v1/reports/inventory/low-stock` using the same business-scoped stock calculation as the inventory balances endpoint
+- Reporting API now includes protected `GET /api/v1/reports/inventory/stock-movement` over persisted `inventory_movements` with date-range filtering and assigned-branch scope enforcement
+- Current and low-stock reports remain business-scoped, while stock movement and sales return reports remain branch-scoped for restricted users
 
 Git Status:
-- working tree should be clean on `main` after publishing this grouped Phase 9 reporting checkpoint to `origin/main`
+- changes pending commit/push for completed Phase 9 reporting APIs
 
 Last Commit:
-- expected published checkpoint for this handoff: `feat(reporting): add grouped sales reports`
+- pending publish for completed Phase 9 reporting APIs
