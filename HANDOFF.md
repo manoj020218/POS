@@ -766,12 +766,12 @@ API Status:
 - Later authorized or corrected retries can reapply previously failed events and clear the stored failure diagnostics on success
 - Sync API now includes protected `GET /api/v1/sync/pull`
 - Sync pull now returns a typed mixed change feed with `changeId`, `changeType`, `source`, `record`, `updatedAt`, and branch/business scope fields
-- Sync pull currently emits `SYNC_EVENT_APPLIED` records for applied inbound sync events plus server-authored `CATEGORY_UPSERTED`, `UNIT_UPSERTED`, `TAX_PROFILE_UPSERTED`, and `PRODUCT_UPSERTED` snapshots
+- Sync pull currently emits `SYNC_EVENT_APPLIED` records for applied inbound sync events plus server-authored `CATEGORY_UPSERTED`, `UNIT_UPSERTED`, `TAX_PROFILE_UPSERTED`, `PRODUCT_UPSERTED`, and `CUSTOMER_UPSERTED` snapshots
 - Sync pull pagination now uses an opaque `(updatedAt, changeKey)` cursor so catalog masters, products, and sync-event changes can share one ordered stream without a new schema change in this slice
 - Inventory API now includes protected `GET /api/v1/inventory/balances` with business and optional product scoping plus opening-stock-plus-ledger balance calculation
 
 Git Status:
-- previous pushed state before this session was clean after the first server-authored product pull slice; current session adds first-class catalog master pull changes plus handoff/todo updates
+- working tree was clean immediately after publishing the customer sync-pull checkpoint on 2026-08-28; next session should start Phase 9 reporting work from `origin/main`
 
 Last Commit:
-- previous published checkpoint before this session: `7c28501 feat(sync): add product pull change feed`
+- latest published checkpoint: `8a44d81 feat(sync): add customer pull change feed`
