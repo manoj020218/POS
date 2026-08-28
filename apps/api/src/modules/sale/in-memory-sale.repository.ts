@@ -6,6 +6,9 @@ import type {
   InventoryMovementBalanceRecord,
   InventoryMovementRecord
 } from '../inventory/inventory.types.js';
+import { emptySalesSummaryRecord } from '../reporting/reporting.types.js';
+import type { ReportingRepository } from '../reporting/reporting.repository.js';
+import type { SalesSummaryLookupInput } from '../reporting/reporting.types.js';
 import { formatInvoiceNumber } from './sale-domain.js';
 import type { SaleRepository } from './sale.repository.js';
 import type {
@@ -17,7 +20,9 @@ import type {
   SaleReturnQuantityRecord
 } from './sale.types.js';
 
-export class InMemorySaleRepository implements SaleRepository, InventoryRepository {
+export class InMemorySaleRepository
+  implements SaleRepository, InventoryRepository, ReportingRepository
+{
   private readonly invoiceSequences = new Map<string, number>();
   private readonly items = new Map<string, SaleItemRecord[]>();
   private readonly sales = new Map<string, SaleRecord>();
@@ -157,6 +162,36 @@ export class InMemorySaleRepository implements SaleRepository, InventoryReposito
       (left, right) =>
         left.businessId.localeCompare(right.businessId) ||
         left.productId.localeCompare(right.productId)
+    );
+  }
+
+  async summarizeSales(input: SalesSummaryLookupInput) {
+    if (input.businessIds.length === 0) {
+      return emptySalesSummaryRecord();
+    }
+
+    const allowedBusinessIds = new Set(input.businessIds);
+    const sales = [...this.sales.values()].filter((sale) => {
+      return (
+        sale.tenantId === input.tenantId &&
+        allowedBusinessIds.has(sale.businessId) &&
+        sale.occurredAt >= input.occurredAtFrom &&
+        sale.occurredAt < input.occurredAtTo
+      );
+    });
+
+    return sales.reduce(
+      (summary, sale) => ({
+        discountAmount: summary.discountAmount + sale.discountAmount,
+        saleCount: summary.saleCount + 1,
+        subtotalAmount: summary.subtotalAmount + sale.subtotalAmount,
+        taxAmount: summary.taxAmount + sale.taxAmount,
+        totalAmount: summary.totalAmount + sale.totalAmount,
+        totalQuantity:
+          summary.totalQuantity +
+          (this.items.get(sale.id) ?? []).reduce((quantity, item) => quantity + item.quantity, 0)
+      }),
+      emptySalesSummaryRecord()
     );
   }
 }

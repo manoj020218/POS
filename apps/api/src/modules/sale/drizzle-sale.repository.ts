@@ -6,30 +6,27 @@ import type { AppDatabase } from '../../db/client.js';
 import { inventoryMovements, saleItems, saleSequences, sales } from '../../db/schema/index.js';
 import type { InventoryRepository } from '../inventory/inventory.repository.js';
 import type { InventoryBalanceLookupInput } from '../inventory/inventory.repository.js';
-import type { InventoryMovementBalanceRecord } from '../inventory/inventory.types.js';
+import type { ReportingRepository } from '../reporting/reporting.repository.js';
+import type { SalesSummaryLookupInput } from '../reporting/reporting.types.js';
 import { formatInvoiceNumber } from './sale-domain.js';
+import { summarizeDrizzleSales } from './drizzle-sale-reporting.js';
 import type { SaleRepository } from './sale.repository.js';
+import {
+  normalizeInventoryBalance,
+  normalizeSale,
+  requireSale,
+  requireSequence
+} from './sale-repository-helpers.js';
 import type {
   CreateSaleReturnInput,
   CreateSaleInput,
-  PaymentMethod,
   SaleDetailRecord,
-  SaleRecord,
   SaleReturnQuantityRecord
 } from './sale.types.js';
 
-type SaleRow = Omit<SaleRecord, 'customerId' | 'customerName' | 'paymentMethod'> & {
-  customerId: string | null;
-  customerName: string | null;
-  paymentMethod: string;
-};
-
-type InventoryBalanceRow = Omit<InventoryMovementBalanceRecord, 'lastMovementAt' | 'netMovementQuantity'> & {
-  lastMovementAt: Date | null;
-  netMovementQuantity: number;
-};
-
-export class DrizzleSaleRepository implements SaleRepository, InventoryRepository {
+export class DrizzleSaleRepository
+  implements SaleRepository, InventoryRepository, ReportingRepository
+{
   constructor(private readonly db: AppDatabase) {}
 
   async createSale(input: CreateSaleInput): Promise<SaleDetailRecord> {
@@ -99,7 +96,7 @@ export class DrizzleSaleRepository implements SaleRepository, InventoryRepositor
 
   async listInventoryBalances(
     input: InventoryBalanceLookupInput
-  ): Promise<InventoryMovementBalanceRecord[]> {
+  ) {
     if (input.businessIds.length === 0) {
       return [];
     }
@@ -126,6 +123,10 @@ export class DrizzleSaleRepository implements SaleRepository, InventoryRepositor
       );
 
     return rows.map(normalizeInventoryBalance);
+  }
+
+  async summarizeSales(input: SalesSummaryLookupInput) {
+    return summarizeDrizzleSales(this.db, input);
   }
 
   async createSaleReturn(input: CreateSaleReturnInput): Promise<void> {
@@ -189,34 +190,3 @@ export class DrizzleSaleRepository implements SaleRepository, InventoryRepositor
     }));
   }
 }
-
-const requireSale = (sale: SaleRow | undefined) => {
-  if (!sale) {
-    throw new Error('Sale row missing after insert');
-  }
-
-  return sale;
-};
-
-const requireSequence = (sequence: { lastValue: number } | undefined) => {
-  if (!sequence) {
-    throw new Error('Sale invoice sequence missing after reservation');
-  }
-
-  return sequence.lastValue;
-};
-
-const normalizeInventoryBalance = (row: InventoryBalanceRow): InventoryMovementBalanceRecord => ({
-  businessId: row.businessId,
-  lastMovementAt: row.lastMovementAt ?? undefined,
-  netMovementQuantity: Number(row.netMovementQuantity),
-  productId: row.productId,
-  tenantId: row.tenantId
-});
-
-const normalizeSale = (sale: SaleRow): SaleRecord => ({
-  ...sale,
-  customerId: sale.customerId ?? undefined,
-  customerName: sale.customerName ?? undefined,
-  paymentMethod: sale.paymentMethod as PaymentMethod
-});

@@ -24,6 +24,8 @@ import type { InventoryMovementRecord } from './modules/inventory/inventory.type
 import { InMemoryPurchaseRepository } from './modules/purchase/in-memory-purchase.repository.js';
 import { createPurchaseRouter } from './modules/purchase/purchase.routes.js';
 import type { PurchaseRepository } from './modules/purchase/purchase.repository.js';
+import type { ReportingRepository } from './modules/reporting/reporting.repository.js';
+import { createReportingRouter } from './modules/reporting/reporting.routes.js';
 import { createSaleRouter } from './modules/sale/sale.routes.js';
 import type { SaleRepository } from './modules/sale/sale.repository.js';
 import { InMemorySaleRepository } from './modules/sale/in-memory-sale.repository.js';
@@ -50,7 +52,7 @@ export type AppOptions = {
   customerRepository?: CustomerRepository;
   logger: AppLogger;
   purchaseRepository?: PurchaseRepository;
-  saleRepository?: SaleRepository & InventoryRepository;
+  saleRepository?: SaleRepository & InventoryRepository & ReportingRepository;
   syncRepository?: SyncRepository;
   supplierRepository?: SupplierRepository;
   tenantCoreRepository?: TenantCoreRepository;
@@ -109,6 +111,7 @@ export const createApp = (options: AppOptions): Express => {
       tenantCoreRepository
     )
   );
+  app.use('/api/v1', createReportingRouter(saleRepository, tenantCoreRepository));
   app.use('/api/v1', createInventoryRouter(saleRepository, catalogRepository, tenantCoreRepository));
   app.use(
     '/api/v1',

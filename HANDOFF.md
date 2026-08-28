@@ -4,7 +4,7 @@ Current Phase:
 - Phase 9 - Reporting APIs
 
 Current Subtask:
-- Begin Phase 9 server-side reporting with initial "Today's Sales" and date-range sales summaries over the persisted sales ledger; Phase 8 mixed sync push/pull plus server-authored customer/catalog snapshot feeds are complete and verified
+- Continue Phase 9 with branch, terminal, cashier, payment-method, and top-products reporting summaries; the initial server-side "Today's Sales" and date-range sales summary slice is complete and verified
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -711,6 +711,16 @@ Database Status:
 - `sync_events` now persist `updated_at` for stable applied-event pull ordering and incremental cursor pagination
 - Applied sync-event pull queries are now backed by the `sync_events_tenant_state_updated_idx` index
 - Product snapshot pull queries now reuse existing `products.updated_at`; no additional schema changes were required for the first server-authored pull slice
+- Added Phase 9 reporting module with protected `GET /api/v1/reports/sales/summary`
+- Added default "Today's Sales" and explicit date-range sales-summary aggregation over persisted `sales` and `sale_items`
+- Reporting summaries now respect existing tenant/business scope rules and require `report:view`
+- Added reporting route coverage for default today scope, explicit date ranges, permission enforcement, and business-scope denial
+- Added `DrizzleSaleRepository` summary coverage for persisted business-scoped date-range aggregation
+- Verified `pnpm --filter @smart-pos/api typecheck`
+- Verified `pnpm exec vitest run apps/api/test/reporting.test.ts apps/api/test/drizzle-sales-summary.test.ts --reporter=verbose`
+- Verified `pnpm lint`
+- Verified `pnpm test`
+- Verified `pnpm build`
 
 API Status:
 - Phase 0 scaffold verified
@@ -769,9 +779,11 @@ API Status:
 - Sync pull currently emits `SYNC_EVENT_APPLIED` records for applied inbound sync events plus server-authored `CATEGORY_UPSERTED`, `UNIT_UPSERTED`, `TAX_PROFILE_UPSERTED`, `PRODUCT_UPSERTED`, and `CUSTOMER_UPSERTED` snapshots
 - Sync pull pagination now uses an opaque `(updatedAt, changeKey)` cursor so catalog masters, products, and sync-event changes can share one ordered stream without a new schema change in this slice
 - Inventory API now includes protected `GET /api/v1/inventory/balances` with business and optional product scoping plus opening-stock-plus-ledger balance calculation
+- Reporting API now includes protected `GET /api/v1/reports/sales/summary` with default local-calendar "TODAY" behavior plus explicit `dateFrom`/`dateTo` date-range summaries
+- Sales-summary reads aggregate server-side over persisted sales totals and sale-item quantities instead of returning raw transactions to the client
 
 Git Status:
-- working tree was clean immediately after publishing the customer sync-pull checkpoint on 2026-08-28; next session should start Phase 9 reporting work from `origin/main`
+- working tree should be clean on `main` after publishing this Phase 9 reporting summary checkpoint to `origin/main`
 
 Last Commit:
-- latest published checkpoint: `8a44d81 feat(sync): add customer pull change feed`
+- expected published checkpoint for this handoff: `feat(reporting): add sales summary api`
