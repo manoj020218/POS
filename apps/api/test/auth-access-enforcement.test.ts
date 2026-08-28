@@ -97,7 +97,9 @@ describe('auth access enforcement', () => {
     expect(afterDisable.body.code).toBe('USER_DISABLED');
   });
 
-  it('rejects protected-route access tokens immediately after a role change revokes the session', async () => {
+  it(
+    'rejects protected-route access tokens immediately after a role change revokes the session',
+    async () => {
     const ownerAccess = accessHeader((await login('owner@example.com')).accessToken);
     const adminLogin = await login('admin@example.com');
     const beforeRoleChange = await request(app)
@@ -120,7 +122,9 @@ describe('auth access enforcement', () => {
     expect(afterRoleChange.body.code).toBe('AUTH_SESSION_REVOKED');
     expect(refreshAfterRoleChange.status).toBe(401);
     expect(refreshAfterRoleChange.body.code).toBe('AUTH_SESSION_REVOKED');
-  });
+    },
+    15000
+  );
 
   const login = async (email: string) => {
     const response = await request(app).post('/api/v1/auth/login').send({

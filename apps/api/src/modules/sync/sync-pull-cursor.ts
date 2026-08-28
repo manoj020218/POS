@@ -12,6 +12,8 @@ export const buildProductSyncPullChangeKey = (productId: string) => `product:${p
 
 export const buildCategorySyncPullChangeKey = (categoryId: string) => `category:${categoryId}`;
 
+export const buildCustomerSyncPullChangeKey = (customerId: string) => `customer:${customerId}`;
+
 export const buildSyncEventPullChangeKey = (eventId: string) => `sync-event:${eventId}`;
 
 export const buildTaxProfileSyncPullChangeKey = (taxProfileId: string) =>

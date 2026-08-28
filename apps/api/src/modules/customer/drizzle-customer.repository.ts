@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, desc, eq, ilike, inArray, or } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, ilike, inArray, or, sql } from 'drizzle-orm';
 
 import type { AppDatabase } from '../../db/client.js';
 import { customers } from '../../db/schema/index.js';
@@ -8,6 +8,7 @@ import type { CustomerRepository } from './customer.repository.js';
 import type {
   CreateCustomerInput,
   CustomerRecord,
+  CustomerUpdatedSinceInput,
   UpdateCustomerInput
 } from './customer.types.js';
 
@@ -69,6 +70,39 @@ export class DrizzleCustomerRepository implements CustomerRepository {
         asc(customers.mobile),
         asc(customers.id)
       );
+
+    return records.map(normalizeCustomer);
+  }
+
+  async listCustomersUpdatedSince(
+    tenantId: string,
+    businessIds: string[],
+    input: CustomerUpdatedSinceInput
+  ) {
+    if (businessIds.length === 0) {
+      return [];
+    }
+
+    const baseWhere = and(eq(customers.tenantId, tenantId), inArray(customers.businessId, businessIds));
+    const prefixLiteral = sql.raw(`'customer:'`);
+    const whereClause = !input.cursor
+      ? baseWhere
+      : and(
+          baseWhere,
+          or(
+            gt(customers.updatedAt, input.cursor.updatedAt),
+            and(
+              eq(customers.updatedAt, input.cursor.updatedAt),
+              sql<boolean>`concat(${prefixLiteral}, ${customers.id}) > ${input.cursor.changeKey}`
+            )
+          )
+        );
+    const records = await this.db
+      .select()
+      .from(customers)
+      .where(whereClause)
+      .orderBy(asc(customers.updatedAt), asc(customers.id))
+      .limit(input.limit);
 
     return records.map(normalizeCustomer);
   }

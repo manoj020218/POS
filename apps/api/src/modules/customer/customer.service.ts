@@ -4,10 +4,10 @@ import type { AccessContext } from '../tenant-core/access-context.js';
 import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
 import type { BusinessRecord } from '../tenant-core/tenant-core.types.js';
 import type { CustomerRepository } from './customer.repository.js';
+import { toCustomerView } from './customer-view.js';
 import type {
   CreateCustomerInput,
   CustomerQuery,
-  CustomerRecord,
   CustomerView,
   UpdateCustomerInput
 } from './customer.types.js';
@@ -121,18 +121,3 @@ const requiredBusiness = (map: Map<string, BusinessRecord>, businessId: string) 
   if (!business) throw createHttpError(404, 'BUSINESS_NOT_FOUND', 'Business not found');
   return business;
 };
-
-const toCustomerView = (customer: CustomerRecord, business: BusinessRecord): CustomerView => ({
-  address: customer.address,
-  businessCode: business.code,
-  businessId: business.id,
-  businessName: business.name,
-  email: customer.email,
-  id: customer.id,
-  isActive: customer.isActive,
-  isWalkIn: customer.isWalkIn,
-  mobile: customer.mobile,
-  name: customer.name,
-  notes: customer.notes,
-  taxNumber: customer.taxNumber
-});

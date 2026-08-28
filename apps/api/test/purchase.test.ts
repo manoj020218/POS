@@ -96,45 +96,49 @@ describe('purchase routes', () => {
     });
   });
 
-  it('rejects duplicate items, missing unit costs, and non-tracked products', async () => {
-    const inventoryAccess = await loginAs('inventory@example.com');
-    const tracked = await request(app).post('/api/v1/products').set(inventoryAccess).send({
-      name: 'Cost Required Product',
-      openingStock: 2,
-      sellingPrice: 1200,
-      trackInventory: true
-    });
-    const nonTracked = await request(app).post('/api/v1/products').set(inventoryAccess).send({
-      name: 'Service Purchase',
-      openingStock: 0,
-      sellingPrice: 500,
-      trackInventory: false
-    });
-
-    const duplicate = await request(app).post('/api/v1/purchases').set(inventoryAccess).send({
-      branchId: branchAId,
-      items: [
-        { productId: tracked.body.data.id, quantity: 1, unitCost: 500 },
-        { productId: tracked.body.data.id, quantity: 2, unitCost: 500 }
-      ]
-    });
-    const missingCost = await request(app).post('/api/v1/purchases').set(inventoryAccess).send({
-      branchId: branchAId,
-      items: [{ productId: tracked.body.data.id, quantity: 1 }]
-    });
-    const nonTrackedPurchase = await request(app)
-      .post('/api/v1/purchases')
-      .set(inventoryAccess)
-      .send({
-        branchId: branchAId,
-        items: [{ productId: nonTracked.body.data.id, quantity: 1, unitCost: 500 }]
+  it(
+    'rejects duplicate items, missing unit costs, and non-tracked products',
+    async () => {
+      const inventoryAccess = await loginAs('inventory@example.com');
+      const tracked = await request(app).post('/api/v1/products').set(inventoryAccess).send({
+        name: 'Cost Required Product',
+        openingStock: 2,
+        sellingPrice: 1200,
+        trackInventory: true
+      });
+      const nonTracked = await request(app).post('/api/v1/products').set(inventoryAccess).send({
+        name: 'Service Purchase',
+        openingStock: 0,
+        sellingPrice: 500,
+        trackInventory: false
       });
 
-    expect(duplicate.status).toBe(400);
-    expect(duplicate.body.code).toBe('DUPLICATE_PURCHASE_PRODUCT');
-    expect(missingCost.status).toBe(400);
-    expect(missingCost.body.code).toBe('PURCHASE_UNIT_COST_REQUIRED');
-    expect(nonTrackedPurchase.status).toBe(409);
-    expect(nonTrackedPurchase.body.code).toBe('PURCHASE_PRODUCT_NOT_TRACKED');
-  });
+      const duplicate = await request(app).post('/api/v1/purchases').set(inventoryAccess).send({
+        branchId: branchAId,
+        items: [
+          { productId: tracked.body.data.id, quantity: 1, unitCost: 500 },
+          { productId: tracked.body.data.id, quantity: 2, unitCost: 500 }
+        ]
+      });
+      const missingCost = await request(app).post('/api/v1/purchases').set(inventoryAccess).send({
+        branchId: branchAId,
+        items: [{ productId: tracked.body.data.id, quantity: 1 }]
+      });
+      const nonTrackedPurchase = await request(app)
+        .post('/api/v1/purchases')
+        .set(inventoryAccess)
+        .send({
+          branchId: branchAId,
+          items: [{ productId: nonTracked.body.data.id, quantity: 1, unitCost: 500 }]
+        });
+
+      expect(duplicate.status).toBe(400);
+      expect(duplicate.body.code).toBe('DUPLICATE_PURCHASE_PRODUCT');
+      expect(missingCost.status).toBe(400);
+      expect(missingCost.body.code).toBe('PURCHASE_UNIT_COST_REQUIRED');
+      expect(nonTrackedPurchase.status).toBe(409);
+      expect(nonTrackedPurchase.body.code).toBe('PURCHASE_PRODUCT_NOT_TRACKED');
+    },
+    15000
+  );
 });

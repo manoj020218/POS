@@ -1,6 +1,7 @@
 import type {
   CreateCustomerInput,
   CustomerRecord,
+  CustomerUpdatedSinceInput,
   UpdateCustomerInput
 } from './customer.types.js';
 
@@ -12,6 +13,11 @@ export interface CustomerRepository {
     tenantId: string,
     businessIds?: string[],
     query?: string
+  ): Promise<CustomerRecord[]>;
+  listCustomersUpdatedSince(
+    tenantId: string,
+    businessIds: string[],
+    input: CustomerUpdatedSinceInput
   ): Promise<CustomerRecord[]>;
   updateCustomer(
     customerId: string,

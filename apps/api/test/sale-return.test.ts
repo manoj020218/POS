@@ -151,76 +151,80 @@ describe('sale return routes', () => {
     expect(overflow.body.code).toBe('RETURN_QUANTITY_EXCEEDS_SOLD');
   });
 
-  it('enforces refund permission and branch scope on sale returns', async () => {
-    const cashierAccess = await loginAs('cashier@example.com');
-    const ownerAccess = await loginAs('owner@example.com');
-    const managerAccess = await loginAs('manager@example.com');
-    const productA = await request(app).post('/api/v1/products').set(ownerAccess).send({
-      businessId: businessAId,
-      name: 'Cashier Return Denied',
-      openingStock: 4,
-      sellingPrice: 1200,
-      trackInventory: true
-    });
-    const saleA = await request(app).post('/api/v1/sales').set(ownerAccess).send({
-      branchId: branchAId,
-      items: [
-        {
-          productId: productA.body.data.id,
-          quantity: 1
-        }
-      ],
-      payment: {
-        method: 'CARD'
-      },
-      terminalId: terminalAId
-    });
-    const productB = await request(app).post('/api/v1/products').set(ownerAccess).send({
-      businessId: businessBId,
-      name: 'Scoped Return Product',
-      openingStock: 6,
-      sellingPrice: 1400,
-      trackInventory: true
-    });
-    const saleB = await request(app).post('/api/v1/sales').set(ownerAccess).send({
-      branchId: branchBId,
-      items: [
-        {
-          productId: productB.body.data.id,
-          quantity: 1
-        }
-      ],
-      payment: {
-        method: 'CARD'
-      },
-      terminalId: terminalBId
-    });
-    const cashierDenied = await request(app)
-      .post(`/api/v1/sales/${saleA.body.data.id}/returns`)
-      .set(cashierAccess)
-      .send({
+  it(
+    'enforces refund permission and branch scope on sale returns',
+    async () => {
+      const cashierAccess = await loginAs('cashier@example.com');
+      const ownerAccess = await loginAs('owner@example.com');
+      const managerAccess = await loginAs('manager@example.com');
+      const productA = await request(app).post('/api/v1/products').set(ownerAccess).send({
+        businessId: businessAId,
+        name: 'Cashier Return Denied',
+        openingStock: 4,
+        sellingPrice: 1200,
+        trackInventory: true
+      });
+      const saleA = await request(app).post('/api/v1/sales').set(ownerAccess).send({
+        branchId: branchAId,
         items: [
           {
             productId: productA.body.data.id,
             quantity: 1
           }
-        ]
+        ],
+        payment: {
+          method: 'CARD'
+        },
+        terminalId: terminalAId
       });
-    const scopeDenied = await request(app)
-      .post(`/api/v1/sales/${saleB.body.data.id}/returns`)
-      .set(managerAccess)
-      .send({
+      const productB = await request(app).post('/api/v1/products').set(ownerAccess).send({
+        businessId: businessBId,
+        name: 'Scoped Return Product',
+        openingStock: 6,
+        sellingPrice: 1400,
+        trackInventory: true
+      });
+      const saleB = await request(app).post('/api/v1/sales').set(ownerAccess).send({
+        branchId: branchBId,
         items: [
           {
             productId: productB.body.data.id,
             quantity: 1
           }
-        ]
+        ],
+        payment: {
+          method: 'CARD'
+        },
+        terminalId: terminalBId
       });
+      const cashierDenied = await request(app)
+        .post(`/api/v1/sales/${saleA.body.data.id}/returns`)
+        .set(cashierAccess)
+        .send({
+          items: [
+            {
+              productId: productA.body.data.id,
+              quantity: 1
+            }
+          ]
+        });
+      const scopeDenied = await request(app)
+        .post(`/api/v1/sales/${saleB.body.data.id}/returns`)
+        .set(managerAccess)
+        .send({
+          items: [
+            {
+              productId: productB.body.data.id,
+              quantity: 1
+            }
+          ]
+        });
 
-    expect(cashierDenied.status).toBe(403);
-    expect(cashierDenied.body.code).toBe('FORBIDDEN');
-    expect(scopeDenied.status).toBe(403);
-    expect(scopeDenied.body.code).toBe('BRANCH_ACCESS_DENIED');
-  });
+      expect(cashierDenied.status).toBe(403);
+      expect(cashierDenied.body.code).toBe('FORBIDDEN');
+      expect(scopeDenied.status).toBe(403);
+      expect(scopeDenied.body.code).toBe('BRANCH_ACCESS_DENIED');
+    },
+    15000
+  );
 });

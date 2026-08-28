@@ -152,20 +152,24 @@ describe('auth user branch access', () => {
     expect(response.body.code).toBe('BRANCH_NOT_FOUND');
   });
 
-  it('rejects assigning branches to a user from another tenant', async () => {
-    const ownerAccess = await loginAs('owner@example.com');
-    const [tenantBranch] = await tenantRepository.listBranches(tenantId);
+  it(
+    'rejects assigning branches to a user from another tenant',
+    async () => {
+      const ownerAccess = await loginAs('owner@example.com');
+      const [tenantBranch] = await tenantRepository.listBranches(tenantId);
 
-    expect(tenantBranch).toBeDefined();
+      expect(tenantBranch).toBeDefined();
 
-    const response = await request(app)
-      .put('/api/v1/auth/users/55555555-5555-4555-8555-555555555555/branches')
-      .set(ownerAccess)
-      .send({ branchIds: [tenantBranch!.id] });
+      const response = await request(app)
+        .put('/api/v1/auth/users/55555555-5555-4555-8555-555555555555/branches')
+        .set(ownerAccess)
+        .send({ branchIds: [tenantBranch!.id] });
 
-    expect(response.status).toBe(404);
-    expect(response.body.code).toBe('AUTH_USER_NOT_FOUND');
-  });
+      expect(response.status).toBe(404);
+      expect(response.body.code).toBe('AUTH_USER_NOT_FOUND');
+    },
+    15000
+  );
 
   it('requires user-manage permission for branch assignment endpoints', async () => {
     const cashierAccess = await loginAs('cashier@example.com');

@@ -1,4 +1,5 @@
 import type { CatalogRepository } from '../catalog/catalog.repository.js';
+import type { CustomerRepository } from '../customer/customer.repository.js';
 import type { AccessContext } from '../tenant-core/access-context.js';
 import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
 import { resolveSyncPullScope } from './sync-branch-access.js';
@@ -16,6 +17,7 @@ import type { SyncPullQuery, SyncPullResult } from './sync.types.js';
 export const createSyncPullService = (
   repository: SyncRepository,
   catalogRepository: CatalogRepository,
+  customerRepository: CustomerRepository,
   tenantCoreRepository: TenantCoreRepository
 ) => async (context: AccessContext, query: SyncPullQuery): Promise<SyncPullResult> => {
   const scope = await resolveSyncPullScope(context, tenantCoreRepository, query.branchId);
@@ -39,6 +41,7 @@ export const createSyncPullService = (
     }),
     listServerSyncPullChanges(
       catalogRepository,
+      customerRepository,
       tenantCoreRepository,
       context.tenantId,
       scope.businessIds,

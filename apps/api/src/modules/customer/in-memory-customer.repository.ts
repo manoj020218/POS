@@ -4,8 +4,10 @@ import type { CustomerRepository } from './customer.repository.js';
 import type {
   CreateCustomerInput,
   CustomerRecord,
+  CustomerUpdatedSinceInput,
   UpdateCustomerInput
 } from './customer.types.js';
+import { buildCustomerSyncPullChangeKey } from '../sync/sync-pull-cursor.js';
 
 const sortCustomers = (left: CustomerRecord, right: CustomerRecord) =>
   Number(right.isWalkIn) - Number(left.isWalkIn) ||
@@ -57,6 +59,24 @@ export class InMemoryCustomerRepository implements CustomerRepository {
       .sort(sortCustomers);
   }
 
+  async listCustomersUpdatedSince(
+    tenantId: string,
+    businessIds: string[],
+    input: CustomerUpdatedSinceInput
+  ) {
+    const allowed = new Set(businessIds);
+
+    return [...this.customers.values()]
+      .filter(
+        (customer) =>
+          customer.tenantId === tenantId &&
+          allowed.has(customer.businessId) &&
+          isAfterSyncCursor(customer, input.cursor)
+      )
+      .sort(compareCustomerSyncOrder)
+      .slice(0, input.limit);
+  }
+
   async updateCustomer(customerId: string, tenantId: string, input: UpdateCustomerInput) {
     const existing = this.customers.get(customerId);
     if (!existing || existing.tenantId !== tenantId) return null;
@@ -74,4 +94,23 @@ const matchesQuery = (customer: CustomerRecord, query?: string) => {
   return [customer.name, customer.mobile, customer.email]
     .filter(Boolean)
     .some((value) => value!.toLowerCase().includes(query));
+};
+
+const compareCustomerSyncOrder = (left: CustomerRecord, right: CustomerRecord) =>
+  left.updatedAt.getTime() - right.updatedAt.getTime() ||
+  buildCustomerSyncPullChangeKey(left.id).localeCompare(buildCustomerSyncPullChangeKey(right.id));
+
+const isAfterSyncCursor = (
+  customer: CustomerRecord,
+  cursor?: CustomerUpdatedSinceInput['cursor']
+) => {
+  if (!cursor) {
+    return true;
+  }
+
+  return (
+    customer.updatedAt.getTime() > cursor.updatedAt.getTime() ||
+    (customer.updatedAt.getTime() === cursor.updatedAt.getTime() &&
+      buildCustomerSyncPullChangeKey(customer.id).localeCompare(cursor.changeKey) > 0)
+  );
 };

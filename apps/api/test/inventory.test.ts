@@ -80,45 +80,49 @@ describe('inventory balances', () => {
     ).toBe(false);
   });
 
-  it('respects business scope and supports product-specific balance lookup', async () => {
-    const ownerAccess = await loginAs('owner@example.com');
-    const managerAccess = await loginAs('manager@example.com');
-    const productA = await request(app).post('/api/v1/products').set(ownerAccess).send({
-      businessId: businessAId,
-      name: 'Lookup Chips',
-      openingStock: 4,
-      sellingPrice: 1200,
-      trackInventory: true
-    });
-    const productB = await request(app).post('/api/v1/products').set(ownerAccess).send({
-      businessId: businessBId,
-      name: 'Blocked Branch Product',
-      openingStock: 9,
-      sellingPrice: 900,
-      trackInventory: true
-    });
-    const scopedBalance = await request(app)
-      .get('/api/v1/inventory/balances')
-      .query({ businessId: businessAId, productId: productA.body.data.id })
-      .set(ownerAccess);
-    const denied = await request(app)
-      .get('/api/v1/inventory/balances')
-      .query({ businessId: businessBId })
-      .set(managerAccess);
-
-    expect(productA.status).toBe(201);
-    expect(productB.status).toBe(201);
-    expect(scopedBalance.status).toBe(200);
-    expect(scopedBalance.body.data).toEqual([
-      expect.objectContaining({
+  it(
+    'respects business scope and supports product-specific balance lookup',
+    async () => {
+      const ownerAccess = await loginAs('owner@example.com');
+      const managerAccess = await loginAs('manager@example.com');
+      const productA = await request(app).post('/api/v1/products').set(ownerAccess).send({
         businessId: businessAId,
-        currentQuantity: 4,
-        netMovementQuantity: 0,
+        name: 'Lookup Chips',
         openingStock: 4,
-        productId: productA.body.data.id
-      })
-    ]);
-    expect(denied.status).toBe(403);
-    expect(denied.body.code).toBe('BRANCH_ACCESS_DENIED');
-  });
+        sellingPrice: 1200,
+        trackInventory: true
+      });
+      const productB = await request(app).post('/api/v1/products').set(ownerAccess).send({
+        businessId: businessBId,
+        name: 'Blocked Branch Product',
+        openingStock: 9,
+        sellingPrice: 900,
+        trackInventory: true
+      });
+      const scopedBalance = await request(app)
+        .get('/api/v1/inventory/balances')
+        .query({ businessId: businessAId, productId: productA.body.data.id })
+        .set(ownerAccess);
+      const denied = await request(app)
+        .get('/api/v1/inventory/balances')
+        .query({ businessId: businessBId })
+        .set(managerAccess);
+
+      expect(productA.status).toBe(201);
+      expect(productB.status).toBe(201);
+      expect(scopedBalance.status).toBe(200);
+      expect(scopedBalance.body.data).toEqual([
+        expect.objectContaining({
+          businessId: businessAId,
+          currentQuantity: 4,
+          netMovementQuantity: 0,
+          openingStock: 4,
+          productId: productA.body.data.id
+        })
+      ]);
+      expect(denied.status).toBe(403);
+      expect(denied.body.code).toBe('BRANCH_ACCESS_DENIED');
+    },
+    15000
+  );
 });

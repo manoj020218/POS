@@ -41,6 +41,7 @@ export const createSyncRouter = (
   const service = createSyncService(
     repository,
     catalogRepository,
+    customerRepository,
     tenantCoreRepository,
     createSyncReplayHandler({
       createPurchase: purchaseService.createPurchase,

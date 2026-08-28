@@ -39,3 +39,11 @@ export type CustomerView = {
   notes?: string;
   taxNumber?: string;
 };
+
+export type CustomerUpdatedSinceInput = {
+  cursor?: {
+    changeKey: string;
+    updatedAt: Date;
+  };
+  limit: number;
+};

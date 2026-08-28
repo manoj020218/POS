@@ -4,6 +4,7 @@ import type {
   TaxProfileView,
   UnitView
 } from '../catalog/catalog.types.js';
+import type { CustomerView } from '../customer/customer.types.js';
 
 export const syncEventStates = ['RECEIVED', 'APPLIED', 'FAILED'] as const;
 export type SyncEventState = (typeof syncEventStates)[number];
@@ -104,6 +105,11 @@ export type SyncPullUnitRecord = UnitView & {
   updatedAt: string;
 };
 
+export type SyncPullCustomerRecord = CustomerView & {
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type SyncPullAppliedEventChange = {
   branchId: string;
   changeId: string;
@@ -149,9 +155,19 @@ export type SyncPullUnitChange = {
   updatedAt: string;
 };
 
+export type SyncPullCustomerChange = {
+  businessId: string;
+  changeId: string;
+  changeType: 'CUSTOMER_UPSERTED';
+  record: SyncPullCustomerRecord;
+  source: 'SERVER';
+  updatedAt: string;
+};
+
 export type SyncPullChange =
   | SyncPullAppliedEventChange
   | SyncPullCategoryChange
+  | SyncPullCustomerChange
   | SyncPullProductChange
   | SyncPullTaxProfileChange
   | SyncPullUnitChange;

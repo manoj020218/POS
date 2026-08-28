@@ -1,10 +1,10 @@
 # HANDOFF
 
 Current Phase:
-- Phase 8 - Offline Sync Protocol
+- Phase 9 - Reporting APIs
 
 Current Subtask:
-- Phase 8 server-authored `GET /api/v1/sync/pull` contract now returns first-class catalog master changes alongside `PRODUCT_UPSERTED` and `SYNC_EVENT_APPLIED`; next safe unit is deciding the broader downstream master-data strategy before customer sync expands
+- Begin Phase 9 server-side reporting with initial "Today's Sales" and date-range sales summaries over the persisted sales ledger; Phase 8 mixed sync push/pull plus server-authored customer/catalog snapshot feeds are complete and verified
 
 Completed:
 - Read `PROJECT_PLAN.md`
@@ -287,15 +287,27 @@ Completed:
 - Verified `pnpm typecheck`
 - Verified `pnpm build`
 - Full suite verification on 2026-08-27: `pnpm test` (143 tests passing)
+- Accepted `docs/decisions/ADR-001-master-data-sync-snapshots.md` so Phase 8 master-data sync stays snapshot-based on `(updatedAt, changeKey)` instead of adding explicit version columns or a downstream change-log table in this slice
+- Added reusable `customer-view` mapping plus customer updated-since repository support in both the in-memory and Drizzle customer repositories
+- Added first-class `CUSTOMER_UPSERTED` server-authored changes to `GET /api/v1/sync/pull`
+- Replaced the monolithic server-change mapper with split catalog/customer sync-pull helpers aggregated under the shared mixed-feed service wiring
+- Added customer sync-pull route coverage plus `DrizzleCustomerRepository` sync-feed cursor/scope coverage
+- Raised the global Vitest `testTimeout` to `15000` in `vitest.config.mjs` so the full suite remains stable under the current API test load
+- Verified `pnpm exec vitest run apps/api/test/sync-pull-customers.test.ts apps/api/test/drizzle-customer.sync-feed.test.ts apps/api/test/sync-pull-products.test.ts apps/api/test/sync-pull-masters.test.ts --reporter=verbose`
+- Verified `pnpm lint`
+- Verified `pnpm typecheck`
+- Verified `pnpm build`
+- Full suite verification on 2026-08-28: `pnpm test` (146 tests passing)
 
 Currently Working:
 - No active code changes in progress
-- Phase 8 sync push replay, failure capture, and mixed product/master/event sync pull contract are complete and verified
-- Next safe unit is deciding whether downstream master-data sync should remain snapshot-based before customer sync expands
+- Phase 8 sync push replay, failure capture, and mixed sync pull contract are complete and verified across applied client events plus server-authored catalog, product, and customer snapshots
+- Next safe unit is Phase 9 reporting API design and the first sales summary endpoints
 
 Next:
-- Decide whether broader master-data sync should keep timestamp-based snapshot ordering or introduce explicit version columns / a dedicated downstream change log before customer sync expands
-- Add first-class `CUSTOMER_UPSERTED` pull changes after the downstream master-data strategy is chosen
+- Start Phase 9 with server-side "Today's Sales" and date-range sales summaries
+- Add branch, terminal, cashier, and payment-method summaries on top of the persisted sales ledger
+- Keep reporting aggregations server-side; do not expose raw transaction dumps for reporting clients
 
 Important Decisions:
 - Start with a modular monolith foundation under `apps/api`
@@ -338,6 +350,8 @@ Important Decisions:
 - Treat POS search as active-only and capped by limit, with exact barcode matches short-circuiting ahead of broader SKU/name/barcode ranking for checkout speed
 - Keep management product lists paginated with `page`/`pageSize` query params and response `meta` while preserving the existing `data` array shape for low-friction client adoption
 - Order management product lists by name, SKU, and ID so page boundaries stay stable across repeated reads
+- Keep server-authored master-data sync pull snapshot-based on existing `updatedAt` timestamps plus the shared `(updatedAt, changeKey)` cursor; defer explicit version columns or downstream change logs until stronger guarantees are required
+- Raise the Vitest global `testTimeout` to `15000` instead of adding more piecemeal per-file workarounds now that the full API suite has grown beyond the default 5-second budget
 - Keep customers business-scoped and branch-filtered through the existing business-scope helpers, matching the current catalog access model
 - Resolve quick-create customer names from `name`, then `mobile`, then `email` so checkout flows can create a valid customer from a mobile-only payload
 - Use an idempotent `POST /api/v1/customers/walk-in` endpoint to provision the default walk-in customer per business before sales-engine work exists
