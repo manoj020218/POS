@@ -7,6 +7,7 @@ import type { PurchaseRepository } from '../purchase/purchase.repository.js';
 import { createPurchaseService } from '../purchase/purchase.service.js';
 import type { SaleRepository } from '../sale/sale.repository.js';
 import { createSaleService } from '../sale/sale.service.js';
+import type { SettingsRepository } from '../settings/settings.repository.js';
 import type { SupplierRepository } from '../supplier/supplier.repository.js';
 import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
 import { pullSyncEventsController, pushSyncEventsController } from './sync.controller.js';
@@ -23,6 +24,7 @@ export const createSyncRouter = (
   supplierRepository: SupplierRepository,
   catalogRepository: CatalogRepository,
   customerRepository: CustomerRepository,
+  settingsRepository: SettingsRepository,
   tenantCoreRepository: TenantCoreRepository
 ): ExpressRouter => {
   const router = Router();
@@ -30,6 +32,7 @@ export const createSyncRouter = (
     saleRepository,
     catalogRepository,
     customerRepository,
+    settingsRepository,
     tenantCoreRepository
   );
   const purchaseService = createPurchaseService(

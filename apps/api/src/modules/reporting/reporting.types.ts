@@ -25,6 +25,7 @@ export type SalesSummaryRange = {
   rangeEndExclusive: Date;
   rangeStart: Date;
   reportType: 'DATE_RANGE' | 'TODAY';
+  timezone: string;
 };
 
 export type SalesReportLookupInput = {
@@ -112,6 +113,7 @@ export type SalesReportMeta = {
   dateFrom: string;
   dateTo: string;
   reportType: SalesSummaryRange['reportType'];
+  timezone: string;
 };
 
 export type InventoryReportMeta = {

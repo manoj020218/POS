@@ -21,25 +21,14 @@ describe('reporting routes', () => {
   it('returns today sales summary by default for accessible businesses only', async () => {
     const ownerAccess = await loginAs('owner@example.com');
     const managerAccess = await loginAs('manager@example.com');
-    const today = new Date();
-    const todayAt = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-      10,
-      0,
-      0,
-      0
-    );
-    const yesterdayAt = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate() - 1,
-      10,
-      0,
-      0,
-      0
-    );
+    await request(app)
+      .patch('/api/v1/business-settings')
+      .set(ownerAccess)
+      .send({ businessId: businessAId, timezone: 'UTC' });
+    const today = formatUtcDate(new Date());
+    const yesterday = shiftUtcDate(today, -1);
+    const todayAt = new Date(`${today}T10:00:00.000Z`);
+    const yesterdayAt = new Date(`${yesterday}T10:00:00.000Z`);
     const productA = await createProduct(app, ownerAccess, {
       businessId: businessAId,
       name: 'Today Cola',
@@ -79,13 +68,14 @@ describe('reporting routes', () => {
     expect(summary.body.data).toMatchObject({
       averageSaleAmount: 8000,
       businessCount: 1,
-      dateFrom: formatLocalDate(today),
-      dateTo: formatLocalDate(today),
+      dateFrom: today,
+      dateTo: today,
       discountAmount: 0,
       reportType: 'TODAY',
       saleCount: 1,
       subtotalAmount: 8000,
       taxAmount: 0,
+      timezone: 'UTC',
       totalAmount: 8000,
       totalQuantity: 2
     });
@@ -182,10 +172,16 @@ const createSale = (
   body: Record<string, unknown>
 ) => request(app).post('/api/v1/sales').set(access).send(body);
 
-const formatLocalDate = (value: Date) => {
-  const year = value.getFullYear();
-  const month = `${value.getMonth() + 1}`.padStart(2, '0');
-  const day = `${value.getDate()}`.padStart(2, '0');
+const formatUtcDate = (value: Date) => {
+  const year = value.getUTCFullYear();
+  const month = `${value.getUTCMonth() + 1}`.padStart(2, '0');
+  const day = `${value.getUTCDate()}`.padStart(2, '0');
 
   return `${year}-${month}-${day}`;
+};
+
+const shiftUtcDate = (value: string, days: number) => {
+  const [year, month, day] = value.split('-').map(Number);
+  const shifted = new Date(Date.UTC(year!, month! - 1, day! + days));
+  return formatUtcDate(shifted);
 };

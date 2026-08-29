@@ -8,6 +8,7 @@ import { DrizzleCatalogRepository } from './modules/catalog/drizzle-catalog.repo
 import { DrizzleCustomerRepository } from './modules/customer/drizzle-customer.repository.js';
 import { DrizzlePurchaseRepository } from './modules/purchase/drizzle-purchase.repository.js';
 import { DrizzleSaleRepository } from './modules/sale/drizzle-sale.repository.js';
+import { DrizzleSettingsRepository } from './modules/settings/drizzle-settings.repository.js';
 import { DrizzleSyncRepository } from './modules/sync/drizzle-sync.repository.js';
 import { DrizzleSupplierRepository } from './modules/supplier/drizzle-supplier.repository.js';
 import { DrizzleTenantCoreRepository } from './modules/tenant-core/drizzle-tenant-core.repository.js';
@@ -22,6 +23,7 @@ const bootstrap = async () => {
   const customerRepository = new DrizzleCustomerRepository(database.db);
   const purchaseRepository = new DrizzlePurchaseRepository(database.db);
   const saleRepository = new DrizzleSaleRepository(database.db);
+  const settingsRepository = new DrizzleSettingsRepository(database.db);
   const syncRepository = new DrizzleSyncRepository(database.db);
   const supplierRepository = new DrizzleSupplierRepository(database.db);
   const tenantCoreRepository = new DrizzleTenantCoreRepository(database.db);
@@ -37,6 +39,7 @@ const bootstrap = async () => {
     logger,
     purchaseRepository,
     saleRepository,
+    settingsRepository,
     syncRepository,
     supplierRepository,
     tenantCoreRepository

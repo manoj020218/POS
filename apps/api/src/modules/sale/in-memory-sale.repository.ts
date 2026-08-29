@@ -7,6 +7,7 @@ import type {
   InventoryMovementRecord
 } from '../inventory/inventory.types.js';
 import type { ReportingRepository } from '../reporting/reporting.repository.js';
+import { defaultBusinessSettings } from '../settings/settings-defaults.js';
 import { formatInvoiceNumber } from './sale-domain.js';
 import {
   listInMemoryBranchSales,
@@ -49,6 +50,7 @@ export class InMemorySaleRepository
       createdAt: new Date(),
       id: saleId,
       invoiceNumber: formatInvoiceNumber(
+        input.invoicePrefix ?? defaultBusinessSettings.invoicePrefix,
         input.sale.branchCode,
         input.sale.terminalCode,
         invoiceSequence

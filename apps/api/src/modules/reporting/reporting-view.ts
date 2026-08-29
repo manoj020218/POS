@@ -20,7 +20,8 @@ export const toSalesReportMeta = (
   businessId,
   dateFrom: range.dateFrom,
   dateTo: range.dateTo,
-  reportType: range.reportType
+  reportType: range.reportType,
+  timezone: range.timezone
 });
 
 export const requireReportRecord = <T>(record: T | undefined, code: string, message: string) => {

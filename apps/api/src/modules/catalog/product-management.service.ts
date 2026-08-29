@@ -1,4 +1,6 @@
 import { createHttpError } from '../../lib/http-error.js';
+import { resolveEffectiveBusinessSettings } from '../settings/settings-defaults.js';
+import type { SettingsRepository } from '../settings/settings.repository.js';
 import type { AccessContext } from '../tenant-core/access-context.js';
 import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
 import {
@@ -19,16 +21,30 @@ import type {
 } from './catalog.types.js';
 import { requiredRecord, toProductView } from './product-view.js';
 
-type ProductInput = Omit<ProductRecord, 'businessId' | 'categoryId' | 'createdAt' | 'id' | 'sku' | 'taxProfileId' | 'tenantId' | 'unitId' | 'updatedAt'> & {
+type ProductInput = Omit<
+  ProductRecord,
+  | 'businessId'
+  | 'categoryId'
+  | 'createdAt'
+  | 'id'
+  | 'sku'
+  | 'taxProfileId'
+  | 'tenantId'
+  | 'trackInventory'
+  | 'unitId'
+  | 'updatedAt'
+> & {
   businessId?: string;
   categoryId?: string;
   sku?: string;
   taxProfileId?: string;
+  trackInventory?: boolean;
   unitId?: string;
 };
 
 export const createProductHandlers = (
   repository: CatalogRepository,
+  settingsRepository: SettingsRepository,
   tenantCoreRepository: TenantCoreRepository
 ) => ({
   createProduct: async (
@@ -36,7 +52,14 @@ export const createProductHandlers = (
     input: ProductInput
   ): Promise<ProductView> => {
     const business = await resolveWriteBusiness(context, tenantCoreRepository, input.businessId);
-    const related = await resolveProductRelations(repository, context.tenantId, business.id, input);
+    const settings = resolveEffectiveBusinessSettings(
+      await settingsRepository.findBusinessSettingsByBusinessId(context.tenantId, business.id)
+    );
+    const related = await resolveProductRelations(repository, context.tenantId, business.id, {
+      ...input,
+      taxProfileId: input.taxProfileId ?? settings.defaultTaxProfileId,
+      unitId: input.unitId ?? settings.defaultUnitId
+    });
     const sku = await resolveProductSku(repository, context.tenantId, business.id, input.sku);
     const duplicate = await repository.findProductBySkuOrBarcode(context.tenantId, business.id, {
       barcode: input.barcode,
@@ -51,6 +74,7 @@ export const createProductHandlers = (
       sku,
       taxProfileId: related.taxProfile.id,
       tenantId: context.tenantId,
+      trackInventory: input.trackInventory ?? settings.defaultTrackInventory,
       unitId: related.unit.id
     });
     return toProductView(product, business, related.category, related.unit, related.taxProfile);

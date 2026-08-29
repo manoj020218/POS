@@ -4,6 +4,7 @@ import { requirePermissions } from '../../http/middleware/require-permissions.js
 import type { AuthRepository } from '../auth/auth.repository.js';
 import type { CatalogRepository } from '../catalog/catalog.repository.js';
 import type { InventoryRepository } from '../inventory/inventory.repository.js';
+import type { SettingsRepository } from '../settings/settings.repository.js';
 import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
 import {
   getSalesSummaryController,
@@ -27,6 +28,7 @@ export const createReportingRouter = (
   repository: ReportingRepository & InventoryRepository,
   authRepository: AuthRepository,
   catalogRepository: CatalogRepository,
+  settingsRepository: SettingsRepository,
   tenantCoreRepository: TenantCoreRepository
 ): ExpressRouter => {
   const router = Router();
@@ -34,6 +36,7 @@ export const createReportingRouter = (
     repository,
     authRepository,
     catalogRepository,
+    settingsRepository,
     tenantCoreRepository
   );
 

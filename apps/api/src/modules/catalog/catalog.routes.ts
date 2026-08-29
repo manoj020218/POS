@@ -1,6 +1,7 @@
 import { Router, type Router as ExpressRouter } from 'express';
 
 import { requirePermissions } from '../../http/middleware/require-permissions.js';
+import type { SettingsRepository } from '../settings/settings.repository.js';
 import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
 import { createCategoryController, listCategoriesController, updateCategoryController } from './category.controller.js';
 import { createCatalogService } from './catalog.service.js';
@@ -16,10 +17,11 @@ import { createUnitController, listUnitsController, updateUnitController } from 
 
 export const createCatalogRouter = (
   repository: CatalogRepository,
+  settingsRepository: SettingsRepository,
   tenantCoreRepository: TenantCoreRepository
 ): ExpressRouter => {
   const router = Router();
-  const service = createCatalogService(repository, tenantCoreRepository);
+  const service = createCatalogService(repository, settingsRepository, tenantCoreRepository);
 
   router.get('/categories', requirePermissions(['product:view']), listCategoriesController(service));
   router.post('/categories', requirePermissions(['product:create']), createCategoryController(service));

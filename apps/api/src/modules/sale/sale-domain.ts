@@ -92,6 +92,7 @@ export const calculateSaleTotals = (input: {
 };
 
 export const formatInvoiceNumber = (
+  invoicePrefix: string,
   branchCode: string,
   terminalCode: string,
   sequence: number
@@ -100,9 +101,9 @@ export const formatInvoiceNumber = (
     throw new Error('Invoice sequence must be a positive integer');
   }
 
-  return `INV-${normalizeInvoiceCode(branchCode)}-${normalizeInvoiceCode(terminalCode)}-${String(
-    sequence
-  ).padStart(6, '0')}`;
+  return `${normalizeInvoiceCode(invoicePrefix)}-${normalizeInvoiceCode(branchCode)}-${normalizeInvoiceCode(
+    terminalCode
+  )}-${String(sequence).padStart(6, '0')}`;
 };
 
 const normalizeInvoiceCode = (value: string) => {

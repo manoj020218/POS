@@ -83,6 +83,7 @@ const adminPermissions = [
   'sale:refund',
   'sale:view',
   'report:view',
+  'settings:manage',
   'user:manage'
 ] as const satisfies readonly AppPermission[];
 

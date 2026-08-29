@@ -51,6 +51,7 @@ export type CreateSaleRecordInput = Omit<
 export type CreateSaleItemRecordInput = Omit<SaleItemRecord, 'createdAt' | 'id'>;
 
 export type CreateSaleInput = {
+  invoicePrefix?: string;
   items: CreateSaleItemRecordInput[];
   inventoryMovements: CreateSaleInventoryMovementInput[];
   sale: CreateSaleRecordInput;

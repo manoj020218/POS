@@ -2,9 +2,13 @@ import { randomUUID } from 'node:crypto';
 
 import type { CatalogRepository } from './catalog.repository.js';
 
-const defaultCategory = { code: 'GENERAL', name: 'General' };
-const defaultTaxProfile = { code: 'NO-TAX', name: 'No Tax', rateBasisPoints: 0 };
-const defaultUnit = { code: 'PCS', name: 'PCS', precision: 0, symbol: 'pcs' };
+export const defaultCategoryDefinition = { code: 'GENERAL', name: 'General' };
+export const defaultTaxProfileDefinition = {
+  code: 'NO-TAX',
+  name: 'No Tax',
+  rateBasisPoints: 0
+};
+export const defaultUnitDefinition = { code: 'PCS', name: 'PCS', precision: 0, symbol: 'pcs' };
 
 export const ensureDefaultCategory = async (
   repository: CatalogRepository,
@@ -14,7 +18,7 @@ export const ensureDefaultCategory = async (
   const existing = await repository.findCategoryByCode(
     tenantId,
     businessId,
-    defaultCategory.code
+    defaultCategoryDefinition.code
   );
   if (existing) {
     return existing;
@@ -22,9 +26,9 @@ export const ensureDefaultCategory = async (
 
   return repository.createCategory({
     businessId,
-    code: defaultCategory.code,
+    code: defaultCategoryDefinition.code,
     isActive: true,
-    name: defaultCategory.name,
+    name: defaultCategoryDefinition.name,
     tenantId
   });
 };
@@ -37,7 +41,7 @@ export const ensureDefaultTaxProfile = async (
   const existing = await repository.findTaxProfileByCode(
     tenantId,
     businessId,
-    defaultTaxProfile.code
+    defaultTaxProfileDefinition.code
   );
   if (existing) {
     return existing;
@@ -45,10 +49,10 @@ export const ensureDefaultTaxProfile = async (
 
   return repository.createTaxProfile({
     businessId,
-    code: defaultTaxProfile.code,
+    code: defaultTaxProfileDefinition.code,
     isActive: true,
-    name: defaultTaxProfile.name,
-    rateBasisPoints: defaultTaxProfile.rateBasisPoints,
+    name: defaultTaxProfileDefinition.name,
+    rateBasisPoints: defaultTaxProfileDefinition.rateBasisPoints,
     tenantId
   });
 };
@@ -58,18 +62,22 @@ export const ensureDefaultUnit = async (
   tenantId: string,
   businessId: string
 ) => {
-  const existing = await repository.findUnitByCode(tenantId, businessId, defaultUnit.code);
+  const existing = await repository.findUnitByCode(
+    tenantId,
+    businessId,
+    defaultUnitDefinition.code
+  );
   if (existing) {
     return existing;
   }
 
   return repository.createUnit({
     businessId,
-    code: defaultUnit.code,
+    code: defaultUnitDefinition.code,
     isActive: true,
-    name: defaultUnit.name,
-    precision: defaultUnit.precision,
-    symbol: defaultUnit.symbol,
+    name: defaultUnitDefinition.name,
+    precision: defaultUnitDefinition.precision,
+    symbol: defaultUnitDefinition.symbol,
     tenantId
   });
 };

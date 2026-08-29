@@ -29,6 +29,9 @@ import { createReportingRouter } from './modules/reporting/reporting.routes.js';
 import { createSaleRouter } from './modules/sale/sale.routes.js';
 import type { SaleRepository } from './modules/sale/sale.repository.js';
 import { InMemorySaleRepository } from './modules/sale/in-memory-sale.repository.js';
+import { InMemorySettingsRepository } from './modules/settings/in-memory-settings.repository.js';
+import { createSettingsRouter } from './modules/settings/settings.routes.js';
+import type { SettingsRepository } from './modules/settings/settings.repository.js';
 import { InMemorySyncRepository } from './modules/sync/in-memory-sync.repository.js';
 import { createSyncRouter } from './modules/sync/sync.routes.js';
 import type { SyncRepository } from './modules/sync/sync.repository.js';
@@ -53,6 +56,7 @@ export type AppOptions = {
   logger: AppLogger;
   purchaseRepository?: PurchaseRepository;
   saleRepository?: SaleRepository & InventoryRepository & ReportingRepository;
+  settingsRepository?: SettingsRepository;
   syncRepository?: SyncRepository;
   supplierRepository?: SupplierRepository;
   tenantCoreRepository?: TenantCoreRepository;
@@ -73,6 +77,7 @@ export const createApp = (options: AppOptions): Express => {
     options.purchaseRepository ?? new InMemoryPurchaseRepository(sharedInventoryMovements);
   const supplierRepository = options.supplierRepository ?? new InMemorySupplierRepository();
   const syncRepository = options.syncRepository ?? new InMemorySyncRepository();
+  const settingsRepository = options.settingsRepository ?? new InMemorySettingsRepository();
   const tenantCoreRepository =
     options.tenantCoreRepository ?? new InMemoryTenantCoreRepository();
   const accessContextResolver =
@@ -87,7 +92,10 @@ export const createApp = (options: AppOptions): Express => {
   app.use(healthRouter);
   app.use(attachAccessContext(accessContextResolver));
   app.use('/api/v1/auth', createAuthRouter(authRepository, tenantCoreRepository, authConfig));
-  app.use('/api/v1', createCatalogRouter(catalogRepository, tenantCoreRepository));
+  app.use(
+    '/api/v1',
+    createCatalogRouter(catalogRepository, settingsRepository, tenantCoreRepository)
+  );
   app.use('/api/v1', createCustomerRouter(customerRepository, tenantCoreRepository));
   app.use(
     '/api/v1',
@@ -98,6 +106,7 @@ export const createApp = (options: AppOptions): Express => {
       supplierRepository,
       catalogRepository,
       customerRepository,
+      settingsRepository,
       tenantCoreRepository
     )
   );
@@ -113,17 +122,28 @@ export const createApp = (options: AppOptions): Express => {
   );
   app.use(
     '/api/v1',
+    createSettingsRouter(settingsRepository, catalogRepository, tenantCoreRepository)
+  );
+  app.use(
+    '/api/v1',
     createReportingRouter(
       saleRepository,
       authRepository,
       catalogRepository,
+      settingsRepository,
       tenantCoreRepository
     )
   );
   app.use('/api/v1', createInventoryRouter(saleRepository, catalogRepository, tenantCoreRepository));
   app.use(
     '/api/v1',
-    createSaleRouter(saleRepository, catalogRepository, customerRepository, tenantCoreRepository)
+    createSaleRouter(
+      saleRepository,
+      catalogRepository,
+      customerRepository,
+      settingsRepository,
+      tenantCoreRepository
+    )
   );
   app.use('/api/v1', createTenantCoreRouter(tenantCoreRepository));
   app.use(notFoundHandler);

@@ -19,6 +19,7 @@ import {
   listDrizzleStockMovements,
   listDrizzleTaxSummary
 } from './drizzle-sale-operational-reporting.js';
+import { defaultBusinessSettings } from '../settings/settings-defaults.js';
 import { formatInvoiceNumber } from './sale-domain.js';
 import { listDrizzleTopProducts, summarizeDrizzleSales } from './drizzle-sale-reporting.js';
 import type { SaleRepository } from './sale.repository.js';
@@ -65,6 +66,7 @@ export class DrizzleSaleRepository
         )[0]
       );
       const invoiceNumber = formatInvoiceNumber(
+        input.invoicePrefix ?? defaultBusinessSettings.invoicePrefix,
         input.sale.branchCode,
         input.sale.terminalCode,
         invoiceSequence

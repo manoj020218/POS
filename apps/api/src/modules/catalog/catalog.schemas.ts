@@ -117,7 +117,7 @@ export const createProductSchema = z.object({
   sku: optionalStringSchema(64).transform((value) => value?.toUpperCase()),
   taxProfileId: uuidSchema.optional(),
   isActive: z.boolean().optional().default(true),
-  trackInventory: z.boolean().optional().default(true),
+  trackInventory: z.boolean().optional(),
   unitId: uuidSchema.optional()
 });
 

@@ -1,6 +1,8 @@
 import { createHttpError } from '../../lib/http-error.js';
 import type { CatalogRepository } from '../catalog/catalog.repository.js';
 import type { CustomerRepository } from '../customer/customer.repository.js';
+import { resolveEffectiveBusinessSettings } from '../settings/settings-defaults.js';
+import type { SettingsRepository } from '../settings/settings.repository.js';
 import type { AccessContext } from '../tenant-core/access-context.js';
 import { assertBranchAccess } from '../tenant-core/branch-scope.js';
 import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
@@ -13,6 +15,7 @@ export const createSaleHandler = (
   repository: SaleRepository,
   catalogRepository: CatalogRepository,
   customerRepository: CustomerRepository,
+  settingsRepository: SettingsRepository,
   tenantCoreRepository: TenantCoreRepository
 ) => async (context: AccessContext, input: CreateSaleRequest): Promise<SaleView> => {
   const branches = await tenantCoreRepository.listBranches(context.tenantId);
@@ -62,6 +65,9 @@ export const createSaleHandler = (
   const customer = input.customerId
     ? await customerRepository.findCustomerById(input.customerId)
     : null;
+  const settings = resolveEffectiveBusinessSettings(
+    await settingsRepository.findBusinessSettingsByBusinessId(context.tenantId, branch.businessId)
+  );
   if (input.customerId) {
     if (!customer || customer.businessId !== branch.businessId) {
       throw createHttpError(404, 'CUSTOMER_NOT_FOUND', 'Customer not found');
@@ -72,6 +78,7 @@ export const createSaleHandler = (
   }
 
   const detail = await repository.createSale({
+    invoicePrefix: settings.invoicePrefix,
     items: calculated.items.map((item) => ({
       discountAmount: item.discountAmount,
       productId: item.productId,
