@@ -716,6 +716,7 @@ Last Successful Commands:
 - `cmd /c pnpm build`
 - `cmd /c pnpm exec vitest run packages/client-data/test/bootstrap-service.test.ts packages/client-data/test/checkout-service.test.ts packages/client-data/test/http-client-remote-api.test.ts packages/client-data/test/sync-service.test.ts --reporter=verbose`
 - `cmd /c pnpm exec vitest run --reporter=basic`
+- `git commit -m "feat(client-data): add phase 12 foundations"`
 - `cmd /c pnpm lint`
 - `cmd /c pnpm typecheck`
 - `cmd /c pnpm test`
@@ -868,7 +869,7 @@ API Status:
 - Workspace package `@smart-pos/client-data` now exposes client-side repository contracts, an in-memory store, an HTTP remote API adapter, a settings bootstrap service, a printer-aware local checkout service, and outbox-first sync orchestration
 
 Git Status:
-- Changes pending for Phase 12 client-data foundations, continuity-doc refresh, and the workspace lockfile update from `pnpm install`
+- Working tree should be clean after publishing the Phase 12 client-data foundations and continuity-doc refresh
 
 Last Commit:
-- Latest published state is still the Phase 11 printer-domain commit until the Phase 12 client-data package is committed and pushed
+- Phase 12 feature commit: `d90ab20 feat(client-data): add phase 12 foundations`
