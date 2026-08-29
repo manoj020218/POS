@@ -1,12 +1,23 @@
 # HANDOFF
 
 Current Phase:
-- Phase 10 - Business Settings
+- Phase 11 - Printer Domain
 
 Current Subtask:
-- Start Phase 10 with configurable business defaults for currency, timezone, invoice prefix, default unit, default tax profile, inventory tracking behavior, receipt footer, business logo, branch address, and receipt printer profile
+- Extend the shared printer domain foundation while keeping Phase 10 settings ready for live PostgreSQL migration verification once the local database is reachable
 
 Completed:
+- Added Phase 10 schema for `business_settings` and `branch_settings`
+- Generated settings migration `apps/api/drizzle/0014_oval_oracle.sql`
+- Added protected `GET /api/v1/business-settings` and `PATCH /api/v1/business-settings`
+- Persisted typed business defaults for currency, timezone, invoice prefix, default unit, default tax profile, inventory tracking behavior, receipt footer, business logo, branch address, and branch receipt printer profile
+- Applied configured business settings to product creation defaults, sale invoice prefixes, and reporting timezone windows
+- Split the reporting service into smaller sales and operational handlers to stay under the project file-size limit
+- Fixed reporting date-window midnight handling by normalizing `Intl.DateTimeFormat` `24:00` output back to `00:00`
+- Added settings route coverage, Drizzle settings repository coverage, and reporting-range regression coverage for UTC and `America/New_York`
+- Added Phase 11 foundation package `@smart-pos/printer`
+- Added shared printer-profile types, ESC/POS print-job contracts, a recording printer service, and a printer test-page builder
+- Expanded root `pnpm typecheck`, `pnpm build`, and Vitest discovery so the printer package is part of normal verification
 - Read `PROJECT_PLAN.md`
 - Confirmed GitHub repo `manoj020218/POS` exists and is empty
 - Initialized local Git repo and attached `origin`
@@ -301,15 +312,21 @@ Completed:
 
 Currently Working:
 - No active code changes in progress
-- Phase 9 reporting APIs are complete and verified across sales summary, grouped sales, tax summary, current stock, low stock, stock movement, and sales return endpoints
-- Next safe unit is Phase 10 business settings persistence and protected API design
+- Phase 10 business settings are code-complete and test-verified across API, repository, catalog defaults, invoice prefixes, and reporting timezone behavior
+- Live `cmd /c pnpm db:migrate` verification for `apps/api/drizzle/0014_oval_oracle.sql` is still pending because `DATABASE_URL` currently targets `localhost:5432/smart_pos` and no PostgreSQL listener was available on 2026-08-29
+- Phase 11 printer-domain foundation is now present through the new `@smart-pos/printer` workspace package
 
 Next:
-- Start Phase 10 with business-level defaults for currency, timezone, invoice prefix, default unit, default tax profile, inventory tracking behavior, receipt footer, business logo, branch address, and receipt printer profile
-- Decide which settings remain business-scoped versus branch-scoped before adding persistence
-- Keep the first settings slice typed and explicit; do not fall back to an unstructured JSON blob
+- Re-run `cmd /c pnpm db:migrate` for `apps/api/drizzle/0014_oval_oracle.sql` once local PostgreSQL is reachable
+- Extend Phase 11 with receipt, kitchen-order, barcode, and QR print-job builders on top of the shared ESC/POS contract
+- Add transport adapters behind `@smart-pos/printer` for `TCP`, `BLUETOOTH`, `USB`, and `SYSTEM`
 
 Important Decisions:
+- Keep Phase 10 settings typed across `business_settings` and `branch_settings` instead of collapsing them into an unstructured JSON blob
+- Keep currency, timezone, invoice prefix, default unit, default tax profile, default inventory tracking, receipt footer, and business logo at business scope while leaving branch address and receipt printer profile at branch scope
+- Apply configured business settings directly to product creation, invoice numbering, and reporting time windows so the settings slice changes real behavior immediately
+- Normalize `Intl.DateTimeFormat` midnight `24:00` output to `00:00` when deriving timezone-aware report windows so local-day boundaries stay correct
+- Start Phase 11 with a standalone `@smart-pos/printer` workspace package, ESC/POS job model, and recording service rather than selecting a concrete transport too early
 - Start with a modular monolith foundation under `apps/api`
 - Use TypeScript, Express, Zod, Pino, Drizzle, PostgreSQL, and Vitest
 - Treat `HotelQR-Lite` only as an operational reference, not as source reuse
@@ -383,6 +400,8 @@ Important Decisions:
 Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
 - Local PostgreSQL-backed verification still depends on the developer maintaining an ignored root `.env`
+- `cmd /c pnpm db:migrate` could not verify `apps/api/drizzle/0014_oval_oracle.sql` on 2026-08-29 because `DATABASE_URL` targets `localhost:5432/smart_pos` and no PostgreSQL listener was accepting connections
+- `@smart-pos/printer` is a shared foundation package only; the API settings module still carries its own receipt-printer-profile document type until a runtime consumer is ready to depend on the workspace package
 - Password reset delivery still defaults to a no-op sink at runtime; email/SMS/admin handoff for reset tokens is not implemented yet
 - `pnpm bootstrap:owner` requires the target tenant to already exist; it does not create tenant/business/branch/terminal hierarchy on its own
 - Walk-in customer uniqueness is currently enforced by the service-level ensure flow rather than a database uniqueness constraint
@@ -722,6 +741,8 @@ Database Status:
 - `sync_events` now persist `updated_at` for stable applied-event pull ordering and incremental cursor pagination
 - Applied sync-event pull queries are now backed by the `sync_events_tenant_state_updated_idx` index
 - Product snapshot pull queries now reuse existing `products.updated_at`; no additional schema changes were required for the first server-authored pull slice
+- Business settings schema added at `apps/api/drizzle/0014_oval_oracle.sql`
+- `business_settings` and `branch_settings` are covered by repository tests and wired into the API, but live migration application is still pending a reachable PostgreSQL listener on `localhost:5432`
 - Added Phase 9 reporting module with protected `GET /api/v1/reports/sales/summary`
 - Added default "Today's Sales" and explicit date-range sales-summary aggregation over persisted `sales` and `sale_items`
 - Reporting summaries now respect existing tenant/business scope rules and require `report:view`
@@ -813,9 +834,13 @@ API Status:
 - Reporting API now includes protected `GET /api/v1/reports/inventory/current-stock` and `/api/v1/reports/inventory/low-stock` using the same business-scoped stock calculation as the inventory balances endpoint
 - Reporting API now includes protected `GET /api/v1/reports/inventory/stock-movement` over persisted `inventory_movements` with date-range filtering and assigned-branch scope enforcement
 - Current and low-stock reports remain business-scoped, while stock movement and sales return reports remain branch-scoped for restricted users
+- Settings API now includes protected `GET /api/v1/business-settings` and `PATCH /api/v1/business-settings`
+- Business settings now drive default product unit/tax/inventory behavior, sale invoice prefixes, and report timezone windows
+- Reporting date windows now honor the configured business timezone and correctly handle formatter midnight output
+- Workspace package `@smart-pos/printer` now exposes shared printer profiles, ESC/POS print-job contracts, a recording printer service, and a printer test-page builder
 
 Git Status:
-- changes pending commit/push for completed Phase 9 reporting APIs
+- Working tree should be clean after publishing Phase 10 settings and the Phase 11 printer-domain foundation
 
 Last Commit:
-- pending publish for completed Phase 9 reporting APIs
+- Latest published state should include the continuity-doc refresh for Phase 10 settings completion and Phase 11 printer foundation on 2026-08-29

@@ -1,11 +1,12 @@
 # TODO
 
 NOW
-- Start Phase 10 business settings persistence and protected APIs for currency, timezone, invoice prefix, default unit, default tax profile, inventory tracking behavior, receipt footer, business logo, branch address, and receipt printer profile
+- Re-run `cmd /c pnpm db:migrate` for `apps/api/drizzle/0014_oval_oracle.sql` once local PostgreSQL is reachable at `localhost:5432`
+- Extend Phase 11 printer domain from the shared contract foundation into receipt, kitchen-order, barcode, and QR print-job builders
 
 NEXT
-- Decide which Phase 10 settings stay business-scoped versus branch-scoped before locking the schema and routes
-- Begin Phase 11 printer domain only after the Phase 10 settings foundation is persisted and verified
+- Add transport-specific printer adapters behind `@smart-pos/printer` for `TCP`, `BLUETOOTH`, `USB`, and `SYSTEM`
+- Wire API and future client packages to consume `@smart-pos/printer` instead of duplicating printer-profile types
 
 LATER
 - Shared contracts package
@@ -13,4 +14,4 @@ LATER
 - Sync package and offline client data layer
 
 BLOCKED
-- None
+- Local PostgreSQL listener was unavailable for `cmd /c pnpm db:migrate` on 2026-08-29

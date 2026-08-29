@@ -9,7 +9,7 @@
   "scripts": {
     "bootstrap:dev": "pnpm --filter @smart-pos/api bootstrap:dev",
     "bootstrap:owner": "pnpm --filter @smart-pos/api bootstrap:owner",
-    "build": "pnpm --filter @smart-pos/api build",
+    "build": "pnpm --recursive --filter @smart-pos/printer --filter @smart-pos/api build",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config drizzle.config.ts",
     "dev": "pnpm --filter @smart-pos/api dev",
@@ -17,7 +17,7 @@
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "test": "vitest run",
-    "typecheck": "pnpm --filter @smart-pos/api typecheck"
+    "typecheck": "pnpm --recursive --filter @smart-pos/printer --filter @smart-pos/api typecheck"
   },
   "devDependencies": {
     "@eslint/js": "^9.35.0",

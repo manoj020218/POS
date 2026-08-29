@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2026-08-29
+
+- Added Phase 10 business settings persistence with `business_settings` and `branch_settings` schema plus migration `0014_oval_oracle.sql`
+- Added protected `GET /api/v1/business-settings` and `PATCH /api/v1/business-settings` for business defaults, branch address updates, and receipt printer profile configuration
+- Applied configured business settings to default product unit/tax/inventory behavior, sale invoice prefixes, and reporting timezone windows
+- Fixed reporting timezone boundary handling by normalizing midnight `24:00` formatter output and added direct regression coverage for UTC and `America/New_York` day windows
+- Added Phase 11 foundation package `@smart-pos/printer` with shared printer profiles, ESC/POS print-job contracts, a recording printer service, and a printer test-page builder
+- Expanded root `pnpm typecheck`, `pnpm build`, and Vitest discovery so the printer package is covered by normal verification
+- Verified `cmd /c pnpm lint`, `cmd /c pnpm typecheck`, `cmd /c pnpm build`, and `cmd /c pnpm exec vitest run --reporter=verbose`
+- Attempted `cmd /c pnpm db:migrate`, but local PostgreSQL at `localhost:5432/smart_pos` was unavailable on 2026-08-29
+
 ## 2026-08-27
 
 - Added Phase 8 sync foundation with persisted `sync_events` storage plus migration `0011_tiresome_solo.sql`
