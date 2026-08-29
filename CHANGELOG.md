@@ -7,8 +7,12 @@
 - Applied configured business settings to default product unit/tax/inventory behavior, sale invoice prefixes, and reporting timezone windows
 - Fixed reporting timezone boundary handling by normalizing midnight `24:00` formatter output and added direct regression coverage for UTC and `America/New_York` day windows
 - Added Phase 11 foundation package `@smart-pos/printer` with shared printer profiles, ESC/POS print-job contracts, a recording printer service, and a printer test-page builder
+- Added Phase 11 receipt, kitchen-order, barcode, and QR print-job builders with shared printer-layout helpers
+- Added ESC/POS byte encoding plus transport-specific printer services for `TCP`, `BLUETOOTH`, `USB`, and `SYSTEM`, along with a profile-aware router for runtime dispatch
+- Increased `apps/api/test/drizzle-settings.repository.test.ts` setup timeout so the growing Vitest suite remains stable under full-repo execution
 - Expanded root `pnpm typecheck`, `pnpm build`, and Vitest discovery so the printer package is covered by normal verification
-- Verified `cmd /c pnpm lint`, `cmd /c pnpm typecheck`, `cmd /c pnpm build`, and `cmd /c pnpm exec vitest run --reporter=verbose`
+- Verified `cmd /c pnpm --filter @smart-pos/printer typecheck` and `cmd /c pnpm exec vitest run packages/printer/test --reporter=verbose`
+- Verified `cmd /c pnpm lint`, `cmd /c pnpm typecheck`, `cmd /c pnpm build`, and `cmd /c pnpm test` on 2026-08-29 with `182` tests passing
 - Attempted `cmd /c pnpm db:migrate`, but local PostgreSQL at `localhost:5432/smart_pos` was unavailable on 2026-08-29
 
 ## 2026-08-27

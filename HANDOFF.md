@@ -4,7 +4,7 @@ Current Phase:
 - Phase 11 - Printer Domain
 
 Current Subtask:
-- Extend the shared printer domain foundation while keeping Phase 10 settings ready for live PostgreSQL migration verification once the local database is reachable
+- Prepare the first runtime consumer of the completed `@smart-pos/printer` package while keeping Phase 10 settings ready for live PostgreSQL migration verification once the local database is reachable
 
 Completed:
 - Added Phase 10 schema for `business_settings` and `branch_settings`
@@ -17,6 +17,12 @@ Completed:
 - Added settings route coverage, Drizzle settings repository coverage, and reporting-range regression coverage for UTC and `America/New_York`
 - Added Phase 11 foundation package `@smart-pos/printer`
 - Added shared printer-profile types, ESC/POS print-job contracts, a recording printer service, and a printer test-page builder
+- Added Phase 11 receipt, kitchen-order, barcode, and QR print-job builders with shared printer-layout helpers
+- Added ESC/POS byte encoding plus transport-specific printer services for `TCP`, `BLUETOOTH`, `USB`, and `SYSTEM`
+- Added a profile-aware printer-service router so runtime callers can dispatch by stored printer connection type
+- Added printer-package coverage for the new builders, byte encoding, injected transport adapters, and a TCP socket print path
+- Increased `apps/api/test/drizzle-settings.repository.test.ts` setup timeout so the full Vitest suite remains stable after adding the new printer-package coverage
+- Verified `cmd /c pnpm lint`, `cmd /c pnpm typecheck`, `cmd /c pnpm build`, and `cmd /c pnpm test` on 2026-08-29 with `182` tests passing
 - Expanded root `pnpm typecheck`, `pnpm build`, and Vitest discovery so the printer package is part of normal verification
 - Read `PROJECT_PLAN.md`
 - Confirmed GitHub repo `manoj020218/POS` exists and is empty
@@ -314,19 +320,20 @@ Currently Working:
 - No active code changes in progress
 - Phase 10 business settings are code-complete and test-verified across API, repository, catalog defaults, invoice prefixes, and reporting timezone behavior
 - Live `cmd /c pnpm db:migrate` verification for `apps/api/drizzle/0014_oval_oracle.sql` is still pending because `DATABASE_URL` currently targets `localhost:5432/smart_pos` and no PostgreSQL listener was available on 2026-08-29
-- Phase 11 printer-domain foundation is now present through the new `@smart-pos/printer` workspace package
+- Phase 11 printer-domain foundations now include print-job builders, ESC/POS byte encoding, and transport adapters across `TCP`, `BLUETOOTH`, `USB`, and `SYSTEM`
 
 Next:
 - Re-run `cmd /c pnpm db:migrate` for `apps/api/drizzle/0014_oval_oracle.sql` once local PostgreSQL is reachable
-- Extend Phase 11 with receipt, kitchen-order, barcode, and QR print-job builders on top of the shared ESC/POS contract
-- Add transport adapters behind `@smart-pos/printer` for `TCP`, `BLUETOOTH`, `USB`, and `SYSTEM`
+- Wire API settings and the first runtime consumer to use `@smart-pos/printer` instead of duplicating printer-profile or transport-selection logic
+- Start Phase 12 client data architecture foundations once the first runtime printer consumer path is in place
 
 Important Decisions:
 - Keep Phase 10 settings typed across `business_settings` and `branch_settings` instead of collapsing them into an unstructured JSON blob
 - Keep currency, timezone, invoice prefix, default unit, default tax profile, default inventory tracking, receipt footer, and business logo at business scope while leaving branch address and receipt printer profile at branch scope
 - Apply configured business settings directly to product creation, invoice numbering, and reporting time windows so the settings slice changes real behavior immediately
 - Normalize `Intl.DateTimeFormat` midnight `24:00` output to `00:00` when deriving timezone-aware report windows so local-day boundaries stay correct
-- Start Phase 11 with a standalone `@smart-pos/printer` workspace package, ESC/POS job model, and recording service rather than selecting a concrete transport too early
+- Keep `@smart-pos/printer` as the shared home for printer profiles, ESC/POS job builders, byte encoding, and transport routing rather than binding the monorepo to one printer library too early
+- Keep `BLUETOOTH`, `USB`, and `SYSTEM` adapters dependency-injected so the shared package owns printer contracts and rendering while each runtime owns its platform-specific write implementation
 - Start with a modular monolith foundation under `apps/api`
 - Use TypeScript, Express, Zod, Pino, Drizzle, PostgreSQL, and Vitest
 - Treat `HotelQR-Lite` only as an operational reference, not as source reuse
@@ -401,7 +408,7 @@ Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
 - Local PostgreSQL-backed verification still depends on the developer maintaining an ignored root `.env`
 - `cmd /c pnpm db:migrate` could not verify `apps/api/drizzle/0014_oval_oracle.sql` on 2026-08-29 because `DATABASE_URL` targets `localhost:5432/smart_pos` and no PostgreSQL listener was accepting connections
-- `@smart-pos/printer` is a shared foundation package only; the API settings module still carries its own receipt-printer-profile document type until a runtime consumer is ready to depend on the workspace package
+- The API settings module still carries its own receipt-printer-profile document type until a runtime consumer is ready to depend on `@smart-pos/printer`
 - Password reset delivery still defaults to a no-op sink at runtime; email/SMS/admin handoff for reset tokens is not implemented yet
 - `pnpm bootstrap:owner` requires the target tenant to already exist; it does not create tenant/business/branch/terminal hierarchy on its own
 - Walk-in customer uniqueness is currently enforced by the service-level ensure flow rather than a database uniqueness constraint
@@ -837,10 +844,10 @@ API Status:
 - Settings API now includes protected `GET /api/v1/business-settings` and `PATCH /api/v1/business-settings`
 - Business settings now drive default product unit/tax/inventory behavior, sale invoice prefixes, and report timezone windows
 - Reporting date windows now honor the configured business timezone and correctly handle formatter midnight output
-- Workspace package `@smart-pos/printer` now exposes shared printer profiles, ESC/POS print-job contracts, a recording printer service, and a printer test-page builder
+- Workspace package `@smart-pos/printer` now exposes shared printer profiles, ESC/POS print-job contracts, receipt/kitchen/barcode/QR builders, a recording printer service, a printer test-page builder, an ESC/POS encoder, transport adapters, and a profile-aware router
 
 Git Status:
-- Working tree should be clean after publishing Phase 10 settings and the Phase 11 printer-domain foundation
+- Working tree should be clean after publishing the Phase 11 printer builders, encoder, and transport adapters
 
 Last Commit:
-- Latest published state should include the continuity-doc refresh for Phase 10 settings completion and Phase 11 printer foundation on 2026-08-29
+- Latest published state should include the continuity-doc refresh for Phase 11 printer builders and transport adapters on 2026-08-29

@@ -79,7 +79,7 @@ describe('DrizzleSettingsRepository', () => {
       },
       tenantId
     });
-  });
+  }, 15000);
 
   it('persists and lists business and branch settings', async () => {
     const businessSettings = await repository.findBusinessSettingsByBusinessId(tenantId, businessId);

@@ -2,11 +2,10 @@
 
 NOW
 - Re-run `cmd /c pnpm db:migrate` for `apps/api/drizzle/0014_oval_oracle.sql` once local PostgreSQL is reachable at `localhost:5432`
-- Extend Phase 11 printer domain from the shared contract foundation into receipt, kitchen-order, barcode, and QR print-job builders
+- Wire API settings and the first runtime consumer to use `@smart-pos/printer` instead of duplicating printer-profile and transport-selection logic
 
 NEXT
-- Add transport-specific printer adapters behind `@smart-pos/printer` for `TCP`, `BLUETOOTH`, `USB`, and `SYSTEM`
-- Wire API and future client packages to consume `@smart-pos/printer` instead of duplicating printer-profile types
+- Start Phase 12 client data architecture foundations once the first runtime printer consumer path is in place
 
 LATER
 - Shared contracts package
