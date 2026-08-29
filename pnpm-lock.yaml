@@ -85,6 +85,14 @@ importers:
         specifier: ^8.15.5
         version: 8.23.1
 
+  packages/client-data:
+    dependencies:
+      '@smart-pos/printer':
+        specifier: workspace:*
+        version: link:../printer
+
+  packages/printer: {}
+
 packages:
 
   '@drizzle-team/brocli@0.10.2':

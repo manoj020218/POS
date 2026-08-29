@@ -1,10 +1,10 @@
 # HANDOFF
 
 Current Phase:
-- Phase 11 - Printer Domain
+- Phase 12 - Client Data Architecture
 
 Current Subtask:
-- Prepare the first runtime consumer of the completed `@smart-pos/printer` package while keeping Phase 10 settings ready for live PostgreSQL migration verification once the local database is reachable
+- Phase 12 foundations are complete; next session can begin Phase 13 functional POS UI while Phase 10 live PostgreSQL migration verification remains blocked on the local database listener
 
 Completed:
 - Added Phase 10 schema for `business_settings` and `branch_settings`
@@ -24,6 +24,12 @@ Completed:
 - Increased `apps/api/test/drizzle-settings.repository.test.ts` setup timeout so the full Vitest suite remains stable after adding the new printer-package coverage
 - Verified `cmd /c pnpm lint`, `cmd /c pnpm typecheck`, `cmd /c pnpm build`, and `cmd /c pnpm test` on 2026-08-29 with `182` tests passing
 - Expanded root `pnpm typecheck`, `pnpm build`, and Vitest discovery so the printer package is part of normal verification
+- Added Phase 12 foundation package `@smart-pos/client-data`
+- Added client-side repository boundaries for products, customers, sales, stock, sync, settings, and the composed client data store
+- Added an in-memory client data store, HTTP remote API adapter, settings bootstrap service, printer-aware local checkout service, and outbox-first sync orchestration
+- Reused `@smart-pos/printer` as the first runtime printer consumer so checkout receipt printing stays profile-driven and transport-agnostic
+- Added client-data package coverage for checkout completion, printer failure retention, settings bootstrap, remote API wiring, and push-then-pull sync hydration
+- Verified `cmd /c pnpm lint`, `cmd /c pnpm typecheck`, `cmd /c pnpm build`, and `cmd /c pnpm exec vitest run --reporter=basic` on 2026-08-29 with `188` tests passing
 - Read `PROJECT_PLAN.md`
 - Confirmed GitHub repo `manoj020218/POS` exists and is empty
 - Initialized local Git repo and attached `origin`
@@ -321,11 +327,12 @@ Currently Working:
 - Phase 10 business settings are code-complete and test-verified across API, repository, catalog defaults, invoice prefixes, and reporting timezone behavior
 - Live `cmd /c pnpm db:migrate` verification for `apps/api/drizzle/0014_oval_oracle.sql` is still pending because `DATABASE_URL` currently targets `localhost:5432/smart_pos` and no PostgreSQL listener was available on 2026-08-29
 - Phase 11 printer-domain foundations now include print-job builders, ESC/POS byte encoding, and transport adapters across `TCP`, `BLUETOOTH`, `USB`, and `SYSTEM`
+- Phase 12 client-data foundations now provide the first runtime printer consumer, local checkout orchestration, and offline sync boundaries without coupling UI code to transport or API logic
 
 Next:
 - Re-run `cmd /c pnpm db:migrate` for `apps/api/drizzle/0014_oval_oracle.sql` once local PostgreSQL is reachable
-- Wire API settings and the first runtime consumer to use `@smart-pos/printer` instead of duplicating printer-profile or transport-selection logic
-- Start Phase 12 client data architecture foundations once the first runtime printer consumer path is in place
+- Begin Phase 13 functional POS UI with a tablet-first checkout shell that consumes `@smart-pos/client-data`
+- Add a real client runtime plus SQLite or IndexedDB-backed implementations for the Phase 12 repository interfaces
 
 Important Decisions:
 - Keep Phase 10 settings typed across `business_settings` and `branch_settings` instead of collapsing them into an unstructured JSON blob
@@ -334,6 +341,10 @@ Important Decisions:
 - Normalize `Intl.DateTimeFormat` midnight `24:00` output to `00:00` when deriving timezone-aware report windows so local-day boundaries stay correct
 - Keep `@smart-pos/printer` as the shared home for printer profiles, ESC/POS job builders, byte encoding, and transport routing rather than binding the monorepo to one printer library too early
 - Keep `BLUETOOTH`, `USB`, and `SYSTEM` adapters dependency-injected so the shared package owns printer contracts and rendering while each runtime owns its platform-specific write implementation
+- Keep `@smart-pos/client-data` as the client-side boundary between UI, local repositories, remote API, sync orchestration, and printer execution so Phase 13 UI code does not absorb business logic
+- Start Phase 12 with an in-memory client data store and a thin HTTP adapter to verify the repository contracts before platform-specific SQLite or IndexedDB implementations exist
+- Complete local checkout persistence and outbox enqueue before attempting receipt printing so a printer failure never discards the sale
+- Push pending outbox events before pulling remote changes so local acknowledgements can advance sale sync state ahead of downstream hydration
 - Start with a modular monolith foundation under `apps/api`
 - Use TypeScript, Express, Zod, Pino, Drizzle, PostgreSQL, and Vitest
 - Treat `HotelQR-Lite` only as an operational reference, not as source reuse
@@ -408,7 +419,7 @@ Known Issues:
 - Local `pnpm install` required temporary `npm_config_strict_ssl=false` on this machine due npm registry certificate validation failures
 - Local PostgreSQL-backed verification still depends on the developer maintaining an ignored root `.env`
 - `cmd /c pnpm db:migrate` could not verify `apps/api/drizzle/0014_oval_oracle.sql` on 2026-08-29 because `DATABASE_URL` targets `localhost:5432/smart_pos` and no PostgreSQL listener was accepting connections
-- The API settings module still carries its own receipt-printer-profile document type until a runtime consumer is ready to depend on `@smart-pos/printer`
+- Shared contracts are still duplicated across API and client packages until a dedicated `packages/contracts` slice exists
 - Password reset delivery still defaults to a no-op sink at runtime; email/SMS/admin handoff for reset tokens is not implemented yet
 - `pnpm bootstrap:owner` requires the target tenant to already exist; it does not create tenant/business/branch/terminal hierarchy on its own
 - Walk-in customer uniqueness is currently enforced by the service-level ensure flow rather than a database uniqueness constraint
@@ -417,7 +428,8 @@ Known Issues:
 - Purchase flows currently support creation and listing only; purchase updates, purchase returns, cancellations, and vendor invoice reconciliation are not implemented yet
 - Sync replay still leaves unsupported event types in `RECEIVED`; downstream pull/retry workflows for those events are not implemented yet
 - Sync replay currently attributes created sales and purchases to the authenticated sync caller; preserving the original offline actor independently from the sync session is not implemented yet
-- `GET /api/v1/sync/pull` now emits `PRODUCT_UPSERTED` snapshots, but categories, units, tax profiles, and customers are not yet exposed as first-class server-authored change types
+- Phase 12 client data currently ships only an in-memory local store; platform-backed SQLite and IndexedDB adapters are not implemented yet
+- Phase 12 sync hydration currently materializes `PRODUCT_UPSERTED`, `CUSTOMER_UPSERTED`, and `SYNC_EVENT_APPLIED`; category, unit, and tax-profile pull changes are still counted and ignored locally until those repositories are added
 - Master-data pull currently uses latest-snapshot `updatedAt` ordering without explicit entity version columns or a dedicated downstream change log
 - Inventory balances currently derive from mutable `product.openingStock` plus movement sums; explicit opening-stock ledger entries and manual inventory adjustments are not implemented yet
 
@@ -502,6 +514,8 @@ Tests:
 - Catalog repository integration: category/unit/tax-profile sync-feed ordering and business scoping via `DrizzleCatalogRepository`
 - Targeted verification: `cmd /c pnpm exec vitest run apps/api/test/sync-pull-masters.test.ts apps/api/test/sync-pull-products.test.ts apps/api/test/drizzle-catalog.sync-feed.test.ts --reporter=verbose`
 - Full suite verification on 2026-08-27: `cmd /c pnpm test` (143 tests passing)
+- Client data package: checkout completion, printer failure retention, remote API wiring, settings bootstrap, and push-then-pull sync hydration via `packages/client-data/test/*.test.ts`
+- Full suite verification on 2026-08-29: `cmd /c pnpm exec vitest run --reporter=basic` (188 tests passing)
 
 Last Successful Commands:
 - `git init -b main`
@@ -696,6 +710,12 @@ Last Successful Commands:
 - `cmd /c pnpm typecheck`
 - `cmd /c pnpm build`
 - `cmd /c pnpm test`
+- `cmd /c pnpm install`
+- `cmd /c pnpm lint`
+- `cmd /c pnpm typecheck`
+- `cmd /c pnpm build`
+- `cmd /c pnpm exec vitest run packages/client-data/test/bootstrap-service.test.ts packages/client-data/test/checkout-service.test.ts packages/client-data/test/http-client-remote-api.test.ts packages/client-data/test/sync-service.test.ts --reporter=verbose`
+- `cmd /c pnpm exec vitest run --reporter=basic`
 - `cmd /c pnpm lint`
 - `cmd /c pnpm typecheck`
 - `cmd /c pnpm test`
@@ -845,9 +865,10 @@ API Status:
 - Business settings now drive default product unit/tax/inventory behavior, sale invoice prefixes, and report timezone windows
 - Reporting date windows now honor the configured business timezone and correctly handle formatter midnight output
 - Workspace package `@smart-pos/printer` now exposes shared printer profiles, ESC/POS print-job contracts, receipt/kitchen/barcode/QR builders, a recording printer service, a printer test-page builder, an ESC/POS encoder, transport adapters, and a profile-aware router
+- Workspace package `@smart-pos/client-data` now exposes client-side repository contracts, an in-memory store, an HTTP remote API adapter, a settings bootstrap service, a printer-aware local checkout service, and outbox-first sync orchestration
 
 Git Status:
-- Working tree should be clean after publishing the Phase 11 printer builders, encoder, and transport adapters
+- Changes pending for Phase 12 client-data foundations, continuity-doc refresh, and the workspace lockfile update from `pnpm install`
 
 Last Commit:
-- Latest published state should include the continuity-doc refresh for Phase 11 printer builders and transport adapters on 2026-08-29
+- Latest published state is still the Phase 11 printer-domain commit until the Phase 12 client-data package is committed and pushed

@@ -2,15 +2,16 @@
 
 NOW
 - Re-run `cmd /c pnpm db:migrate` for `apps/api/drizzle/0014_oval_oracle.sql` once local PostgreSQL is reachable at `localhost:5432`
-- Wire API settings and the first runtime consumer to use `@smart-pos/printer` instead of duplicating printer-profile and transport-selection logic
+- Begin Phase 13 functional POS UI on top of `@smart-pos/client-data` with a tablet-first checkout shell
+- Keep Phase 13 touch-first so add item, quantity, remove, discount, pay, cash, UPI, print, and new sale actions do not depend on hover or keyboard shortcuts
 
 NEXT
-- Start Phase 12 client data architecture foundations once the first runtime printer consumer path is in place
+- Add a real client runtime and data adapter layer for the current `@smart-pos/client-data` interfaces
 
 LATER
 - Shared contracts package
 - Admin and POS client apps
-- Sync package and offline client data layer
+- Platform-backed SQLite or IndexedDB client data stores
 
 BLOCKED
 - Local PostgreSQL listener was unavailable for `cmd /c pnpm db:migrate` on 2026-08-29
