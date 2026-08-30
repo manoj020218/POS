@@ -1,3 +1,4 @@
+export * from './auth-client.js';
 export * from './bootstrap-service.js';
 export * from './checkout-calculator.js';
 export * from './checkout.types.js';
@@ -6,6 +7,7 @@ export * from './client-context.js';
 export * from './client-data-store.js';
 export * from './customer-repository.js';
 export * from './http-client-remote-api.js';
+export * from './http-fetch-helpers.js';
 export * from './in-memory-client-data-store.js';
 export * from './product-repository.js';
 export * from './remote-api.js';

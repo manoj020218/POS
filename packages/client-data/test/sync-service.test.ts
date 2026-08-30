@@ -50,6 +50,8 @@ describe('createClientSyncService', () => {
       getBusinessSettings: async () => {
         throw new Error('unused');
       },
+      listBranches: async () => [],
+      listTerminals: async () => [],
       pullChanges: async () => ({
         changes: [
           {

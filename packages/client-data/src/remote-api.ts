@@ -83,8 +83,27 @@ export type ClientRemoteSyncPullResult = {
   serverTime: string;
 };
 
+export type ClientRemoteBranchSummary = {
+  address?: string;
+  businessId: string;
+  code: string;
+  id: string;
+  isActive: boolean;
+  name: string;
+};
+
+export type ClientRemoteTerminalSummary = {
+  branchId: string;
+  code: string;
+  id: string;
+  isActive: boolean;
+  name: string;
+};
+
 export interface ClientRemoteApi {
   getBusinessSettings(input?: { businessId?: string }): Promise<ClientBusinessSettings>;
+  listBranches(): Promise<ClientRemoteBranchSummary[]>;
+  listTerminals(input?: { branchId?: string }): Promise<ClientRemoteTerminalSummary[]>;
   pullChanges(query: ClientRemoteSyncPullQuery): Promise<ClientRemoteSyncPullResult>;
   pushEvents(input: {
     events: ClientRemoteSyncEventInput[];

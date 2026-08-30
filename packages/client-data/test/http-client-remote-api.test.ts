@@ -19,6 +19,44 @@ describe('createHttpClientRemoteApi', () => {
         };
       }
 
+      if (url.includes('/branches')) {
+        return {
+          json: async () => ({
+            data: [
+              {
+                businessId: terminalContext.businessId,
+                code: terminalContext.branchCode,
+                id: terminalContext.branchId,
+                isActive: true,
+                name: terminalContext.branchName
+              }
+            ]
+          }),
+          ok: true,
+          status: 200,
+          text: async () => ''
+        };
+      }
+
+      if (url.includes('/terminals')) {
+        return {
+          json: async () => ({
+            data: [
+              {
+                branchId: terminalContext.branchId,
+                code: terminalContext.terminalCode,
+                id: terminalContext.terminalId,
+                isActive: true,
+                name: terminalContext.terminalName
+              }
+            ]
+          }),
+          ok: true,
+          status: 200,
+          text: async () => ''
+        };
+      }
+
       if (url.includes('/sync/pull')) {
         return {
           json: async () => ({
@@ -82,6 +120,8 @@ describe('createHttpClientRemoteApi', () => {
     });
 
     const fetchedSettings = await api.getBusinessSettings({ businessId: settings.businessId });
+    const branches = await api.listBranches();
+    const terminals = await api.listTerminals({ branchId: terminalContext.branchId });
     const pullResult = await api.pullChanges({
       branchId: terminalContext.branchId,
       cursor: 'cursor-00',
@@ -102,13 +142,18 @@ describe('createHttpClientRemoteApi', () => {
     });
 
     expect(fetchedSettings).toEqual(settings);
+    expect(branches).toHaveLength(1);
+    expect(branches[0]?.id).toBe(terminalContext.branchId);
+    expect(terminals).toHaveLength(1);
+    expect(terminals[0]?.id).toBe(terminalContext.terminalId);
     expect(pullResult.nextCursor).toBe('cursor-01');
     expect(pushResult.acceptedCount).toBe(1);
     expect(calls[0]?.url).toContain(`/business-settings?businessId=${settings.businessId}`);
-    expect(calls[1]?.url).toContain(`branchId=${terminalContext.branchId}`);
-    expect(calls[1]?.url).toContain('cursor=cursor-00');
-    expect(calls[2]?.init?.headers?.Authorization).toBe('Bearer secret-token');
-    expect(calls[2]?.init?.method).toBe('POST');
-    expect(calls[2]?.init?.body).toContain('sale-created-0001');
+    expect(calls[2]?.url).toContain(`terminals?branchId=${terminalContext.branchId}`);
+    expect(calls[3]?.url).toContain(`branchId=${terminalContext.branchId}`);
+    expect(calls[3]?.url).toContain('cursor=cursor-00');
+    expect(calls[4]?.init?.headers?.Authorization).toBe('Bearer secret-token');
+    expect(calls[4]?.init?.method).toBe('POST');
+    expect(calls[4]?.init?.body).toContain('sale-created-0001');
   });
 });

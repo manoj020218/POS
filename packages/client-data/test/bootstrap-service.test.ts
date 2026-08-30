@@ -13,6 +13,8 @@ describe('createClientBootstrapService', () => {
     const settings = createSettings();
     const remoteApi: ClientRemoteApi = {
       getBusinessSettings: async () => settings,
+      listBranches: async () => [],
+      listTerminals: async () => [],
       pullChanges: async () => ({ changes: [], nextCursor: null, serverTime: '2026-08-29T12:00:00.000Z' }),
       pushEvents: async () => ({ acceptedCount: 0, duplicateCount: 0, events: [] })
     };
