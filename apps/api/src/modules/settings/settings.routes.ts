@@ -22,7 +22,7 @@ export const createSettingsRouter = (
 
   router.get(
     '/business-settings',
-    requirePermissions(['settings:manage']),
+    requirePermissions(['terminal:view']),
     getBusinessSettingsController(service)
   );
   router.patch(

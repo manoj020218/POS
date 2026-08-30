@@ -187,19 +187,18 @@ describe('business settings routes', () => {
     });
   });
 
-  it('requires settings permissions for reads and writes', async () => {
-    const managerAccess = await loginAs('manager@example.com');
+  it('allows any terminal role to read settings but requires settings:manage to write', async () => {
+    const cashierAccess = await loginAs('cashier@example.com');
     const listed = await request(app)
       .get('/api/v1/business-settings')
       .query({ businessId: businessAId })
-      .set(managerAccess);
-    const updated = await request(app).patch('/api/v1/business-settings').set(managerAccess).send({
+      .set(cashierAccess);
+    const updated = await request(app).patch('/api/v1/business-settings').set(cashierAccess).send({
       businessId: businessAId,
       currencyCode: 'INR'
     });
 
-    expect(listed.status).toBe(403);
-    expect(listed.body.code).toBe('FORBIDDEN');
+    expect(listed.status).toBe(200);
     expect(updated.status).toBe(403);
     expect(updated.body.code).toBe('FORBIDDEN');
   });
