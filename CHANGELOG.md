@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2026-08-30
+
+- Added Phase 13 kiosk-first POS checkout UI: new workspace app `apps/pos` (React + Vite + Tailwind CSS v4), touch-first product search/category browsing, cart with quantity/discount/remove, customer picker, Cash/Card/UPI/Other payment with an on-screen numeric keypad, on-screen receipt result, and New Sale reset
+- Fixed a browser-bundling bug in `@smart-pos/printer`: the barrel export pulled in a Node-only `node:net` import (`tcp-printer-service.ts`), crashing any browser import of `@smart-pos/client-data`; moved it behind a new `@smart-pos/printer/tcp` subpath so the main entry stays browser-safe
+- Added a calculator shortcut to the kiosk top bar, showing the running input expression above the computed result
+- Added real cashier login (`POST /api/v1/auth/login`) and terminal picker (`GET /api/v1/terminals`) to `apps/pos`, replacing the fixed demo terminal context; session persists in `localStorage` and survives a reload
+- Added `createHttpAuthClient` and `listBranches`/`listTerminals` to `@smart-pos/client-data`'s `ClientRemoteApi`
+- Changed `GET /api/v1/business-settings` to require `terminal:view` instead of `settings:manage`, so any terminal-operating role can read the settings a POS terminal needs (write still requires `settings:manage`)
+- Added `pnpm --filter @smart-pos/api dev:memory`, an in-memory-repository dev server for exercising real auth/API flows locally without PostgreSQL
+- Verified `pnpm typecheck`, `pnpm lint`, `pnpm test`, and a live browser walkthrough of login → terminal pick → checkout against the in-memory dev server
+
 ## 2026-08-29
 
 - Added Phase 10 business settings persistence with `business_settings` and `branch_settings` schema plus migration `0014_oval_oracle.sql`

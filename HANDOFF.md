@@ -876,8 +876,47 @@ POS UI Status (Phase 13, 2026-08-30):
 - Fixed a pre-existing bug uncovered while loading `@smart-pos/client-data` in a browser bundle: `packages/printer/src/index.ts` barrel-exported `tcp-printer-service.ts`, which does a static `import { Socket } from 'node:net'` — any browser import of the printer package's main entry crashed immediately. `tcp-printer-service` is now reached only via the new `@smart-pos/printer/tcp` subpath export (Node-only consumers); the main entry point stays browser-safe. Updated `packages/printer/test/tcp-printer-service.test.ts` to import from the subpath accordingly
 - Verified `pnpm --filter @smart-pos/pos typecheck`, `pnpm lint` (root, incl. new `eslint-plugin-react-hooks`/`eslint-plugin-react-refresh` block scoped to `apps/pos/src`), `pnpm test` (72 files / 188 tests passing), and manual browser exercise of the full flow via `pnpm --filter @smart-pos/pos dev`
 
+Auth/Terminal-Selection Status (2026-08-30):
+- Read `PROJECT_PLAN.md` in full this session — it's the client's own master execution plan (phase
+  list, non-negotiable rules, git/HANDOFF discipline). Reconciled prior "Phase 13" work against it;
+  going forward, phase numbers/terminology in this file should track that document, not be reinvented
+- `apps/pos` cashier login and terminal-picker screens now call the real backend instead of a fixed
+  demo context: `CashierLoginScreen` → `POST /api/v1/auth/login`, `TerminalPickerScreen` →
+  `GET /api/v1/terminals`, both via new `@smart-pos/client-data` client surface
+  (`createHttpAuthClient`; `listBranches`/`listTerminals` added to `ClientRemoteApi`/
+  `createHttpClientRemoteApi`). Session (tokens + user) persists in `localStorage`; a `useAuth`
+  hook restores it on reload; `TopBar` gained a sign-out button
+- After terminal selection, `apps/pos` fetches real `GET /api/v1/business-settings` once to resolve
+  the authenticated business/branch name, then reseeds the existing demo in-memory catalog under
+  those *real* business/branch ids (`apps/pos/src/data/seed-*.ts` now take a `SeedBusinessContext`
+  parameter instead of importing a fixed `demoIds`/`demoTerminalContext`) — auth and terminal
+  identity are fully real; product/customer/checkout data is still the local demo seed pending the
+  NEXT-item persistent-store swap
+- Found and fixed a real backend gap while wiring this: `GET /api/v1/business-settings` required
+  `settings:manage`, which no terminal-operating role (CASHIER, BRANCH_MANAGER, etc.) actually has —
+  meaning no POS terminal could ever read its own business settings. Changed the route to require
+  `terminal:view` instead (write/`PATCH` still requires `settings:manage`); updated
+  `apps/api/test/settings.test.ts` accordingly (documented per PROJECT_PLAN.md §68's
+  problem-handling process, not silently patched)
+- Added `apps/api/src/scripts/dev-in-memory-server.ts` (`pnpm --filter @smart-pos/api dev:memory`):
+  boots the API with in-memory repositories and a seeded tenant/business/branch/2
+  terminals/1 CASHIER user, for exercising real auth/API flows locally without PostgreSQL — used to
+  verify this slice end-to-end (login → terminal pick → checkout shell renders with the real
+  business/branch/cashier names) via a live browser session
+- NOT VERIFIED against real PostgreSQL yet — local Postgres remains unreachable (existing BLOCKED
+  item); this slice was verified against the in-memory dev harness above and the automated test
+  suite only, per the plan's risk mitigation
+
+Tests:
+- `pnpm --filter @smart-pos/client-data typecheck` / new `auth-client.test.ts` and extended
+  `http-client-remote-api.test.ts` (listBranches/listTerminals) — passing
+- `pnpm exec vitest run apps/api/test/settings.test.ts apps/api/test/reporting.test.ts` — passing
+  after the permission-route test update
+- `pnpm typecheck` (all 4 workspace packages) and `pnpm lint` (root) — passing
+- Full `pnpm test` — `73` test files / `190` tests passing
+
 Git Status:
-- Working tree should be clean after publishing the Phase 12 client-data foundations and continuity-doc refresh; the Phase 13 `apps/pos` UI work above is uncommitted as of this handoff entry
+- Working tree should be clean once the commits described in this entry are created; see Last Commit
 
 Last Commit:
-- Phase 12 feature commit: `d90ab20 feat(client-data): add phase 12 foundations`
+- `03584db feat(pos): wire real cashier login and terminal picker` (this doc-update commit follows it)
