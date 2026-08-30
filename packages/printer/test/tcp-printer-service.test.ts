@@ -2,11 +2,8 @@ import { createServer } from 'node:net';
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  createPrinterTestPageJob,
-  createTcpPrinterService,
-  type ReceiptPrinterProfile
-} from '../src/index.js';
+import { createPrinterTestPageJob, type ReceiptPrinterProfile } from '../src/index.js';
+import { createTcpPrinterService } from '../src/tcp-printer-service.js';
 
 const closeServer = (server: ReturnType<typeof createServer>) =>
   new Promise<void>((resolve, reject) => {

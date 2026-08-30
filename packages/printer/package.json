@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./tcp": {
+      "types": "./dist/tcp-printer-service.d.ts",
+      "import": "./dist/tcp-printer-service.js"
     }
   },
   "files": ["dist"],

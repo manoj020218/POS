@@ -11,6 +11,5 @@ export * from './recording-printer-service.js';
 export * from './receipt-job.js';
 export * from './system-printer-service.js';
 export * from './test-page.js';
-export * from './tcp-printer-service.js';
 export * from './transport-printer-service.js';
 export * from './usb-printer-service.js';

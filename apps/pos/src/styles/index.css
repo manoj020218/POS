@@ -1,0 +1,69 @@
+@import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-surface: #f4f5f9;
+  --color-surface-raised: #ffffff;
+  --color-surface-sunken: #e9eaf2;
+
+  --color-ink: #14161f;
+  --color-ink-muted: #5b5f73;
+  --color-ink-faint: #9297ad;
+
+  --color-line: #e2e4ee;
+
+  --color-brand-50: #eef1ff;
+  --color-brand-100: #dfe3ff;
+  --color-brand-500: #4f5bd5;
+  --color-brand-600: #3f49c2;
+  --color-brand-700: #333ba3;
+
+  --color-success-50: #e9fbf3;
+  --color-success-500: #12a86b;
+  --color-success-600: #0d9159;
+
+  --color-warn-50: #fff7e8;
+  --color-warn-500: #d68a00;
+  --color-warn-600: #b97600;
+
+  --color-danger-50: #fdecec;
+  --color-danger-500: #e0453f;
+  --color-danger-600: #c93a35;
+
+  --shadow-kiosk: 0 1px 2px rgba(20, 22, 31, 0.04), 0 8px 24px -12px rgba(20, 22, 31, 0.18);
+  --shadow-kiosk-lg: 0 4px 8px rgba(20, 22, 31, 0.05), 0 24px 48px -16px rgba(20, 22, 31, 0.28);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+* {
+  touch-action: manipulation;
+}
+
+button {
+  cursor: pointer;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 999px;
+}

@@ -868,8 +868,16 @@ API Status:
 - Workspace package `@smart-pos/printer` now exposes shared printer profiles, ESC/POS print-job contracts, receipt/kitchen/barcode/QR builders, a recording printer service, a printer test-page builder, an ESC/POS encoder, transport adapters, and a profile-aware router
 - Workspace package `@smart-pos/client-data` now exposes client-side repository contracts, an in-memory store, an HTTP remote API adapter, a settings bootstrap service, a printer-aware local checkout service, and outbox-first sync orchestration
 
+POS UI Status (Phase 13, 2026-08-30):
+- New workspace app `apps/pos` (`@smart-pos/pos`): React 18 + TypeScript + Vite 6 + Tailwind CSS v4, added to the root `build`/`typecheck` filters and a new `dev:pos` script
+- Kiosk-first touch checkout shell built directly on `@smart-pos/client-data`'s `createInMemoryClientDataStore` + `createLocalCheckoutService`, seeded with demo products/customers/business settings (no live API/DB wiring yet — intentionally deferred to the existing NEXT item)
+- UI covers the full required action set: product search/category browsing, add/increment/decrement/remove cart lines, quick and custom (on-screen keypad) discount, walk-in/customer picker, Cash (on-screen keypad + quick tender chips + change due)/Card/UPI/Other payment, on-screen receipt result (printing is always `SKIPPED` since no printer transport is wired), and New Sale reset
+- Every `apps/pos/src` file is kept under ~200 lines (user constraint); the component tree is decomposed accordingly (see `apps/pos/src/components/**`, `apps/pos/src/state/**`)
+- Fixed a pre-existing bug uncovered while loading `@smart-pos/client-data` in a browser bundle: `packages/printer/src/index.ts` barrel-exported `tcp-printer-service.ts`, which does a static `import { Socket } from 'node:net'` — any browser import of the printer package's main entry crashed immediately. `tcp-printer-service` is now reached only via the new `@smart-pos/printer/tcp` subpath export (Node-only consumers); the main entry point stays browser-safe. Updated `packages/printer/test/tcp-printer-service.test.ts` to import from the subpath accordingly
+- Verified `pnpm --filter @smart-pos/pos typecheck`, `pnpm lint` (root, incl. new `eslint-plugin-react-hooks`/`eslint-plugin-react-refresh` block scoped to `apps/pos/src`), `pnpm test` (72 files / 188 tests passing), and manual browser exercise of the full flow via `pnpm --filter @smart-pos/pos dev`
+
 Git Status:
-- Working tree should be clean after publishing the Phase 12 client-data foundations and continuity-doc refresh
+- Working tree should be clean after publishing the Phase 12 client-data foundations and continuity-doc refresh; the Phase 13 `apps/pos` UI work above is uncommitted as of this handoff entry
 
 Last Commit:
 - Phase 12 feature commit: `d90ab20 feat(client-data): add phase 12 foundations`
