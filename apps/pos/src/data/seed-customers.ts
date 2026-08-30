@@ -1,15 +1,15 @@
 import type { ClientCustomerRecord } from '@smart-pos/client-data';
 
-import { demoIds } from '../lib/demo-context.js';
+import type { SeedBusinessContext } from './seed-context.js';
 
 export const walkInCustomerId = 'cust-walk-in';
 
-export const buildSeedCustomers = (): ClientCustomerRecord[] => {
+export const buildSeedCustomers = (business: SeedBusinessContext): ClientCustomerRecord[] => {
   const now = new Date();
   const base = {
     businessCode: 'DEMO',
-    businessId: demoIds.businessId,
-    businessName: 'Smart POS Demo Store',
+    businessId: business.businessId,
+    businessName: business.businessName,
     isActive: true,
     updatedAt: now
   };

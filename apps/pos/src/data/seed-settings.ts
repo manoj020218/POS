@@ -1,24 +1,24 @@
 import type { ClientBusinessSettings } from '@smart-pos/client-data';
 
-import { demoIds, demoTerminalContext } from '../lib/demo-context.js';
 import { findTaxProfile, findUnit } from './seed-catalog-meta.js';
+import type { SeedBusinessContext } from './seed-context.js';
 
-export const buildSeedSettings = (): ClientBusinessSettings => {
+export const buildSeedSettings = (business: SeedBusinessContext): ClientBusinessSettings => {
   const defaultUnit = findUnit('PCS');
   const defaultTaxProfile = findTaxProfile('GST12');
 
   return {
     branches: [
       {
-        branchCode: demoTerminalContext.branchCode,
-        branchId: demoIds.branchId,
-        branchName: demoTerminalContext.branchName,
-        address: '12 MG Road, Bengaluru'
+        address: '12 MG Road, Bengaluru',
+        branchCode: business.branchCode,
+        branchId: business.branchId,
+        branchName: business.branchName
       }
     ],
     businessCode: 'DEMO',
-    businessId: demoIds.businessId,
-    businessName: 'Smart POS Demo Store',
+    businessId: business.businessId,
+    businessName: business.businessName,
     currencyCode: 'INR',
     defaultTaxProfile: {
       code: defaultTaxProfile.code,

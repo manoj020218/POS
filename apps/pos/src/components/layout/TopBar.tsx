@@ -1,11 +1,12 @@
-import { Store, User } from 'lucide-react';
+import { LogOut, Store, User } from 'lucide-react';
 
 import { usePosContext } from '../../state/use-pos-context.js';
 import { CalculatorButton } from '../calculator/CalculatorButton.js';
+import { IconButton } from '../common/IconButton.js';
 import { LiveClock } from './LiveClock.js';
 
 export const TopBar = () => {
-  const { settings, terminalContext } = usePosContext();
+  const { logout, settings, terminalContext } = usePosContext();
 
   return (
     <header className="flex h-20 shrink-0 items-center justify-between border-b border-line bg-surface-raised px-6">
@@ -28,6 +29,9 @@ export const TopBar = () => {
           <span className="text-sm font-semibold text-ink">{terminalContext.cashierName}</span>
         </div>
         <LiveClock />
+        <IconButton label="Sign out" onClick={logout} tone="danger">
+          <LogOut size={20} />
+        </IconButton>
       </div>
     </header>
   );

@@ -1,6 +1,5 @@
 import type { ClientProductRecord } from '@smart-pos/client-data';
 
-import { demoIds } from '../lib/demo-context.js';
 import {
   findCategory,
   findTaxProfile,
@@ -9,6 +8,7 @@ import {
   type DemoTaxCode,
   type DemoUnitCode
 } from './seed-catalog-meta.js';
+import type { SeedBusinessContext } from './seed-context.js';
 
 type ProductSeed = {
   barcode: string;
@@ -47,7 +47,7 @@ const seeds: ProductSeed[] = [
   { barcode: '8906002', category: 'HOU', lowStockLevel: 10, name: 'Paper Napkins Pack', openingStock: 22, purchasePrice: 30, sellingPrice: 50, sku: 'HOU-NAP-01', tax: 'GST18', unit: 'PCS' }
 ];
 
-export const buildSeedProducts = (): ClientProductRecord[] => {
+export const buildSeedProducts = (business: SeedBusinessContext): ClientProductRecord[] => {
   const now = new Date();
 
   return seeds.map((seed) => {
@@ -58,8 +58,8 @@ export const buildSeedProducts = (): ClientProductRecord[] => {
     return {
       barcode: seed.barcode,
       businessCode: 'DEMO',
-      businessId: demoIds.businessId,
-      businessName: 'Smart POS Demo Store',
+      businessId: business.businessId,
+      businessName: business.businessName,
       categoryCode: category.code,
       categoryId: category.id,
       categoryName: category.name,
