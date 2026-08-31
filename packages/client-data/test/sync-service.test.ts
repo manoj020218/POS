@@ -145,4 +145,67 @@ describe('createClientSyncService', () => {
     expect(customer?.name).toBe('Walk-in Customer');
     await expect(store.sync.getPullCursor()).resolves.toBe('cursor-01');
   });
+
+  it('pages through pull results until a short page confirms the client has caught up', async () => {
+    const store = createInMemoryClientDataStore(() => new Date('2026-08-29T15:00:00.000Z'));
+    const cursorsRequested: (string | undefined)[] = [];
+
+    const remoteApi: ClientRemoteApi = {
+      getBusinessSettings: async () => {
+        throw new Error('unused');
+      },
+      listBranches: async () => [],
+      listTerminals: async () => [],
+      pullChanges: async (query) => {
+        cursorsRequested.push(query.cursor);
+
+        if (cursorsRequested.length === 1) {
+          return {
+            changes: [
+              {
+                businessId: terminalContext.businessId,
+                changeId: 'product-change-1',
+                changeType: 'PRODUCT_UPSERTED',
+                record: createRemoteProductSnapshot({ id: 'product-1' }),
+                source: 'SERVER',
+                updatedAt: '2026-08-29T15:01:00.000Z'
+              }
+            ],
+            nextCursor: 'cursor-page-1',
+            serverTime: '2026-08-29T15:05:00.000Z'
+          };
+        }
+
+        if (cursorsRequested.length === 2) {
+          return {
+            changes: [
+              {
+                businessId: terminalContext.businessId,
+                changeId: 'product-change-2',
+                changeType: 'PRODUCT_UPSERTED',
+                record: createRemoteProductSnapshot({ id: 'product-2' }),
+                source: 'SERVER',
+                updatedAt: '2026-08-29T15:06:00.000Z'
+              }
+            ],
+            nextCursor: 'cursor-page-2',
+            serverTime: '2026-08-29T15:10:00.000Z'
+          };
+        }
+
+        return { changes: [], nextCursor: 'cursor-page-2', serverTime: '2026-08-29T15:11:00.000Z' };
+      },
+      pushEvents: async () => ({ acceptedCount: 0, duplicateCount: 0, events: [] })
+    };
+
+    const service = createClientSyncService({ remoteApi, store });
+    const result = await service.pullChanges({ branchId: terminalContext.branchId, limit: 1 });
+
+    expect(cursorsRequested).toEqual([undefined, 'cursor-page-1', 'cursor-page-2']);
+    expect(result.productCount).toBe(2);
+    expect(result.nextCursor).toBe('cursor-page-2');
+    await expect(store.products.findById('product-1')).resolves.toMatchObject({ id: 'product-1' });
+    await expect(store.products.findById('product-2')).resolves.toMatchObject({ id: 'product-2' });
+    await expect(store.sync.getPullCursor()).resolves.toBe('cursor-page-2');
+  });
 });

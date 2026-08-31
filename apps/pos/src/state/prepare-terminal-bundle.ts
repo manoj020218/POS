@@ -23,7 +23,7 @@ export const prepareTerminalBundle = async (session: ClientAuthResult, terminal:
   const settings = await bootstrapService.refreshBusinessSettings();
   const terminalContext = buildTerminalContext({ settings, terminal, user: session.user });
 
-  await syncService.syncNow({ branchId: terminalContext.branchId, limit: 200 });
+  await syncService.syncNow({ branchId: terminalContext.branchId, limit: 100 });
 
   return {
     checkoutService: createLocalCheckoutService({ store }),

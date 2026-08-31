@@ -5,6 +5,10 @@ import type { ClientRemoteApi } from './remote-api.js';
 
 type UnsupportedChangeType = 'CATEGORY_UPSERTED' | 'TAX_PROFILE_UPSERTED' | 'UNIT_UPSERTED';
 
+// Safety bound on paged pull iterations so a misbehaving server response
+// (e.g. always-full pages with an advancing cursor) can't hang sync forever.
+const maxPullPages = 1000;
+
 export const createClientSyncService = (input: {
   now?: () => Date;
   remoteApi: ClientRemoteApi;
@@ -13,36 +17,53 @@ export const createClientSyncService = (input: {
   const now = input.now ?? (() => new Date());
 
   const pullChanges = async (query: { branchId?: string; limit?: number } = {}) => {
-    const result = await input.remoteApi.pullChanges({
-      branchId: query.branchId,
-      cursor: (await input.store.sync.getPullCursor()) ?? undefined,
-      limit: query.limit ?? 50
-    });
+    const limit = query.limit ?? 50;
     const ignoredChanges: Partial<Record<UnsupportedChangeType, number>> = {};
     const products: ClientProductRecord[] = [];
     const customers: ClientCustomerRecord[] = [];
     let acknowledgementCount = 0;
+    let nextCursor: string | null = (await input.store.sync.getPullCursor()) ?? null;
+    let serverTime = now().toISOString();
 
-    for (const change of result.changes) {
-      switch (change.changeType) {
-        case 'PRODUCT_UPSERTED':
-          products.push({ ...change.record, updatedAt: new Date(change.record.updatedAt) });
-          break;
-        case 'CUSTOMER_UPSERTED':
-          customers.push({ ...change.record, updatedAt: new Date(change.record.updatedAt) });
-          break;
-        case 'SYNC_EVENT_APPLIED':
-          acknowledgementCount += 1;
-          await input.store.sync.markEventApplied(
-            change.record.eventId,
-            new Date(change.updatedAt),
-            new Date(change.updatedAt)
-          );
-          await input.store.sales.markSaleSyncStateByEventId(change.record.eventId, 'SYNCED', null);
-          break;
-        default:
-          ignoredChanges[change.changeType] = (ignoredChanges[change.changeType] ?? 0) + 1;
-          break;
+    // Page through the full change set: a page filled to `limit` may hide more
+    // changes behind the same cursor, so keep pulling until a short page confirms
+    // the client has caught up to the server.
+    for (let page = 0; page < maxPullPages; page += 1) {
+      const result = await input.remoteApi.pullChanges({
+        branchId: query.branchId,
+        cursor: nextCursor ?? undefined,
+        limit
+      });
+      serverTime = result.serverTime;
+
+      for (const change of result.changes) {
+        switch (change.changeType) {
+          case 'PRODUCT_UPSERTED':
+            products.push({ ...change.record, updatedAt: new Date(change.record.updatedAt) });
+            break;
+          case 'CUSTOMER_UPSERTED':
+            customers.push({ ...change.record, updatedAt: new Date(change.record.updatedAt) });
+            break;
+          case 'SYNC_EVENT_APPLIED':
+            acknowledgementCount += 1;
+            await input.store.sync.markEventApplied(
+              change.record.eventId,
+              new Date(change.updatedAt),
+              new Date(change.updatedAt)
+            );
+            await input.store.sales.markSaleSyncStateByEventId(change.record.eventId, 'SYNCED', null);
+            break;
+          default:
+            ignoredChanges[change.changeType] = (ignoredChanges[change.changeType] ?? 0) + 1;
+            break;
+        }
+      }
+
+      nextCursor = result.nextCursor;
+      await input.store.sync.savePullCursor(nextCursor);
+
+      if (result.changes.length < limit) {
+        break;
       }
     }
 
@@ -53,15 +74,13 @@ export const createClientSyncService = (input: {
       await input.store.customers.upsertCustomers(customers);
     }
 
-    await input.store.sync.savePullCursor(result.nextCursor);
-
     return {
       acknowledgementCount,
       customerCount: customers.length,
       ignoredChanges,
-      nextCursor: result.nextCursor,
+      nextCursor,
       productCount: products.length,
-      serverTime: result.serverTime
+      serverTime
     };
   };
 
