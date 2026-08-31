@@ -4,10 +4,12 @@ NOW
 - Re-run `cmd /c pnpm db:migrate` for `apps/api/drizzle/0014_oval_oracle.sql` once local PostgreSQL is reachable at `localhost:5432`
 
 NEXT
-- Printer native integrations (Phase 14, PROJECT_PLAN.md §33-34/§37): Bluetooth/USB/WiFi Capacitor
-  plugins per the `pos-printer-bluetooth`/`pos-printer-usb`/`pos-printer-wifi` contract, built by
-  another developer; wire each plugin's `write()` into `packages/printer`'s transport-agnostic
-  services once delivered
+- Printer native integrations (not a separately numbered PROJECT_PLAN.md phase — it's Android native
+  plugin work under §37 Android Architecture, building on the Phase 11 printer domain at §33-34):
+  Bluetooth/USB/WiFi Capacitor plugins per the `pos-printer-bluetooth`/`pos-printer-usb`/
+  `pos-printer-wifi` contract, built by another developer; wire each plugin's `write()` into
+  `packages/printer`'s transport-agnostic services once delivered. Note: PROJECT_PLAN.md's actual
+  Phase 14 is UI/UX Polish (§56), not printer work — don't conflate the two
 - Add `createNetworkPrinterService` to `packages/printer` (transport-agnostic WiFi/TCP wrapper,
   mirroring `createUsbPrinterService`/`createBluetoothPrinterService`) ahead of the WiFi plugin
 

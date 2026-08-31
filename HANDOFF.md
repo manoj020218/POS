@@ -25,12 +25,15 @@ remain.
 ---
 
 Current Phase:
-- Phase 13 - Functional Tablet POS UI (**complete and live-browser-verified**; printer integration is
-  Phase 14, not started, pending an externally-supplied native plugin)
+- Phase 13 - Functional Tablet POS UI (**complete and live-browser-verified**; printer native
+  integration is not started, pending an externally-supplied native plugin — this is Android native
+  plugin work under PROJECT_PLAN.md §37, not a separately numbered phase; PROJECT_PLAN.md's actual
+  Phase 14 is UI/UX Polish (§56), not printer work)
 
 Current Subtask:
-- None open from Phase 13. Next work is either Phase 14 (blocked on the external printer-plugin
-  developer) or the LATER items in TODO.md (access-token refresh, sync-status UI indicator)
+- None open from Phase 13. Next work is either the printer native integration (blocked on the
+  external printer-plugin developer) or the LATER items in TODO.md (access-token refresh, sync-status
+  UI indicator)
 
 Completed:
 - Added Phase 10 schema for `business_settings` and `branch_settings`
