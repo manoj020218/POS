@@ -2,11 +2,6 @@
 
 NOW
 - Re-run `cmd /c pnpm db:migrate` for `apps/api/drizzle/0014_oval_oracle.sql` once local PostgreSQL is reachable at `localhost:5432`
-- Live-browser click-through of the persistent-store flow (login → terminal pick → catalog hydrates
-  from IndexedDB/sync → checkout) is NOT VERIFIED — the browser automation extension's safety-check
-  service was unreachable this session (blocked all navigation, not just localhost). Verified
-  instead via `pnpm --filter @smart-pos/client-data` typecheck/tests (dedicated IndexedDB store test
-  exercises a full checkout against the real IndexedDB API) and the full repo test suite
 
 NEXT
 - Printer native integrations (Phase 14, PROJECT_PLAN.md §33-34/§37): Bluetooth/USB/WiFi Capacitor
@@ -25,6 +20,22 @@ LATER
 
 BLOCKED
 - Local PostgreSQL listener was unavailable for `cmd /c pnpm db:migrate` on 2026-08-29
+
+DONE (2026-08-31)
+- Live-browser click-through of the persistent-store flow (login → terminal pick → catalog hydrates
+  from sync → checkout) is now VERIFIED against `pnpm --filter @smart-pos/api dev:memory` +
+  `pnpm --filter @smart-pos/pos dev`: sign-in as `asha@example.com`, pick Counter 1, catalog
+  populates from the real API/sync, add an item, Cash checkout completes with a real invoice
+  (`INV-MAIN-T1-000001`), New Sale resets, no console errors, `POST /api/v1/sync/push` returns `200`
+- Found and fixed the bug that blocked the above: `GET /api/v1/sync/pull` returned `400` because
+  `apps/pos`'s post-login bootstrap requested `limit: 200` against a server cap of `100`
+- `@smart-pos/client-data`'s `createClientSyncService.pullChanges` now pages through pull results
+  (loops on the returned cursor until a short page confirms the client is caught up) instead of
+  assuming a single request returns the full change set — this also fixes correctness for any real
+  catalog/customer/outbox backlog bigger than one page, not just the immediate 400
+- Added a `sync-service.test.ts` regression test covering multi-page pulls, plus a `1000`-page safety
+  cap in the pull loop against a misbehaving/looping server response
+- Verified `pnpm typecheck`, `pnpm lint`, and the full `pnpm test` suite (74 files / 193 tests)
 
 DONE (2026-08-30)
 - Phase 13 kiosk-first POS checkout UI: new `apps/pos` (React + Vite + Tailwind v4) touch-first

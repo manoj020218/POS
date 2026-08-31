@@ -7,6 +7,9 @@
 - Checkout now does a best-effort background sync push right after each sale
 - `apps/api`'s in-memory dev server (`dev:memory`) now also seeds a small demo catalog so manual testing stays meaningful now that `apps/pos` no longer supplies its own
 - Verified `pnpm typecheck`, `pnpm lint`, and the full `pnpm test` suite (74 files / 192 tests); a live browser click-through was not possible this session — the browser automation extension's safety-check service was unreachable
+- Live browser click-through (login → terminal pick → checkout) found `GET /api/v1/sync/pull` failing with `400 Too big: expected number to be <=100`: `apps/pos`'s post-login bootstrap called `syncService.syncNow({ limit: 200 })`, above the server's `sync/pull` cap of `100`
+- Fixed `@smart-pos/client-data`'s `createClientSyncService.pullChanges` to page through pull results (looping on the returned cursor until a short page confirms the client has caught up) instead of assuming one request returns the full change set, with a `1000`-page safety cap against a misbehaving/looping server response; lowered `apps/pos`'s bootstrap `syncNow` request limit from `200` to `100` to match the server cap
+- Verified `pnpm typecheck`, `pnpm lint`, and the full `pnpm test` suite (74 files / 193 tests) plus a live browser click-through against `dev:memory`: login → terminal pick → catalog hydrates from sync → add item → Cash checkout → invoice `INV-MAIN-T1-000001` → New Sale reset, with no console errors and `POST /api/v1/sync/push` confirmed `200` in the server log
 
 ## 2026-08-30
 

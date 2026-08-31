@@ -1,65 +1,36 @@
 # HANDOFF
 
-## ⚠ READ THIS FIRST — restart-safety checkpoint (2026-08-31)
+## Session update (2026-08-31, continuation)
 
-Written immediately before a planned hard power-disconnect restart, so nothing is lost. Everything
-below is verified true at the moment of writing.
+The live-browser click-through flagged as the top priority in the previous restart-safety checkpoint
+is now done, and it found (and fixed) a real bug — see CHANGELOG.md 2026-08-31 for the full account.
+Summary: `apps/pos`'s post-login bootstrap called `syncService.syncNow({ limit: 200 })`, but the
+server's `GET /api/v1/sync/pull` caps `limit` at `100`, so every terminal pick failed with
+`Request failed with status 400` right after login — the kiosk UI was never actually reachable via a
+real browser before this session, only via unit/integration tests. Fixed by making
+`createClientSyncService.pullChanges` page through multiple pulls (looping on the cursor until a
+short page confirms the client is caught up) instead of assuming one request returns everything, and
+by lowering the client's requested limit to `100` to match the server cap. Full checkout flow
+(login → terminal pick → catalog hydrates from sync → add item → Cash payment → invoice → New Sale)
+is now confirmed working end-to-end in a real Chrome tab, with `pnpm typecheck`/`pnpm lint`/full
+`pnpm test` all green (193 tests).
 
-**Git is clean and fully pushed** — this is the safe part, nothing is at risk from the restart:
-```
-git status --short   → (empty, nothing uncommitted)
-git status -sb        → codex/settings-printer-foundation...origin/codex/settings-printer-foundation
-                         (0 ahead, 0 behind — fully pushed)
-```
-Last commit: `c0a4380 docs: catch up TODO/HANDOFF/CHANGELOG for the persistent store slice`, on
-branch `codex/settings-printer-foundation`, remote `https://github.com/manoj020218/POS.git`.
-
-**Nothing was mid-write.** All Node processes were force-killed just before this (user reported the
-system running slow from ~13 stray `node.exe` processes left over from earlier `tsx watch`/`vite`
-background tasks whose parent task was stopped without killing the child). No dev server is running
-right now — that's expected, not a crash.
-
-**Where things actually stand** (see PROJECT_PLAN.md for phase definitions):
-- Phases 0–12 (backend + `@smart-pos/client-data`) are built and tested.
-- Phase 13 (`apps/pos` kiosk UI) is functionally complete and now runs on **real** data end to end:
-  real login (`POST /api/v1/auth/login`), real terminal picker (`GET /api/v1/terminals`), real
-  business settings, and a real persistent `ClientDataStore` (`createIndexedDbClientDataStore`)
-  hydrated via `bootstrap-service`/`sync-service` — no more demo in-memory seed data anywhere in
-  `apps/pos`.
-- **Not yet done this session**: a live browser click-through of that full flow. The Claude-in-Chrome
-  extension's safety-check service was unreachable for the whole back half of this session (blocked
-  *all* navigation, not just localhost, confirmed by retrying `example.com` too) — so this was
-  verified via `pnpm typecheck`/`pnpm lint`/full `pnpm test` (74 files / 192 tests) plus a dedicated
-  `indexeddb-client-data-store.test.ts` that runs a full checkout against the real IndexedDB API
-  instead. **The very first thing worth doing next session is that live browser check** — see "How
-  to resume" below.
-- Phase 14 (Bluetooth/USB/WiFi printer plugins) is **not started** and isn't mine to build — another
-  developer supplies the native Kotlin Capacitor plugins; the contract they need to satisfy is
-  already written into TODO.md/the last approved plan (`pos-printer-bluetooth`/`pos-printer-usb`/
-  `pos-printer-wifi`, each just a `write(bytes)` transport matching what
-  `packages/printer/src/{usb,bluetooth}-printer-service.ts` already expect).
-
-**How to resume next session:**
-1. `git log -5 --oneline` and read `TODO.md` (NOW/NEXT/LATER/BLOCKED) — both are current as of this
-   commit, no stale info to correct.
-2. `pnpm --filter @smart-pos/api dev:memory` (in-memory API, seeds a demo tenant/business/branch/2
-   terminals/1 CASHIER user `asha@example.com` / `Password123`, plus a small demo catalog — prints
-   its own credentials/ids to stdout on start) — no PostgreSQL needed for this.
-3. `pnpm --filter @smart-pos/pos dev` and click through: sign in → pick a terminal → confirm the
-   product grid actually populates from the API (this is the one thing not yet visually confirmed)
-   → add items → checkout → confirm the receipt/new-sale flow still works.
-4. Local PostgreSQL is still unreachable at `localhost:5432` (long-standing BLOCKED item) — if it's
-   reachable now, run `pnpm db:migrate` and do the equivalent walkthrough against the real DB too.
+Two dev servers were started this session (`pnpm --filter @smart-pos/api dev:memory` on port 4000,
+`pnpm --filter @smart-pos/pos dev` on port 5173) and both were stopped again at the end, including
+their `tsx watch`/`vite` child processes (which the same stray-`node.exe` issue from the previous
+session's restart note would otherwise have left running) — verified via
+`tasklist /FI "IMAGENAME eq node.exe"` that only the two unrelated pre-existing `codex.js` processes
+remain.
 
 ---
 
 Current Phase:
-- Phase 13 - Functional Tablet POS UI (functionally complete; printer integration is Phase 14, not
-  started, pending an externally-supplied native plugin)
+- Phase 13 - Functional Tablet POS UI (**complete and live-browser-verified**; printer integration is
+  Phase 14, not started, pending an externally-supplied native plugin)
 
 Current Subtask:
-- Live-browser verification of the persistent-store flow (login → terminal pick → catalog hydrates
-  from sync → checkout) — blocked this session by the browser tool's own connectivity, not by code
+- None open from Phase 13. Next work is either Phase 14 (blocked on the external printer-plugin
+  developer) or the LATER items in TODO.md (access-token refresh, sync-status UI indicator)
 
 Completed:
 - Added Phase 10 schema for `business_settings` and `branch_settings`
@@ -1008,3 +979,54 @@ Git Status:
 Last Commit:
 - `af643f4 chore(api): seed a demo catalog in the in-memory dev server` (this doc-update commit
   follows it)
+
+Live-Browser Verification Status (2026-08-31, continuation):
+- Completed the item owed from the previous entry: ran `pnpm --filter @smart-pos/api dev:memory` and
+  `pnpm --filter @smart-pos/pos dev`, then drove the kiosk UI in a real Chrome tab via
+  `claude-in-chrome`
+- First attempt failed immediately after terminal selection with `Request failed with status 400`.
+  Server log showed `GET /api/v1/sync/pull?...&limit=200` → `400 Too big: expected number to be
+  <=100`. Root cause: `apps/pos/src/state/prepare-terminal-bundle.ts`'s post-login bootstrap called
+  `syncService.syncNow({ branchId, limit: 200 })`, but `apps/api/src/modules/sync/sync.schemas.ts`
+  caps `limit` at `100` — a client/server contract mismatch that had never been exercised by a real
+  browser before (only by unit/integration tests, which mock the remote API and never hit the real
+  validation). This was blocking every terminal pick, i.e. the kiosk UI was unusable end-to-end
+- Fixed at the correct layer, not just papered over: `@smart-pos/client-data`'s
+  `createClientSyncService.pullChanges` previously issued exactly one `remoteApi.pullChanges()` call
+  and trusted it to return the whole change set. It now loops — pull, apply, save cursor, repeat —
+  until a returned page is shorter than the requested limit, with a `1000`-page safety cap against a
+  misbehaving/looping server response. This fixes not just the immediate `400` (by letting
+  `apps/pos` request a limit `≤100` while still hydrating everything) but also a latent correctness
+  gap: any branch with more pending changes than one page would previously have silently hydrated
+  only the first page and stopped. Also lowered `apps/pos`'s bootstrap `syncNow` request from
+  `limit: 200` to `limit: 100` to match the server cap
+- Added `packages/client-data/test/sync-service.test.ts` regression coverage for the multi-page pull
+  loop (a full first page, a full second page, then an empty terminating page)
+- Re-ran the browser walkthrough end-to-end: sign in (`asha@example.com` / `Password123`) → pick
+  Counter 1 → catalog hydrates from the real API/sync (4 seeded demo products render with correct
+  prices) → add Butter Croissant → Cash payment via the on-screen keypad → sale completes with real
+  invoice `INV-MAIN-T1-000001`, correct subtotal/tax/total, and the expected "no printer configured"
+  on-screen receipt fallback → New Sale resets the cart while keeping the catalog loaded. No browser
+  console errors at any step. Confirmed in the API log that the post-checkout background sync push
+  (`POST /api/v1/sync/push`) returned `200`
+- Cleaned up after the session: `TaskStop`-ing the two `pnpm ... dev`/`dev:memory` background
+  commands left their `tsx watch`/`vite` child processes running (the same stray-`node.exe` pattern
+  flagged in the previous restart-safety note) — identified them via
+  `Get-CimInstance Win32_Process -Filter "Name='node.exe'"` (matching on `CommandLine`, not just
+  image name, so the two unrelated pre-existing `codex.js` processes were left alone) and terminated
+  them explicitly; confirmed via `tasklist` that no stray Node processes from this session remain
+
+Tests:
+- `pnpm exec vitest run packages/client-data/test/sync-service.test.ts` — new multi-page-pull
+  regression test passing alongside the existing push-then-pull test
+- `pnpm typecheck`, `pnpm lint`, full `pnpm test` — `74` test files / `193` tests passing
+- Live browser verification: login → terminal pick → catalog hydrate → checkout → New Sale, against
+  `pnpm --filter @smart-pos/api dev:memory`, zero console errors, `sync/pull` and `sync/push` both
+  `200` in the server log
+
+Git Status:
+- Working tree should be clean once the commit described in this entry is created; see Last Commit
+
+Last Commit:
+- `75fdb31 docs(handoff): restart-safety checkpoint before planned power-cut` (this session's
+  code + doc-update commit follows it)
