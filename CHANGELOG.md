@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-08-31
+
+- Added `createIndexedDbClientDataStore` to `@smart-pos/client-data`: a persistent, browser-native `ClientDataStore` implementation, reusing the in-memory store's search/clone helpers; tested against the real IndexedDB API via `fake-indexeddb`
+- `apps/pos` now hydrates its catalog/customer data from the real API on login (`bootstrap-service` + `sync-service` against the IndexedDB store) instead of a local demo seed; removed the now-unused demo `seed-*.ts` files
+- Checkout now does a best-effort background sync push right after each sale
+- `apps/api`'s in-memory dev server (`dev:memory`) now also seeds a small demo catalog so manual testing stays meaningful now that `apps/pos` no longer supplies its own
+- Verified `pnpm typecheck`, `pnpm lint`, and the full `pnpm test` suite (74 files / 192 tests); a live browser click-through was not possible this session — the browser automation extension's safety-check service was unreachable
+
 ## 2026-08-30
 
 - Added Phase 13 kiosk-first POS checkout UI: new workspace app `apps/pos` (React + Vite + Tailwind CSS v4), touch-first product search/category browsing, cart with quantity/discount/remove, customer picker, Cash/Card/UPI/Other payment with an on-screen numeric keypad, on-screen receipt result, and New Sale reset

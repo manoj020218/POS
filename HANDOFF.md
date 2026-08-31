@@ -915,8 +915,41 @@ Tests:
 - `pnpm typecheck` (all 4 workspace packages) and `pnpm lint` (root) — passing
 - Full `pnpm test` — `73` test files / `190` tests passing
 
+Persistent Store Status (2026-08-30):
+- Completed the item deferred in the previous entry: `apps/pos` no longer writes to a demo
+  in-memory catalog. `@smart-pos/client-data` gained `createIndexedDbClientDataStore`, a persistent
+  browser-native `ClientDataStore` (products/customers/sales/settings/stock/sync), reusing the
+  existing in-memory store's search/clone helpers rather than duplicating filter logic
+- `apps/pos`'s `prepareTerminalBundle` (new, `state/prepare-terminal-bundle.ts`) now: opens the
+  IndexedDB store, runs `createClientBootstrapService.refreshBusinessSettings()` for real settings,
+  then `createClientSyncService.syncNow()` to hydrate products/customers from the API — all before
+  the kiosk shell renders. Checkout does a best-effort background `pushPendingEvents()` right after
+  each sale instead of waiting for a later explicit sync
+- Removed the now-unused demo `apps/pos/src/data/seed-*.ts` files entirely (dead code, not kept as
+  a fallback) — Phase 12/13's client-data layer is genuinely real now, matching PROJECT_PLAN.md
+  §66/§92's MVP boundary
+- `apps/api/src/scripts/dev-in-memory-server.ts` now also seeds a small demo catalog (1
+  category/unit/tax-profile, 4 products) via the in-memory catalog repository, so manual testing
+  against it stays meaningful now that `apps/pos` no longer supplies its own fake catalog
+- **NOT VERIFIED via live browser this round** — the Claude-in-Chrome extension's safety-check
+  service was unreachable for the entire session (blocked all navigation, including `example.com`,
+  not just localhost), after several retries with increasing backoff. Verified instead via: a
+  dedicated `indexeddb-client-data-store.test.ts` exercising a full local checkout (product/
+  customer/settings persistence, stock decrement, sale lookup by id and by sync-event-id, outbox
+  tracking) against the real IndexedDB API through `fake-indexeddb`, plus `pnpm typecheck`/`pnpm
+  lint`/full `pnpm test`. A live click-through (login → terminal pick → catalog hydrates from
+  sync → checkout) is still owed and tracked in TODO.md
+
+Tests:
+- New `packages/client-data/test/indexeddb-client-data-store.test.ts` (2 tests) — passing
+- Full `pnpm test` — `74` test files / `192` tests passing (one `dev-bootstrap.test.ts` hook timeout
+  seen under heavy concurrent load — a pglite cold-start flake, confirmed by re-running that file
+  alone cleanly; not a regression from this session's changes)
+- `pnpm typecheck` (all 4 workspace packages) and `pnpm lint` (root) — passing
+
 Git Status:
 - Working tree should be clean once the commits described in this entry are created; see Last Commit
 
 Last Commit:
-- `03584db feat(pos): wire real cashier login and terminal picker` (this doc-update commit follows it)
+- `af643f4 chore(api): seed a demo catalog in the in-memory dev server` (this doc-update commit
+  follows it)
