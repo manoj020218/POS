@@ -1,19 +1,17 @@
 import { createContext, useEffect, useState, type ReactNode } from 'react';
-import {
-  createHttpClientRemoteApi,
-  type ClientBusinessSettings,
-  type ClientDataStore,
-  type ClientRemoteTerminalSummary,
-  type ClientTerminalContext,
-  type createLocalCheckoutService
+import type {
+  ClientBusinessSettings,
+  ClientDataStore,
+  ClientRemoteTerminalSummary,
+  ClientTerminalContext,
+  createClientSyncService,
+  createLocalCheckoutService
 } from '@smart-pos/client-data';
 
 import { CashierLoginScreen } from '../components/auth/CashierLoginScreen.js';
 import { LoadingScreen } from '../components/auth/LoadingScreen.js';
 import { TerminalPickerScreen } from '../components/auth/TerminalPickerScreen.js';
-import { createSeededPosStore } from '../data/seed-store.js';
-import { apiBaseUrl } from '../lib/api-config.js';
-import { buildTerminalContext } from './build-terminal-context.js';
+import { prepareTerminalBundle, type TerminalBundle } from './prepare-terminal-bundle.js';
 import { useAuth } from './use-auth.js';
 
 export type PosContextValue = {
@@ -21,22 +19,16 @@ export type PosContextValue = {
   logout: () => void;
   settings: ClientBusinessSettings;
   store: ClientDataStore;
+  syncService: ReturnType<typeof createClientSyncService>;
   terminalContext: ClientTerminalContext;
 };
 
 export const PosContext = createContext<PosContextValue | null>(null);
 
-type Bundle = {
-  checkoutService: ReturnType<typeof createLocalCheckoutService>;
-  settings: ClientBusinessSettings;
-  store: ClientDataStore;
-  terminalContext: ClientTerminalContext;
-};
-
 export const PosProvider = ({ children }: { children: ReactNode }) => {
   const auth = useAuth();
   const [terminal, setTerminal] = useState<ClientRemoteTerminalSummary | null>(null);
-  const [bundle, setBundle] = useState<Bundle | null>(null);
+  const [bundle, setBundle] = useState<TerminalBundle | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,27 +38,12 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
     }
 
     let cancelled = false;
-    const remoteApi = createHttpClientRemoteApi({
-      baseUrl: apiBaseUrl,
-      getAccessToken: () => session.accessToken
-    });
 
-    void remoteApi
-      .getBusinessSettings()
-      .then(async (remoteSettings) => {
-        const terminalContext = buildTerminalContext({ settings: remoteSettings, terminal, user: session.user });
-        const seeded = await createSeededPosStore({
-          branchCode: terminalContext.branchCode,
-          branchId: terminalContext.branchId,
-          branchName: terminalContext.branchName,
-          businessId: terminalContext.businessId,
-          businessName: terminalContext.businessName
-        });
-        const settings = await seeded.store.settings.findBusinessSettings(terminalContext.businessId);
-
-        if (!cancelled && settings) {
+    void prepareTerminalBundle(session, terminal)
+      .then((prepared) => {
+        if (!cancelled) {
           setSetupError(null);
-          setBundle({ checkoutService: seeded.checkoutService, settings, store: seeded.store, terminalContext });
+          setBundle(prepared);
         }
       })
       .catch((cause: unknown) => {
@@ -131,6 +108,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
         logout: backToLogin,
         settings: bundle.settings,
         store: bundle.store,
+        syncService: bundle.syncService,
         terminalContext: bundle.terminalContext
       }}
     >

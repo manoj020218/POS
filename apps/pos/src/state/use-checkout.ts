@@ -12,7 +12,7 @@ import { usePosContext } from './use-pos-context.js';
 export type CheckoutStatus = 'error' | 'idle' | 'processing' | 'success';
 
 export const useCheckout = () => {
-  const { checkoutService, store, terminalContext } = usePosContext();
+  const { checkoutService, store, syncService, terminalContext } = usePosContext();
   const [status, setStatus] = useState<CheckoutStatus>('idle');
   const [result, setResult] = useState<LocalCheckoutResult | null>(null);
   const [saleDetail, setSaleDetail] = useState<ClientSaleDetail | null>(null);
@@ -40,6 +40,7 @@ export const useCheckout = () => {
         setResult(outcome);
         setSaleDetail(await store.sales.findSaleById(outcome.saleId));
         setStatus('success');
+        void syncService.pushPendingEvents().catch(() => undefined);
         return outcome;
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : 'Checkout failed';
@@ -48,7 +49,7 @@ export const useCheckout = () => {
         return null;
       }
     },
-    [checkoutService, store, terminalContext]
+    [checkoutService, store, syncService, terminalContext]
   );
 
   const reset = useCallback(() => {
