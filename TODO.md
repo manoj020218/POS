@@ -6,10 +6,12 @@ NOW
 NEXT
 - Printer native integrations (not a separately numbered PROJECT_PLAN.md phase — it's Android native
   plugin work under §37 Android Architecture, building on the Phase 11 printer domain at §33-34):
-  Bluetooth/USB/WiFi Capacitor plugins per the `pos-printer-bluetooth`/`pos-printer-usb`/
-  `pos-printer-wifi` contract, built by another developer; wire each plugin's `write()` into
-  `packages/printer`'s transport-agnostic services once delivered. Note: PROJECT_PLAN.md's actual
-  Phase 14 is UI/UX Polish (§56), not printer work — don't conflate the two
+  waiting on an external Kotlin developer to build one combined Capacitor plugin
+  (`@smart-pos/printer-bridge`, suggested name) covering Bluetooth + USB + WiFi printer connectivity
+  — brief handed off in `printer/README.md`. Once delivered, wire its `write()` into
+  `packages/printer`'s transport-agnostic services (`createUsbPrinterService`,
+  `createBluetoothPrinterService`, and a new `createNetworkPrinterService` for WiFi). Note:
+  PROJECT_PLAN.md's actual Phase 14 is UI/UX Polish (§56), not printer work — don't conflate the two
 - Add `createNetworkPrinterService` to `packages/printer` (transport-agnostic WiFi/TCP wrapper,
   mirroring `createUsbPrinterService`/`createBluetoothPrinterService`) ahead of the WiFi plugin
 
