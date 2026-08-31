@@ -4,7 +4,9 @@ import { createApp } from '../app.js';
 import { createLogger } from '../lib/logger.js';
 import { InMemoryAuthRepository } from '../modules/auth/in-memory-auth.repository.js';
 import { hashPassword } from '../modules/auth/password.js';
+import { InMemoryCatalogRepository } from '../modules/catalog/in-memory-catalog.repository.js';
 import { InMemoryTenantCoreRepository } from '../modules/tenant-core/in-memory-tenant-core.repository.js';
+import { seedDevCatalog } from './seed-dev-catalog.js';
 
 const port = Number(process.env.PORT ?? 4000);
 
@@ -12,6 +14,7 @@ const run = async () => {
   const logger = createLogger('info');
   const authRepository = new InMemoryAuthRepository();
   const tenantCoreRepository = new InMemoryTenantCoreRepository();
+  const catalogRepository = new InMemoryCatalogRepository();
 
   const tenant = await tenantCoreRepository.createTenant({
     id: randomUUID(),
@@ -59,8 +62,9 @@ const run = async () => {
     tenantId: tenant.id
   });
   await authRepository.replaceBranchAccessForUser(cashierId, tenant.id, [branch.id]);
+  await seedDevCatalog({ businessId: business.id, catalogRepository, tenantId: tenant.id });
 
-  const app = createApp({ authRepository, logger, tenantCoreRepository });
+  const app = createApp({ authRepository, catalogRepository, logger, tenantCoreRepository });
 
   app.listen(port, () => {
     console.log(
