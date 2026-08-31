@@ -9,6 +9,7 @@ export * from './customer-repository.js';
 export * from './http-client-remote-api.js';
 export * from './http-fetch-helpers.js';
 export * from './in-memory-client-data-store.js';
+export * from './indexeddb/create-indexeddb-client-data-store.js';
 export * from './product-repository.js';
 export * from './remote-api.js';
 export * from './sale-repository.js';

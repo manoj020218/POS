@@ -9,12 +9,17 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@smart-pos/printer": "workspace:*"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.5"
   }
 }
