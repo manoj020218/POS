@@ -1,10 +1,65 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — restart-safety checkpoint (2026-08-31)
+
+Written immediately before a planned hard power-disconnect restart, so nothing is lost. Everything
+below is verified true at the moment of writing.
+
+**Git is clean and fully pushed** — this is the safe part, nothing is at risk from the restart:
+```
+git status --short   → (empty, nothing uncommitted)
+git status -sb        → codex/settings-printer-foundation...origin/codex/settings-printer-foundation
+                         (0 ahead, 0 behind — fully pushed)
+```
+Last commit: `c0a4380 docs: catch up TODO/HANDOFF/CHANGELOG for the persistent store slice`, on
+branch `codex/settings-printer-foundation`, remote `https://github.com/manoj020218/POS.git`.
+
+**Nothing was mid-write.** All Node processes were force-killed just before this (user reported the
+system running slow from ~13 stray `node.exe` processes left over from earlier `tsx watch`/`vite`
+background tasks whose parent task was stopped without killing the child). No dev server is running
+right now — that's expected, not a crash.
+
+**Where things actually stand** (see PROJECT_PLAN.md for phase definitions):
+- Phases 0–12 (backend + `@smart-pos/client-data`) are built and tested.
+- Phase 13 (`apps/pos` kiosk UI) is functionally complete and now runs on **real** data end to end:
+  real login (`POST /api/v1/auth/login`), real terminal picker (`GET /api/v1/terminals`), real
+  business settings, and a real persistent `ClientDataStore` (`createIndexedDbClientDataStore`)
+  hydrated via `bootstrap-service`/`sync-service` — no more demo in-memory seed data anywhere in
+  `apps/pos`.
+- **Not yet done this session**: a live browser click-through of that full flow. The Claude-in-Chrome
+  extension's safety-check service was unreachable for the whole back half of this session (blocked
+  *all* navigation, not just localhost, confirmed by retrying `example.com` too) — so this was
+  verified via `pnpm typecheck`/`pnpm lint`/full `pnpm test` (74 files / 192 tests) plus a dedicated
+  `indexeddb-client-data-store.test.ts` that runs a full checkout against the real IndexedDB API
+  instead. **The very first thing worth doing next session is that live browser check** — see "How
+  to resume" below.
+- Phase 14 (Bluetooth/USB/WiFi printer plugins) is **not started** and isn't mine to build — another
+  developer supplies the native Kotlin Capacitor plugins; the contract they need to satisfy is
+  already written into TODO.md/the last approved plan (`pos-printer-bluetooth`/`pos-printer-usb`/
+  `pos-printer-wifi`, each just a `write(bytes)` transport matching what
+  `packages/printer/src/{usb,bluetooth}-printer-service.ts` already expect).
+
+**How to resume next session:**
+1. `git log -5 --oneline` and read `TODO.md` (NOW/NEXT/LATER/BLOCKED) — both are current as of this
+   commit, no stale info to correct.
+2. `pnpm --filter @smart-pos/api dev:memory` (in-memory API, seeds a demo tenant/business/branch/2
+   terminals/1 CASHIER user `asha@example.com` / `Password123`, plus a small demo catalog — prints
+   its own credentials/ids to stdout on start) — no PostgreSQL needed for this.
+3. `pnpm --filter @smart-pos/pos dev` and click through: sign in → pick a terminal → confirm the
+   product grid actually populates from the API (this is the one thing not yet visually confirmed)
+   → add items → checkout → confirm the receipt/new-sale flow still works.
+4. Local PostgreSQL is still unreachable at `localhost:5432` (long-standing BLOCKED item) — if it's
+   reachable now, run `pnpm db:migrate` and do the equivalent walkthrough against the real DB too.
+
+---
+
 Current Phase:
-- Phase 12 - Client Data Architecture
+- Phase 13 - Functional Tablet POS UI (functionally complete; printer integration is Phase 14, not
+  started, pending an externally-supplied native plugin)
 
 Current Subtask:
-- Phase 12 foundations are complete; next session can begin Phase 13 functional POS UI while Phase 10 live PostgreSQL migration verification remains blocked on the local database listener
+- Live-browser verification of the persistent-store flow (login → terminal pick → catalog hydrates
+  from sync → checkout) — blocked this session by the browser tool's own connectivity, not by code
 
 Completed:
 - Added Phase 10 schema for `business_settings` and `branch_settings`
