@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-09-04
+
+- Wired real BLE/USB thermal-printer hardware into checkout: `apps/pos` now constructs a real `PrinterService` (`createPosPrinterService`, new `apps/pos/src/lib/printer/`) and passes it into `createLocalCheckoutService`, which was already calling `printCheckoutReceipt` on every sale but had never actually been given a printer — every print silently no-op'd as `SKIPPED` regardless of configuration
+- Added `apps/pos/src/lib/printer/connection-manager.ts` bridging `packages/printer`'s stateless per-job transports onto the delivered `@jenix/cap-thermal-printer` plugin's connect-once-then-write API: reuses an existing connection when the target device hasn't changed, retries once after a fresh connect on a `NOT_CONNECTED` write failure, with a bounded (non-retrying) failure path for other errors
+- Added `apps/pos/src/lib/printer/create-plugin-transport.ts` (`createBleTransport`/`createUsbTransport`) adapting the connection manager into `@smart-pos/printer`'s `BluetoothPrinterTransport`/`UsbPrinterTransport` shape
+- `@smart-pos/client-data`: added `ClientRemoteApi.updateBusinessSettings` (`PATCH /api/v1/business-settings`) — the route already existed server-side but no client code ever called it
+- Added a printer-pairing screen in `apps/pos` (gear icon in `TopBar` → `PrinterSettingsModal`, backed by a new `usePrinterSettings` hook): scans for BLE/USB printers via the plugin, lets the user pick a device and paper width, and persists the choice as the branch's `receiptPrinterProfile` via the new `updateBusinessSettings` call, then refreshes local settings so checkout picks it up immediately — closing the previously-total gap where nothing in the app could ever configure a printer
+- Added `PosContextValue.refreshSettings`/`.remoteApi` so UI code can update and re-pull business settings without a full re-login
+- Packaged `apps/pos` as a real installed Android app for the first time: added Capacitor (`@capacitor/core`, `@capacitor/android`, `@capacitor/cli`), `capacitor.config.ts` (`com.smartpos.app`), and a generated `android/` platform project (committed, matching Capacitor convention; build output itself is gitignored); installed `@jenix/cap-thermal-printer` as a local `file:` dependency from the new sibling `capacitor-plugins` repo, auto-detected by `npx cap add android`
+- Verified a real `gradlew assembleDebug` build succeeds end-to-end (Kotlin plugin compiles and links into the app, `app-debug.apk` produced, ~4.2MB) — **NOT VERIFIED**: running the APK on a physical Android tablet, or printing on real BLE/USB thermal-printer hardware; no such device was available in this environment. See the plugin's own `HARDWARE_TEST_CHECKLIST.md` for that remaining step
+- Verified `pnpm typecheck`, `pnpm lint`, and the full `pnpm test` suite (76 files / 200 tests, including new `apps/pos/test/lib/printer/*` coverage for the connection manager and transport adapters) plus a live browser walkthrough against `dev:memory`: login → terminal pick → open printer settings (gracefully shows "Android only plugin" in a desktop browser, no crash) → close → add item → Cash checkout still completes normally with the existing "No printer configured" fallback when no printer is paired
+
 ## 2026-08-31
 
 - Added `createIndexedDbClientDataStore` to `@smart-pos/client-data`: a persistent, browser-native `ClientDataStore` implementation, reusing the in-memory store's search/clone helpers; tested against the real IndexedDB API via `fake-indexeddb`

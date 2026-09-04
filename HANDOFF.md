@@ -25,15 +25,20 @@ remain.
 ---
 
 Current Phase:
-- Phase 13 - Functional Tablet POS UI (**complete and live-browser-verified**; printer native
-  integration is not started, pending an externally-supplied native plugin — this is Android native
-  plugin work under PROJECT_PLAN.md §37, not a separately numbered phase; PROJECT_PLAN.md's actual
-  Phase 14 is UI/UX Polish (§56), not printer work)
+- Phase 13 - Functional Tablet POS UI (**complete and live-browser-verified**). Printer native
+  integration (Android work under PROJECT_PLAN.md §37, not a separately numbered phase) is now
+  **wired in and building as a real Android APK** as of 2026-09-04 — see the "Printer Hardware +
+  Android Packaging Status (2026-09-04)" entry near the end of this file. The client has asked for a
+  "full production launch"; TODO.md's NEXT section has the Phase B–E roadmap for that (admin/reports
+  app, Windows/PWA, Phase 14 UI/UX Polish at §56, production deployment hardening) — none of it
+  attempted yet, this was intentionally scoped to the one slice that could be genuinely
+  built-and-verified in one pass
 
 Current Subtask:
-- None open from Phase 13. Next work is either the printer native integration (blocked on the
-  external printer-plugin developer) or the LATER items in TODO.md (access-token refresh, sync-status
-  UI indicator)
+- None open. Next work is Phase B (admin/reports app) per TODO.md's roadmap, or getting a physical
+  Android tablet + BLE/USB thermal printer to run the plugin's `HARDWARE_TEST_CHECKLIST.md` against
+  the already-built `app-debug.apk`, or the smaller LATER items (access-token refresh, sync-status UI
+  indicator)
 
 Completed:
 - Added Phase 10 schema for `business_settings` and `branch_settings`
@@ -1033,3 +1038,81 @@ Git Status:
 Last Commit:
 - `75fdb31 docs(handoff): restart-safety checkpoint before planned power-cut` (this session's
   code + doc-update commit follows it)
+
+Printer Hardware + Android Packaging Status (2026-09-04):
+- The client asked for "a full production launch." That's genuinely multi-week scope per
+  PROJECT_PLAN.md itself (admin/reports app, Windows/PWA, Phase 14 UI/UX polish across five device
+  classes, production deployment/backup infrastructure) — see TODO.md's NEXT section for the
+  Phase B–E roadmap that was written but *not* attempted this session, per §69's "never fake
+  completion" rule. This entry covers the one slice that was concretely specified and could be
+  genuinely built-and-verified: wiring the delivered printer plugin into checkout and packaging
+  `apps/pos` as an installed Android app.
+- **Root cause found and fixed**: the checkout→print pipeline (`packages/client-data`'s
+  `checkout-service.ts` → `checkout-printer.ts` → `@smart-pos/printer`) was fully built already, but
+  `apps/pos/src/state/prepare-terminal-bundle.ts` never actually constructed or passed a
+  `printerService` into `createLocalCheckoutService` — every print silently short-circuited to
+  `SKIPPED` no matter what was configured. Fixed by adding `apps/pos/src/lib/printer/` (three files:
+  `connection-manager.ts`, `create-plugin-transport.ts`, `create-printer-service.ts`) that bridges
+  `@jenix/cap-thermal-printer`'s connect-once-then-write, stateful API onto `packages/printer`'s
+  stateless-per-job `*PrinterTransport` contract — this adapter lives in `apps/pos`, not
+  `packages/printer`, matching the project's own prior architecture decision that each runtime owns
+  its platform-specific write implementation
+- Also found and closed a second, previously-unnoticed gap: **nothing in the entire app ever called**
+  `PATCH /api/v1/business-settings` — the route existed server-side with zero UI to reach it. Added
+  `ClientRemoteApi.updateBusinessSettings` to `@smart-pos/client-data`, and a new printer-pairing
+  screen in `apps/pos` (`PrinterSettingsModal`, opened via a gear icon in `TopBar`, backed by a new
+  `usePrinterSettings` hook) that scans BLE/USB devices via the plugin, lets the cashier/manager pick
+  one plus paper width, and saves it as the branch's `receiptPrinterProfile`
+- Packaged `apps/pos` as a real installed Android app for the first time: added `@capacitor/core`,
+  `@capacitor/android`, `@capacitor/cli`; `capacitor.config.ts` (`appId: com.smartpos.app`); ran
+  `npx cap add android`, which auto-detected `@jenix/cap-thermal-printer` (installed as a local
+  `file:../../../capacitor-plugins/packages/cap-thermal-printer` dependency pointing at the sibling
+  plugins-monorepo checkout) as a Capacitor plugin with no extra wiring needed
+- **Real verification, not just "files were created"**: ran `gradlew.bat assembleDebug` from
+  `apps/pos/android` — it actually compiled the plugin's Kotlin, linked it into the app, and produced
+  a real `app-debug.apk` (~4.2MB) at
+  `apps/pos/android/app/build/outputs/apk/debug/app-debug.apk`. Hit and fixed one real build failure
+  along the way: `android/local.properties` written with single Windows backslashes
+  (`C:\Users\...`) is invalid Java-Properties syntax — the backslashes get silently stripped during
+  parsing, corrupting the SDK path and failing with `IOException: The filename, directory name, or
+  volume label syntax is incorrect`. Fixed by using forward slashes instead
+  (`C:/Users/User/AppData/Local/Android/Sdk`), which Gradle/Android accept fine on Windows
+- **Explicitly NOT VERIFIED** (per §69 — stating this rather than assuming success): the APK has not
+  been installed or run on a physical Android tablet, and no actual print has been sent to a real
+  BLE/USB thermal printer. No such hardware exists in this environment. The plugin's own
+  `HARDWARE_TEST_CHECKLIST.md` (in the `capacitor-plugins` repo) is the next step for whoever has
+  access to real devices
+- Live browser walkthrough (desktop Chrome, not a real device, so no native plugin bridge) confirmed
+  no regressions: login → terminal pick → catalog hydrate → open printer settings modal (shows
+  "Android only plugin" gracefully instead of crashing, confirming the plugin's web fallback and this
+  session's error handling both work) → close → add item → Cash checkout still completes normally
+  with the pre-existing "No printer configured" on-screen fallback (since no printer is actually
+  paired in this environment) → zero console errors throughout
+- `apps/pos/android/` (the generated Capacitor platform project) is committed to this repo, matching
+  standard Capacitor convention — build output (`android/build`, `android/app/build`, `.gradle`,
+  `local.properties`) is gitignored as machine-specific
+- One naming/scope note for next time: the delivered plugin, `@jenix/cap-thermal-printer`, was
+  reused from another project of the developer's rather than built fresh to the `printer/README.md`
+  brief — different package scope, and a raw `number[]` write API instead of the
+  `bytesBase64`/fixed-error-code contract the brief specified. It still bridges cleanly (see the
+  adapter above), so this wasn't blocking, but future printer-plugin work from this developer may
+  keep diverging from written briefs — worth confirming expectations directly rather than assuming
+  the brief will be followed literally
+
+Tests:
+- New `apps/pos/test/lib/printer/connection-manager.test.ts` (4 tests) and
+  `apps/pos/test/lib/printer/create-plugin-transport.test.ts` (3 tests) — mock the plugin's
+  `ThermalPrinterPlugin` interface directly, no real Capacitor bridge involved
+- New `packages/client-data` coverage for `updateBusinessSettings` in
+  `http-client-remote-api.test.ts`; updated `bootstrap-service.test.ts`/`sync-service.test.ts` fakes
+  to satisfy the now-required `ClientRemoteApi.updateBusinessSettings` method
+- `pnpm typecheck`, `pnpm lint`, full `pnpm test` — `76` test files / `200` tests passing
+- Real Gradle build: `gradlew.bat assembleDebug` — `BUILD SUCCESSFUL`, `app-debug.apk` produced
+- Live browser verification (see above) — zero console errors, no regressions
+
+Git Status:
+- Working tree should be clean once the commits described in this entry are created; see Last Commit
+
+Last Commit:
+- `bf7c5da docs: track the first printer plugin delivery and its BLE/USB-only gap` (this session's
+  code + doc-update commits follow it)
