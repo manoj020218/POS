@@ -7,3 +7,14 @@ coverage
 .env.test
 *.log
 .codex-vitest.json
+
+# Android / Gradle build output (Capacitor platform source itself is committed)
+**/android/build
+**/android/app/build
+**/android/.gradle
+**/android/.cxx
+**/android/local.properties
+**/android/captures
+**/android/*.iml
+**/android/.idea
+**/android/app/release
