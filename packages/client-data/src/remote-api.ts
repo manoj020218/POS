@@ -1,3 +1,5 @@
+import type { ReceiptPrinterProfile } from '@smart-pos/printer';
+
 import type { ClientCustomerRecord } from './customer-repository.js';
 import type { ClientProductRecord } from './product-repository.js';
 import type { ClientBusinessSettings } from './settings-repository.js';
@@ -100,6 +102,23 @@ export type ClientRemoteTerminalSummary = {
   name: string;
 };
 
+export type ClientUpdateBusinessSettingsInput = {
+  branches?: Array<{
+    address?: string;
+    branchId: string;
+    receiptPrinterProfile?: ReceiptPrinterProfile | null;
+  }>;
+  businessId?: string;
+  businessLogoUrl?: string | null;
+  currencyCode?: string;
+  defaultTaxProfileId?: string | null;
+  defaultTrackInventory?: boolean;
+  defaultUnitId?: string | null;
+  invoicePrefix?: string;
+  receiptFooter?: string | null;
+  timezone?: string;
+};
+
 export interface ClientRemoteApi {
   getBusinessSettings(input?: { businessId?: string }): Promise<ClientBusinessSettings>;
   listBranches(): Promise<ClientRemoteBranchSummary[]>;
@@ -108,4 +127,5 @@ export interface ClientRemoteApi {
   pushEvents(input: {
     events: ClientRemoteSyncEventInput[];
   }): Promise<ClientRemoteSyncPushResult>;
+  updateBusinessSettings(input: ClientUpdateBusinessSettingsInput): Promise<ClientBusinessSettings>;
 }

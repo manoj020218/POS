@@ -16,7 +16,8 @@ describe('createClientBootstrapService', () => {
       listBranches: async () => [],
       listTerminals: async () => [],
       pullChanges: async () => ({ changes: [], nextCursor: null, serverTime: '2026-08-29T12:00:00.000Z' }),
-      pushEvents: async () => ({ acceptedCount: 0, duplicateCount: 0, events: [] })
+      pushEvents: async () => ({ acceptedCount: 0, duplicateCount: 0, events: [] }),
+      updateBusinessSettings: async () => settings
     };
 
     const service = createClientBootstrapService({ remoteApi, store });

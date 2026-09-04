@@ -116,6 +116,9 @@ describe('createClientSyncService', () => {
             }
           ]
         };
+      },
+      updateBusinessSettings: async () => {
+        throw new Error('unused');
       }
     };
 
@@ -195,7 +198,10 @@ describe('createClientSyncService', () => {
 
         return { changes: [], nextCursor: 'cursor-page-2', serverTime: '2026-08-29T15:11:00.000Z' };
       },
-      pushEvents: async () => ({ acceptedCount: 0, duplicateCount: 0, events: [] })
+      pushEvents: async () => ({ acceptedCount: 0, duplicateCount: 0, events: [] }),
+      updateBusinessSettings: async () => {
+        throw new Error('unused');
+      }
     };
 
     const service = createClientSyncService({ remoteApi, store });

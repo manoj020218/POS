@@ -140,8 +140,26 @@ describe('createHttpClientRemoteApi', () => {
         }
       ]
     });
+    const updatedSettings = await api.updateBusinessSettings({
+      branches: [
+        {
+          branchId: terminalContext.branchId,
+          receiptPrinterProfile: {
+            connectionType: 'BLUETOOTH',
+            name: 'Counter Printer',
+            paperWidth: '80mm',
+            target: 'AA:BB:CC:DD:EE:FF'
+          }
+        }
+      ]
+    });
 
     expect(fetchedSettings).toEqual(settings);
+    expect(updatedSettings).toEqual(settings);
+    expect(calls[5]?.url).toContain('/business-settings');
+    expect(calls[5]?.init?.method).toBe('PATCH');
+    expect(calls[5]?.init?.headers?.Authorization).toBe('Bearer secret-token');
+    expect(calls[5]?.init?.body).toContain('AA:BB:CC:DD:EE:FF');
     expect(branches).toHaveLength(1);
     expect(branches[0]?.id).toBe(terminalContext.branchId);
     expect(terminals).toHaveLength(1);

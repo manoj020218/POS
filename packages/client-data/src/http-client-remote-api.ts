@@ -3,7 +3,8 @@ import type {
   ClientRemoteApi,
   ClientRemoteSyncPullQuery,
   ClientRemoteSyncPullResult,
-  ClientRemoteSyncPushResult
+  ClientRemoteSyncPushResult,
+  ClientUpdateBusinessSettingsInput
 } from './remote-api.js';
 import type { ClientBusinessSettings } from './settings-repository.js';
 
@@ -50,6 +51,12 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
         body: JSON.stringify(input),
         headers: await authHeaders(),
         method: 'POST'
+      }),
+    updateBusinessSettings: async (input: ClientUpdateBusinessSettingsInput) =>
+      requestJson<ClientBusinessSettings>(fetchImpl, buildApiUrl(options.baseUrl, '/business-settings'), {
+        body: JSON.stringify(input),
+        headers: await authHeaders(),
+        method: 'PATCH'
       })
   };
 };
