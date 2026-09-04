@@ -5,13 +5,20 @@ NOW
 
 NEXT
 - Printer native integrations (not a separately numbered PROJECT_PLAN.md phase — it's Android native
-  plugin work under §37 Android Architecture, building on the Phase 11 printer domain at §33-34):
-  waiting on an external Kotlin developer to build one combined Capacitor plugin
-  (`@smart-pos/printer-bridge`, suggested name) covering Bluetooth + USB + WiFi printer connectivity
-  — brief handed off in `printer/README.md`. Once delivered, wire its `write()` into
-  `packages/printer`'s transport-agnostic services (`createUsbPrinterService`,
-  `createBluetoothPrinterService`, and a new `createNetworkPrinterService` for WiFi). Note:
-  PROJECT_PLAN.md's actual Phase 14 is UI/UX Polish (§56), not printer work — don't conflate the two
+  plugin work under §37 Android Architecture, building on the Phase 11 printer domain at §33-34).
+  Brief handed off in `printer/README.md`. Note: PROJECT_PLAN.md's actual Phase 14 is UI/UX Polish
+  (§56), not printer work — don't conflate the two
+- **First delivery received (2026-09-04)**: `@jenix/cap-thermal-printer` — BLE + USB only, reused
+  from another project rather than built fresh to the brief (different package name/API shape: raw
+  `number[]` writes, not the `bytesBase64`/error-code contract the brief asked for). Set up as its
+  own repo per the plugins-monorepo decision: https://github.com/manoj020218/capacitor-plugins,
+  local checkout at `D:\IOT Device\Smart POS\capacitor-plugins\packages\cap-thermal-printer`
+  (sibling of this `POS` checkout, outside this repo). **Gap**: WiFi/TCP and Bluetooth Classic are
+  explicitly listed as not implemented in its own docs — confirm with the developer whether those
+  are still coming before wiring in `createNetworkPrinterService`
+- Once the API shape is confirmed/stable, wire the plugin's writes into `packages/printer`'s
+  transport-agnostic services (`createUsbPrinterService`, `createBluetoothPrinterService`, and a new
+  `createNetworkPrinterService` for WiFi once that transport exists)
 - Add `createNetworkPrinterService` to `packages/printer` (transport-agnostic WiFi/TCP wrapper,
   mirroring `createUsbPrinterService`/`createBluetoothPrinterService`) ahead of the WiFi plugin
 
