@@ -1,5 +1,57 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — resume point for hardware testing (2026-09-04)
+
+Written so that whoever has a physical Android tablet + BLE/USB thermal printer in hand can pick
+this up with no context-rebuilding. Everything below was true and verified (or explicitly flagged as
+not verified) at the moment of writing. Full detail is in the "Printer Hardware + Android Packaging
+Status (2026-09-04)" entry further down this file — this is the short version.
+
+**Where things stand**: the printer plugin (`@jenix/cap-thermal-printer`, BLE+USB only) is wired into
+checkout, a printer-pairing screen exists in the app, and `apps/pos` is packaged as a real Android
+app. A debug build (`gradlew assembleDebug`) succeeded and produced an installable APK. **None of
+that has been run on real hardware yet** — no tablet or thermal printer was available in this
+environment. That's the one thing left to close out this slice of work.
+
+**How to test once a tablet is available:**
+1. `git pull` this repo (branch `codex/settings-printer-foundation`) — the `android/` platform
+   project is committed, but its **build output is gitignored**, so the APK itself is not in git and
+   needs rebuilding locally.
+2. `pnpm install` at the repo root (also pulls in `@jenix/cap-thermal-printer` from the sibling
+   `capacitor-plugins` checkout at `D:\IOT Device\Smart POS\capacitor-plugins` — that repo needs to
+   exist at that path, or update the `file:` dependency path in `apps/pos/package.json` if it's
+   moved).
+3. `pnpm --filter @smart-pos/pos build` (regenerates `apps/pos/dist`), then from `apps/pos`:
+   `npx cap sync android`.
+4. Make sure `apps/pos/android/local.properties` points at a real Android SDK, e.g.
+   `sdk.dir=C:/Users/User/AppData/Local/Android/Sdk` (**forward slashes** — single Windows
+   backslashes break the build, see the full entry below for why).
+5. From `apps/pos/android`: `./gradlew.bat assembleDebug` (or `gradlew.bat` directly). Output lands
+   at `apps/pos/android/app/build/outputs/apk/debug/app-debug.apk`.
+6. Sideload that APK onto the tablet (`adb install app-debug.apk`, or copy the file over and install
+   manually) and pair it with real API/`dev:memory` backend — see "Auth/Terminal-Selection Status" and
+   "Persistent Store Status" entries further down for how to point the app at a running API.
+7. In the app: sign in → pick a terminal → tap the gear icon (top bar) → **Scan for printers** → pick
+   the real BLE/USB printer → complete a Cash sale → confirm a receipt actually prints.
+8. Also run through the plugin's own `HARDWARE_TEST_CHECKLIST.md`
+   (`D:\IOT Device\Smart POS\capacitor-plugins\packages\cap-thermal-printer\HARDWARE_TEST_CHECKLIST.md`)
+   for lower-level connection/permission/reconnect checks beyond just "did a receipt come out."
+
+**Device sizing note** (client asked 2026-09-04 about a 2GB RAM / 8GB storage tablet for a ~300-product
+kirana store): the app itself is lightweight enough (283KB JS bundle gzipped to 87KB, `minSdkVersion
+23` i.e. Android 6.0+, trivial local data volume for 300 products) that 2GB RAM should be workable if
+the tablet is dedicated to POS only. **8GB storage is the bigger risk** — that's tight for the device
+as a whole (OS + Google Play Services can eat most of it before the app is even installed), not
+because of this app's footprint. Recommended the client get 16GB+ storage if there's any flexibility.
+This was analysis from known numbers, not a test on that exact device — if that's the tablet used for
+step 6 above, its real-world responsiveness during testing is itself useful data to record here.
+
+**If a build step fails**, update this section (or add a fresh dated entry) with what broke and how
+it was fixed, the same way the `local.properties` backslash issue is documented in the full entry
+below — don't silently patch and move on.
+
+---
+
 ## Session update (2026-08-31, continuation)
 
 The live-browser click-through flagged as the top priority in the previous restart-safety checkpoint
@@ -1111,8 +1163,9 @@ Tests:
 - Live browser verification (see above) — zero console errors, no regressions
 
 Git Status:
-- Working tree should be clean once the commits described in this entry are created; see Last Commit
+- Clean and fully pushed as of this entry: `codex/settings-printer-foundation` matches
+  `origin/codex/settings-printer-foundation`, `0` ahead / `0` behind
 
 Last Commit:
-- `bf7c5da docs: track the first printer plugin delivery and its BLE/USB-only gap` (this session's
-  code + doc-update commits follow it)
+- `e064f14 docs: record the printer-hardware wiring and Android packaging session` (pushed; this
+  hardware-testing resume-point update follows it)
