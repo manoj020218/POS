@@ -2,6 +2,7 @@ import { createContext, useEffect, useState, type ReactNode } from 'react';
 import type {
   ClientBusinessSettings,
   ClientDataStore,
+  ClientRemoteApi,
   ClientRemoteTerminalSummary,
   ClientTerminalContext,
   createClientSyncService,
@@ -17,6 +18,8 @@ import { useAuth } from './use-auth.js';
 export type PosContextValue = {
   checkoutService: ReturnType<typeof createLocalCheckoutService>;
   logout: () => void;
+  refreshSettings: () => Promise<void>;
+  remoteApi: ClientRemoteApi;
   settings: ClientBusinessSettings;
   store: ClientDataStore;
   syncService: ReturnType<typeof createClientSyncService>;
@@ -56,6 +59,15 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
       cancelled = true;
     };
   }, [auth.session, terminal]);
+
+  const refreshSettings = async () => {
+    if (!bundle) {
+      return;
+    }
+
+    const settings = await bundle.refreshBusinessSettings();
+    setBundle((previous) => (previous ? { ...previous, settings } : previous));
+  };
 
   const backToLogin = () => {
     setTerminal(null);
@@ -106,6 +118,8 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
       value={{
         checkoutService: bundle.checkoutService,
         logout: backToLogin,
+        refreshSettings,
+        remoteApi: bundle.remoteApi,
         settings: bundle.settings,
         store: bundle.store,
         syncService: bundle.syncService,

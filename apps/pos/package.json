@@ -10,6 +10,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@capacitor/android": "^7.6.9",
+    "@capacitor/core": "^7.6.9",
+    "@jenix/cap-thermal-printer": "file:../../../capacitor-plugins/packages/cap-thermal-printer",
     "@smart-pos/client-data": "workspace:*",
     "@smart-pos/printer": "workspace:*",
     "lucide-react": "^1.37.0",
@@ -17,6 +20,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.6.9",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",

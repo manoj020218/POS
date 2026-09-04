@@ -9,5 +9,5 @@
     "rootDir": ".",
     "types": ["vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "capacitor.config.ts", "vite.config.ts"]
 }

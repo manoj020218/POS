@@ -9,6 +9,7 @@ import {
 } from '@smart-pos/client-data';
 
 import { apiBaseUrl } from '../lib/api-config.js';
+import { createPosPrinterService } from '../lib/printer/create-printer-service.js';
 import { buildTerminalContext } from './build-terminal-context.js';
 
 export const prepareTerminalBundle = async (session: ClientAuthResult, terminal: ClientRemoteTerminalSummary) => {
@@ -26,7 +27,9 @@ export const prepareTerminalBundle = async (session: ClientAuthResult, terminal:
   await syncService.syncNow({ branchId: terminalContext.branchId, limit: 100 });
 
   return {
-    checkoutService: createLocalCheckoutService({ store }),
+    checkoutService: createLocalCheckoutService({ printerService: createPosPrinterService(), store }),
+    refreshBusinessSettings: bootstrapService.refreshBusinessSettings,
+    remoteApi,
     settings,
     store,
     syncService,
