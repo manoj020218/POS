@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## 2026-09-06
+
+- Wired automatic access-token refresh into `apps/pos`: access tokens expire every 15 minutes and
+  nothing ever refreshed them, so cashiers would have been logged out roughly every 15 minutes all
+  day in real use. `createHttpClientRemoteApi` (`@smart-pos/client-data`) now accepts an
+  `onUnauthorized` callback; on a `401` it's called once, the original request retried with the
+  refreshed token, and only rethrows (routing back to the login screen) if the refresh itself fails
+- `apps/pos/src/state/use-auth.ts` now exposes `getAccessToken`/`refreshAccessToken`; concurrent
+  refresh attempts are deduped into one shared in-flight promise (the server rotates the refresh
+  token on use, so firing two at once would fail the second)
+- `prepare-terminal-bundle.ts`'s bootstrap effect now depends on the user id instead of the whole
+  session object, so a refresh (which produces a new session object with the same user) doesn't
+  re-trigger the full IndexedDB bootstrap/sync sequence
+- Fixed a latent bug in `http-fetch-helpers.ts`: `readErrorMessage` read `body.error.message`, but
+  the API's actual error shape is flat (`{ code, message }`) — every real server error message was
+  silently discarded for the generic "Request failed with status NNN" fallback. Added
+  `HttpRequestError` (carries the HTTP status) so callers can react to specific statuses
+- Verified live end-to-end with a temporarily shortened access-token TTL (local-only, reverted, not
+  committed): observed the real sequence `POST /sync/push → 401` → `POST /auth/refresh → 200` →
+  retried `POST /sync/push → 200`, checkout completing normally
+- Verified `pnpm typecheck`, `pnpm lint`, full `pnpm test` (76 files / 203 tests)
+
 ## 2026-09-04
 
 - Wired real BLE/USB thermal-printer hardware into checkout: `apps/pos` now constructs a real `PrinterService` (`createPosPrinterService`, new `apps/pos/src/lib/printer/`) and passes it into `createLocalCheckoutService`, which was already calling `printCheckoutReceipt` on every sale but had never actually been given a printer — every print silently no-op'd as `SKIPPED` regardless of configuration

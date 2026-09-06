@@ -1,5 +1,37 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — rollout checklist status (2026-09-06)
+
+The client wants to roll this out to a real kirana store (~300 products) and asked what software
+work is left. Full detail in TODO.md's NOW section; short version:
+
+1. **Access-token refresh — DONE this session.** See the dated entry below for the fix (root cause:
+   `apps/pos` never refreshed the 15-minute access token, so cashiers would've been logged out
+   constantly in real use). Verified live end-to-end, not just unit-tested.
+2. **Bulk product upload/download — next up, not started yet.** No bulk-import endpoint exists
+   (`POST /api/v1/products` is one-at-a-time) and no UI anywhere can enter products either. This
+   blocks day one for a 300-product catalog regardless of everything else.
+3. **VPS deployment — blocked on SSH credentials.** The client gave a subdomain
+   (`smartpos.iotsoft.in`) and access to a shared dev VPS with explicit constraints: work under
+   `/root/projects/smartpos`, check for port conflicts with other services already running there
+   before binding anything, use `pnpm` on the VPS, and structure things so the folder can be copied
+   as-is to a real production server later and the domain can be swapped later without restructuring.
+   **The VPS IP/credentials are intentionally not written anywhere in this repo** — the user
+   explicitly said not to pass them to git (referencing their own `D:\plink_git.bat` helper). They're
+   in the assistant's local memory instead. Ask the user directly for SSH access to continue this.
+4. Once on the VPS: run `pnpm db:migrate` against a real Postgres (local dev Postgres has been
+   unreachable since 2026-08-29 and is unrelated to whatever the VPS/production DB will be), lock
+   down CORS to the real domain (currently wide open — fine for dev, not for production), and add
+   rate limiting (explicit requirement in PROJECT_PLAN.md §60, currently absent).
+5. Physical hardware test (tablet + printer) is still pending — see the 2026-09-04 entry below for
+   exact rebuild/sideload steps once that hardware is available.
+
+Explicitly **not** required for this rollout per the client's own MVP boundary: the admin/reports
+app, Windows/PWA support, and general UI polish (all still real gaps for eventual "full production
+launch," just not go-live blockers for a single-tablet kirana store).
+
+---
+
 ## ⚠ READ THIS FIRST — resume point for hardware testing (2026-09-04)
 
 Written so that whoever has a physical Android tablet + BLE/USB thermal printer in hand can pick
@@ -1167,5 +1199,64 @@ Git Status:
   `origin/codex/settings-printer-foundation`, `0` ahead / `0` behind
 
 Last Commit:
-- `e064f14 docs: record the printer-hardware wiring and Android packaging session` (pushed; this
-  hardware-testing resume-point update follows it)
+- `8b79766 docs(handoff): add hardware-testing resume point` (pushed; this session's
+  code + doc-update commits follow it)
+
+Access-Token Refresh Status (2026-09-06):
+- Client asked (2026-09-06) what software work remains before rollout, separate from the hardware
+  test. Two concrete gaps surfaced: no access-token refresh (this entry), and no bulk product
+  import/entry mechanism (next up, not started — see TODO.md NOW #2). The client also provided a
+  subdomain (`smartpos.iotsoft.in`) and a shared dev VPS for deployment, with explicit instructions
+  not to write the VPS address/credentials into this repo — those live in the assistant's local
+  memory instead (`deployment_vps_target.md`), not here. Deployment itself is blocked pending SSH
+  credentials.
+- **Root cause**: `apps/api`'s access tokens expire in `defaultAccessTokenTtlSeconds` (15 minutes,
+  `apps/api/src/modules/auth/auth.service.ts`). `packages/client-data` already had a working
+  `authClient.refresh()` and the server's `/auth/refresh` endpoint already did token rotation — but
+  nothing in `apps/pos` ever called it. Every cashier session would have broken with a `401` roughly
+  every 15 minutes throughout a real shift.
+- **Fix**: `createHttpClientRemoteApi` (`packages/client-data/src/http-client-remote-api.ts`) now
+  takes an `onUnauthorized: () => Promise<string | null>` option. Every request goes through a shared
+  `requestWithAuth` wrapper: on a `401` it calls `onUnauthorized` once, and if that returns a new
+  token, retries the original request with it; if `onUnauthorized` returns `null` (refresh itself
+  failed), the original `401` error is rethrown rather than looping.
+- `apps/pos/src/state/use-auth.ts` supplies that callback: `refreshAccessToken()` calls
+  `authClient.refresh()`, updates the session (state + a `sessionRef` + `localStorage`) on success,
+  or calls `logout()` on failure (which naturally routes the UI back to the login screen via existing
+  conditional rendering — no new UI wiring needed for that path). Concurrent 401s from multiple
+  in-flight requests share one refresh attempt via a memoized in-flight promise — the server *rotates*
+  the refresh token on each use, so firing two refresh calls back-to-back would make the second one
+  fail against an already-consumed token, causing a false logout even though the first refresh
+  actually succeeded.
+- `prepare-terminal-bundle.ts`'s bootstrap `useEffect` in `pos-provider.tsx` now keys off
+  `auth.session?.user.id` instead of the whole `auth.session` object, so a refresh (which replaces
+  `session` with a new object for the same user) doesn't re-trigger the full IndexedDB
+  bootstrap/sync sequence on every token refresh.
+- **Bug found and fixed along the way**: `http-fetch-helpers.ts`'s `readErrorMessage` read
+  `body.error?.message`, but `apps/api`'s actual error response shape is flat —
+  `{ code, message }`, no `error` wrapper (see `apps/api/src/http/middleware/error-handler.ts`). Every
+  real server error message was silently discarded in favor of the generic "Request failed with
+  status NNN" fallback. Fixed the read path and added `HttpRequestError` (a small `Error` subclass
+  carrying `status`) so callers can react to specific HTTP statuses instead of parsing message text —
+  this is what makes the 401-detection above possible at all.
+- **Real verification, not just unit tests**: temporarily set `accessTokenTtlSeconds: 8` in
+  `apps/api/src/scripts/dev-in-memory-server.ts` (local-only change, reverted before committing —
+  confirmed via `git diff` showing no changes to that file), logged in, waited past the 8-second
+  expiry, then completed a Cash sale. Captured via `read_network_requests` the exact real sequence:
+  `POST /api/v1/sync/push → 401` → `POST /api/v1/auth/refresh → 200` → retried
+  `POST /api/v1/sync/push → 200`. Sale completed normally with a real invoice, zero console errors.
+
+Tests:
+- New `packages/client-data/test/http-client-remote-api.test.ts` coverage: successful retry after a
+  `401` using the refreshed token, rethrow of the original error when refresh fails, and no refresh
+  attempt at all for non-`401` failures (e.g. `403`)
+- `pnpm typecheck`, `pnpm lint`, full `pnpm test` — `76` test files / `203` tests passing
+- Live browser verification (see above) — real `401`→refresh→retry sequence observed in network
+  requests, zero console errors
+
+Git Status:
+- Working tree should be clean once the commits described in this entry are created; see Last Commit
+
+Last Commit:
+- `8b79766 docs(handoff): add hardware-testing resume point` (this session's code + doc-update
+  commits follow it)
