@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createHttpClientRemoteApi, type FetchLike } from '../src/index.js';
 import { createRemoteCustomerSnapshot, createRemoteProductSnapshot, createSettings, terminalContext } from './fixtures.js';
@@ -173,5 +173,81 @@ describe('createHttpClientRemoteApi', () => {
     expect(calls[4]?.init?.headers?.Authorization).toBe('Bearer secret-token');
     expect(calls[4]?.init?.method).toBe('POST');
     expect(calls[4]?.init?.body).toContain('sale-created-0001');
+  });
+
+  it('retries once with a refreshed token after a 401, then succeeds', async () => {
+    const settings = createSettings();
+    const tokensUsed: string[] = [];
+    let attempt = 0;
+    const fetchImpl: FetchLike = async (_url, init) => {
+      const token = init?.headers?.Authorization?.replace('Bearer ', '') ?? '';
+      tokensUsed.push(token);
+      attempt += 1;
+
+      if (attempt === 1) {
+        return {
+          json: async () => ({ code: 'TOKEN_EXPIRED', message: 'Access token expired' }),
+          ok: false,
+          status: 401,
+          text: async () => ''
+        };
+      }
+
+      return { json: async () => ({ data: settings }), ok: true, status: 200, text: async () => '' };
+    };
+    const onUnauthorized = vi.fn(async () => 'refreshed-token');
+
+    const api = createHttpClientRemoteApi({
+      baseUrl: 'https://example.com/api/v1',
+      fetchImpl,
+      getAccessToken: async () => 'stale-token',
+      onUnauthorized
+    });
+
+    const result = await api.getBusinessSettings({ businessId: settings.businessId });
+
+    expect(result).toEqual(settings);
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+    expect(tokensUsed).toEqual(['stale-token', 'refreshed-token']);
+  });
+
+  it('rethrows the original 401 when refresh fails, without retrying', async () => {
+    const fetchImpl: FetchLike = async () => ({
+      json: async () => ({ code: 'TOKEN_EXPIRED', message: 'Access token expired' }),
+      ok: false,
+      status: 401,
+      text: async () => ''
+    });
+    const onUnauthorized = vi.fn(async () => null);
+
+    const api = createHttpClientRemoteApi({
+      baseUrl: 'https://example.com/api/v1',
+      fetchImpl,
+      getAccessToken: async () => 'stale-token',
+      onUnauthorized
+    });
+
+    await expect(api.listBranches()).rejects.toThrow('Access token expired');
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not attempt a refresh for non-401 failures', async () => {
+    const fetchImpl: FetchLike = async () => ({
+      json: async () => ({ code: 'FORBIDDEN', message: 'Not allowed' }),
+      ok: false,
+      status: 403,
+      text: async () => ''
+    });
+    const onUnauthorized = vi.fn(async () => 'refreshed-token');
+
+    const api = createHttpClientRemoteApi({
+      baseUrl: 'https://example.com/api/v1',
+      fetchImpl,
+      getAccessToken: async () => 'stale-token',
+      onUnauthorized
+    });
+
+    await expect(api.listBranches()).rejects.toThrow('Not allowed');
+    expect(onUnauthorized).not.toHaveBeenCalled();
   });
 });

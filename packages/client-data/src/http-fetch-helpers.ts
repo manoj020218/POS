@@ -36,10 +36,20 @@ export const buildApiUrl = (
   return url.toString();
 };
 
+export class HttpRequestError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'HttpRequestError';
+    this.status = status;
+  }
+}
+
 const readErrorMessage = async (response: FetchResponseLike) => {
   try {
-    const body = (await response.json()) as { error?: { message?: string } };
-    return body.error?.message ?? `Request failed with status ${response.status}`;
+    const body = (await response.json()) as { error?: { message?: string }; message?: string };
+    return body.message ?? body.error?.message ?? `Request failed with status ${response.status}`;
   } catch {
     const text = await response.text();
     return text || `Request failed with status ${response.status}`;
@@ -54,7 +64,7 @@ export const requestJson = async <T>(
   const response = await fetchImpl(url, init);
 
   if (!response.ok) {
-    throw new Error(await readErrorMessage(response));
+    throw new HttpRequestError(await readErrorMessage(response), response.status);
   }
 
   const payload = (await response.json()) as Partial<{ data: T }>;
