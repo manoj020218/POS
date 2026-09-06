@@ -12,10 +12,20 @@ import { apiBaseUrl } from '../lib/api-config.js';
 import { createPosPrinterService } from '../lib/printer/create-printer-service.js';
 import { buildTerminalContext } from './build-terminal-context.js';
 
-export const prepareTerminalBundle = async (session: ClientAuthResult, terminal: ClientRemoteTerminalSummary) => {
+export type TerminalSessionAccess = {
+  getAccessToken: () => string;
+  refreshAccessToken: () => Promise<string | null>;
+};
+
+export const prepareTerminalBundle = async (
+  session: ClientAuthResult,
+  terminal: ClientRemoteTerminalSummary,
+  sessionAccess: TerminalSessionAccess
+) => {
   const remoteApi = createHttpClientRemoteApi({
     baseUrl: apiBaseUrl,
-    getAccessToken: () => session.accessToken
+    getAccessToken: sessionAccess.getAccessToken,
+    onUnauthorized: sessionAccess.refreshAccessToken
   });
   const store = await createIndexedDbClientDataStore();
   const bootstrapService = createClientBootstrapService({ remoteApi, store });

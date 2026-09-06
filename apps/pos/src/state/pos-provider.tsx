@@ -42,7 +42,10 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
 
     let cancelled = false;
 
-    void prepareTerminalBundle(session, terminal)
+    void prepareTerminalBundle(session, terminal, {
+      getAccessToken: auth.getAccessToken,
+      refreshAccessToken: auth.refreshAccessToken
+    })
       .then((prepared) => {
         if (!cancelled) {
           setSetupError(null);
@@ -58,7 +61,11 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       cancelled = true;
     };
-  }, [auth.session, terminal]);
+    // Depends on the user identity, not the session object itself — a token
+    // refresh replaces `auth.session` with a new object (same user) and must
+    // not re-run this whole bootstrap/sync sequence.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.session?.user.id, terminal, auth.getAccessToken, auth.refreshAccessToken]);
 
   const refreshSettings = async () => {
     if (!bundle) {
