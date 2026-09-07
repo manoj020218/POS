@@ -62,6 +62,19 @@ const run = async () => {
     tenantId: tenant.id
   });
   await authRepository.replaceBranchAccessForUser(cashierId, tenant.id, [branch.id]);
+
+  const ownerEmail = 'owner@example.com';
+  const ownerPassword = 'Password123';
+  await authRepository.upsertUser({
+    displayName: 'Owner Test',
+    email: ownerEmail,
+    id: randomUUID(),
+    isActive: true,
+    passwordHash: await hashPassword(ownerPassword),
+    permissions: [],
+    role: 'BUSINESS_OWNER',
+    tenantId: tenant.id
+  });
   await seedDevCatalog({ businessId: business.id, catalogRepository, tenantId: tenant.id });
 
   const app = createApp({ authRepository, catalogRepository, logger, tenantCoreRepository });
@@ -72,9 +85,13 @@ const run = async () => {
         {
           branchId: branch.id,
           businessId: business.id,
-          email,
+          cashier: { email, password },
           note: 'In-memory dev server — data resets on restart. Not for production use.',
-          password,
+          owner: {
+            email: ownerEmail,
+            note: 'Use this account for anything needing settings:manage/product:create (printer pairing, product import)',
+            password: ownerPassword
+          },
           port,
           tenantId: tenant.id,
           terminalIds: terminals.map((terminal) => terminal.id)
