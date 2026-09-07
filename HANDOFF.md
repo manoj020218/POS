@@ -1,16 +1,17 @@
 # HANDOFF
 
-## ⚠ READ THIS FIRST — rollout checklist status (2026-09-06)
+## ⚠ READ THIS FIRST — rollout checklist status (2026-09-07)
 
 The client wants to roll this out to a real kirana store (~300 products) and asked what software
 work is left. Full detail in TODO.md's NOW section; short version:
 
-1. **Access-token refresh — DONE this session.** See the dated entry below for the fix (root cause:
+1. **Access-token refresh — DONE 2026-09-06.** See the dated entry below for the fix (root cause:
    `apps/pos` never refreshed the 15-minute access token, so cashiers would've been logged out
    constantly in real use). Verified live end-to-end, not just unit-tested.
-2. **Bulk product upload/download — next up, not started yet.** No bulk-import endpoint exists
-   (`POST /api/v1/products` is one-at-a-time) and no UI anywhere can enter products either. This
-   blocks day one for a 300-product catalog regardless of everything else.
+2. **Bulk product upload/download — DONE 2026-09-07.** New "Import or export products" screen in
+   `apps/pos` (gear icon in `TopBar`). Per the client's explicit ask, upload/download go through a
+   plain file picker (works with a USB pen drive connected to the tablet), not a dedicated API. See
+   the dated entry below.
 3. **VPS deployment — blocked on SSH credentials.** The client gave a subdomain
    (`smartpos.iotsoft.in`) and access to a shared dev VPS with explicit constraints: work under
    `/root/projects/smartpos`, check for port conflicts with other services already running there
@@ -1255,8 +1256,73 @@ Tests:
   requests, zero console errors
 
 Git Status:
+- Clean and fully pushed as of this entry: `codex/settings-printer-foundation` matches
+  `origin/codex/settings-printer-foundation`, `0` ahead / `0` behind
+
+Last Commit:
+- `aaeb7c2 docs: record token-refresh fix and the client's rollout checklist` (pushed; this session's
+  code + doc-update commits follow it)
+
+Bulk Product Import/Export Status (2026-09-07):
+- Continuing the rollout checklist from the entry above: access-token refresh was item 1 (done
+  2026-09-06); this entry covers item 2, bulk product upload/download.
+- **The gap**: a real kirana store has ~300 products. There was no bulk-import endpoint
+  (`POST /api/v1/products` only ever took one product per call) and, more fundamentally, no product
+  UI anywhere in `apps/pos` at all — the app is checkout-only. Without this, the store literally
+  cannot open with a real catalog.
+- **UX decision, direct from the client**: since the app runs on tablet/mobile, both upload and
+  download should work through a USB pen drive. Rather than building a native file-save plugin (the
+  same kind of native-Kotlin dependency friction already seen with the printer plugin), this uses
+  plain HTML file mechanics: `<input type="file" accept=".csv">` for import — Android's system file
+  picker natively lists a connected USB OTG drive as a source, no extra plugin needed — and a
+  Blob + `<a download>` for export, which lands in the device's Downloads folder by default (noted
+  explicitly in the UI copy that moving it to a pen drive from there is a manual step; a true
+  "Save As directly to USB" would need a native Storage-Access-Framework plugin, not attempted here
+  since the simpler path covers the actual need).
+- **New in `@smart-pos/client-data`**: `ClientRemoteApi.createProduct` (`POST /products`) and
+  `listProducts` (`GET /products`, paginated) — the client-data layer previously had zero direct
+  product REST calls, since normal catalog data flows through sync-pull instead. Also added
+  `requestJsonEnvelope` to `http-fetch-helpers.ts` (same as `requestJson` but keeps the response's
+  `meta` field, needed for `GET /products`'s pagination info, which plain `requestJson` discards).
+- **New in `apps/pos`**: `src/lib/csv.ts` (a small RFC4180-ish parser/writer — handles quoted fields
+  with embedded commas/quotes, since a product name like "Rice, Basmati" is a realistic case a naive
+  `.split(',')` would break on) and `src/lib/product-csv.ts` (column mapping plus rupee↔paise
+  conversion — the API stores money as integer paise, but a shop owner typing a spreadsheet thinks in
+  rupees). A new `ProductImportExportModal` (opened via a `Sheet`-icon button in `TopBar`) drives a
+  `useProductImportExport` hook that imports row-by-row (collecting per-row errors without aborting
+  the whole file, with a live "N / total processed" readout) and exports by paging through
+  `listProducts` until `meta.hasNextPage` is false.
+- **Permission model, unchanged and correctly enforced**: `product:create` is not granted to
+  `CASHIER` (only `BUSINESS_OWNER`/`BUSINESS_ADMIN`/`BRANCH_MANAGER`/`INVENTORY_MANAGER`) — this is
+  existing server-side authorization, not new. A cashier attempting an import gets a per-row
+  "Insufficient permissions" message rather than a crash, and this is now the *real* server message
+  (not a generic fallback) thanks to the `readErrorMessage` fix from the token-refresh work the day
+  before.
+- Added a `BUSINESS_OWNER` test account (`owner@example.com` / `Password123`) to `apps/api`'s
+  `dev:memory` seed script, printed in its startup JSON alongside the existing cashier credentials —
+  kept permanently (not reverted) since both this feature and printer pairing need
+  `settings:manage`/`product:create`, which the cashier-only seed can never exercise.
+- **Real verification, not just unit tests**: as the owner account, imported a CSV with 2 valid rows
+  and 2 deliberately invalid ones (missing name; non-numeric price) — confirmed via the API log two
+  real `POST /api/v1/products → 201`s, and the UI showed the exact two row-level error messages with
+  no crash. Then exported the catalog and confirmed the CSV contained the original 4 demo products
+  *and* the 2 just-imported ones, with correct `120.00`-style rupee formatting and the
+  auto-provisioned `General`/`Piece`/`No Tax` defaults applied. Separately logged in as the seeded
+  cashier and confirmed the same import attempt fails gracefully with "Insufficient permissions"
+  instead of crashing.
+
+Tests:
+- New `apps/pos/test/lib/csv.test.ts` (8 tests) — quoting, escaping, round-tripping, empty input
+- New `apps/pos/test/lib/product-csv.test.ts` (8 tests) — valid-row parsing with unit conversion,
+  case-insensitive/reordered headers, missing-name and invalid-price row errors, blank-row skipping,
+  missing-required-column and empty-file failures, and export-row formatting
+- `pnpm typecheck`, `pnpm lint`, full `pnpm test` — `78` test files / `219` tests passing
+- Live browser verification (see above) — real product creation, permission denial, and CSV
+  export/import round-trip, zero console errors throughout
+
+Git Status:
 - Working tree should be clean once the commits described in this entry are created; see Last Commit
 
 Last Commit:
-- `8b79766 docs(handoff): add hardware-testing resume point` (this session's code + doc-update
-  commits follow it)
+- `aaeb7c2 docs: record token-refresh fix and the client's rollout checklist` (this session's code +
+  doc-update commits follow it)

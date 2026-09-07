@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## 2026-09-07
+
+- Added bulk product import/export to `apps/pos` (new "Import or export products" screen, gear icon
+  in `TopBar`): CSV download of the full catalog and CSV import of new products, addressing the
+  "no way to load a 300-product catalog" gap flagged during rollout planning
+- Per the client's explicit ask (tablet/mobile device, USB pen drive for both directions): a plain
+  file input opens Android's system picker (already supports a connected USB OTG drive) for import;
+  export triggers a normal browser download
+- `@smart-pos/client-data`: added `ClientRemoteApi.createProduct`/`listProducts` and
+  `requestJsonEnvelope` (a `requestJson` variant that also returns the response's `meta` field, used
+  for `GET /products`'s pagination metadata)
+- Added `apps/pos/src/lib/csv.ts` (quoted-field-aware CSV parse/stringify) and
+  `apps/pos/src/lib/product-csv.ts` (column mapping, rupee↔paise conversion since the API stores
+  money as integer paise)
+- Import reports per-row errors without aborting the whole file; permission failures now surface the
+  real server message instead of a generic one (benefits from the `readErrorMessage` fix in the
+  2026-09-06 entry below)
+- `apps/api`'s `dev:memory` script now also seeds a `BUSINESS_OWNER` test account, needed to exercise
+  anything requiring `settings:manage`/`product:create` locally
+- Verified live end-to-end (valid + intentionally invalid CSV rows, both an owner and a cashier
+  account) and via 16 new unit tests; `pnpm typecheck`, `pnpm lint`, full `pnpm test`
+  (78 files / 219 tests)
+
 ## 2026-09-06
 
 - Wired automatic access-token refresh into `apps/pos`: access tokens expire every 15 minutes and

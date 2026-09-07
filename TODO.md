@@ -2,9 +2,7 @@
 
 NOW — client wants to roll out (asked 2026-09-06); go-live checklist, roughly in order:
 1. ~~Access-token refresh~~ — DONE 2026-09-06, see below
-2. **Bulk product upload/download** (client has ~300 products for a kirana store; there is currently
-   no bulk-import endpoint and no product-entry UI anywhere — only one-at-a-time
-   `POST /api/v1/products`) — in progress next
+2. ~~Bulk product upload/download~~ — DONE 2026-09-07, see below
 3. **VPS deployment** — client has provided a subdomain (`smartpos.iotsoft.in`) and access to a
    shared dev VPS (other services already running on it; connection details intentionally kept out
    of this repo — see the assistant's own reference notes, not git). Requirements given directly by
@@ -58,6 +56,42 @@ BLOCKED
 - Local PostgreSQL listener was unavailable for `cmd /c pnpm db:migrate` on 2026-08-29
 - VPS deployment needs SSH credentials for the client-provided VPS (see NOW #3; connection details
   intentionally kept out of this repo)
+
+DONE (2026-09-07)
+- Bulk product upload/download for `apps/pos`: a new "Import or export products" screen (gear-like
+  icon in `TopBar` → `ProductImportExportModal`) lets an owner/manager download the full catalog as
+  a CSV and import a CSV of new products — closing the gap where a 300-product kirana-store catalog
+  had no way in besides one-at-a-time API calls
+- Chose CSV-via-file-picker over a dedicated pen-drive API per the client's explicit ask (tablet/
+  mobile device, USB pen drive for both directions): a plain `<input type="file">` opens Android's
+  system file picker, which already lists a connected USB OTG drive; export triggers a browser
+  download (lands in Downloads by default — moving it to a pen drive from there is a manual step,
+  noted in the UI copy)
+- `@smart-pos/client-data`'s `ClientRemoteApi` gained `createProduct` (`POST /products`) and
+  `listProducts` (`GET /products`, paginated) — neither existed before; catalog data only ever
+  flowed through sync-pull, never direct REST calls, until now
+- Added `requestJsonEnvelope` to `http-fetch-helpers.ts` (mirrors `requestJson` but also returns the
+  `meta` envelope field) since `GET /products` returns pagination metadata that plain `requestJson`
+  discards
+- Added `apps/pos/src/lib/csv.ts` (minimal RFC4180-ish parse/stringify, handles quoted fields with
+  embedded commas/quotes) and `apps/pos/src/lib/product-csv.ts` (column mapping + rupee↔paise
+  conversion, since the API stores money as integer paise but a shop owner types rupees)
+- Import is row-by-row with per-row error collection (bad rows are skipped and reported, not fatal
+  to the whole file) and a live progress readout; permission errors (a cashier account lacks
+  `product:create`) now surface the real server message ("Insufficient permissions") instead of a
+  generic failure, thanks to the `readErrorMessage` fix from the token-refresh work the day before
+- `apps/api`'s `dev:memory` server now also seeds a `BUSINESS_OWNER` test account
+  (`owner@example.com` / `Password123`, printed in the startup JSON) — the existing cashier seed
+  lacks `settings:manage`/`product:create`, so this is needed to exercise printer pairing or product
+  import locally at all
+- Verified live end-to-end as the owner account: imported a CSV with 2 valid + 2 intentionally-bad
+  rows (missing name, invalid price) — got 2 real `201`s server-side, 2 clear per-row error messages,
+  no crash; exported CSV afterward included both original demo products and the newly-imported ones
+  with correct rupee formatting and auto-provisioned category/unit/tax defaults. Separately verified
+  the cashier account gets a graceful "Insufficient permissions" row error instead of a crash
+- Added 16 new tests (`apps/pos/test/lib/csv.test.ts`, `apps/pos/test/lib/product-csv.test.ts`)
+  covering CSV quoting/escaping edge cases and product-row parsing/validation
+- Verified `pnpm typecheck`, `pnpm lint`, full `pnpm test` (78 files / 219 tests)
 
 DONE (2026-09-06)
 - Wired automatic access-token refresh into `apps/pos`: access tokens expire every 15 minutes
