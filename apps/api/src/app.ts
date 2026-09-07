@@ -12,6 +12,7 @@ import { createAuthRouter } from './modules/auth/auth.routes.js';
 import type { AuthRepository } from './modules/auth/auth.repository.js';
 import type { AuthServiceConfig } from './modules/auth/auth.service.js';
 import { InMemoryAuthRepository } from './modules/auth/in-memory-auth.repository.js';
+import { createBridgeRouter } from './modules/bridge/bridge.routes.js';
 import { createCatalogRouter } from './modules/catalog/catalog.routes.js';
 import type { CatalogRepository } from './modules/catalog/catalog.repository.js';
 import { InMemoryCatalogRepository } from './modules/catalog/in-memory-catalog.repository.js';
@@ -51,6 +52,7 @@ export type AppOptions = {
   accessContextResolver?: AccessContextResolver;
   authConfig?: AuthServiceConfig;
   authRepository?: AuthRepository;
+  bridgeSharedSecret?: string;
   catalogRepository?: CatalogRepository;
   customerRepository?: CustomerRepository;
   logger: AppLogger;
@@ -69,6 +71,7 @@ export const createApp = (options: AppOptions): Express => {
     refreshSecret: 'test-refresh-secret-0123456789-ab'
   };
   const authRepository = options.authRepository ?? new InMemoryAuthRepository();
+  const bridgeSharedSecret = options.bridgeSharedSecret ?? 'test-bridge-secret-0123456789-abcd';
   const catalogRepository = options.catalogRepository ?? new InMemoryCatalogRepository();
   const customerRepository = options.customerRepository ?? new InMemoryCustomerRepository();
   const sharedInventoryMovements = new Map<string, InventoryMovementRecord>();
@@ -146,6 +149,7 @@ export const createApp = (options: AppOptions): Express => {
     )
   );
   app.use('/api/v1', createTenantCoreRouter(tenantCoreRepository));
+  app.use('/api/bridge', createBridgeRouter(tenantCoreRepository, authRepository, bridgeSharedSecret));
   app.use(notFoundHandler);
   app.use(errorHandler(options.logger));
 

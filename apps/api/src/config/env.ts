@@ -6,6 +6,7 @@ const EnvSchema = z.object({
   DATABASE_URL: z.url(),
   JWT_SECRET: z.string().min(32),
   REFRESH_SECRET: z.string().min(32),
+  BRIDGE_SHARED_SECRET: z.string().min(32),
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
     .default('info')

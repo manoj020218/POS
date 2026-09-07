@@ -34,6 +34,7 @@ const bootstrap = async () => {
       refreshSecret: env.REFRESH_SECRET
     },
     authRepository,
+    bridgeSharedSecret: env.BRIDGE_SHARED_SECRET,
     catalogRepository,
     customerRepository,
     logger,
