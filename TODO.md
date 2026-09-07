@@ -8,12 +8,12 @@ NOW — client wants to roll out (asked 2026-09-06); go-live checklist, roughly 
    through their shared billing/trial system, plus a real marketing/signup page):
    - ~~Part 1 — `POST /api/bridge/provision` in this repo~~ — DONE 2026-09-07, see below
    - ~~Part 3 — marketing/signup page (`apps/marketing`)~~ — DONE 2026-09-07, see below. Its signup
-     form calls `https://iotsoft.in/api/smartpos/signup`, which doesn't exist until Part 2 lands
-   - **Part 2 — billing-platform integration — not started.** New `smartpos.routes.js`/
-     `.controller.js`/seed in the *separate* `manoj020218/billing` repo
-     (`D:\IOT Device\Billing at IOT soft\billing-server`), mirroring `community.controller.js`. This
-     touches a shared production service other live client products depend on — will confirm before
-     running `deploy.sh` on the VPS
+     form calls `https://iotsoft.in/api/smartpos/signup`
+   - ~~Part 2 — billing-platform integration~~ — DONE 2026-09-07 in the *separate* `manoj020218/billing`
+     repo (`D:\IOT Device\Billing at IOT soft\billing-server`), see below. Committed locally
+     (`a7cae8e`); **not yet pushed/deployed** — `deploy.sh` on the shared production VPS still needs
+     explicit confirmation before running, since it reloads a live service other client products
+     depend on
    - **Part 4 — deploy everything to the new VPS — not started**, see below
 4. **VPS deployment (Part 4 above)** — client decided (2026-09-07) to move the whole Smart POS stack
    (API + Postgres + the new marketing page) to a *second*, more capable VPS
@@ -71,8 +71,8 @@ LATER
 
 BLOCKED
 - Local PostgreSQL listener was unavailable for `cmd /c pnpm db:migrate` on 2026-08-29
-- Part 2 (billing-platform integration) and Part 4 (VPS deployment) are ready to start but not yet
-  begun — no external blocker, just next in sequence (see NOW #3-4)
+- Part 4 (VPS deployment) is ready to start but not yet begun — no external blocker, just next in
+  sequence (see NOW #3-4)
 
 DONE (2026-09-07)
 - Bulk product upload/download for `apps/pos`: a new "Import or export products" screen (gear-like
@@ -136,9 +136,24 @@ DONE (2026-09-07)
   switching); found and fixed a real bug in the signup form's error handling — a non-JSON error
   response (e.g. before Part 2's endpoint exists) surfaced a raw "Unexpected token '<'" parse error
   to the user instead of a clean message
-- Part 2 (billing-platform integration) and Part 4 (VPS deployment of all of this) are the next two
-  NOW items, not done yet
 - Verified `pnpm typecheck`, `pnpm lint`, full `pnpm test` (79 files / 224 tests) after Part 1
+
+- **Self-serve onboarding, Part 2 — billing-platform integration** (separate repo,
+  `D:\IOT Device\Billing at IOT soft\billing-server`, `manoj020218/billing`): new
+  `smartpos.routes.js`/`smartpos.controller.js`/`seedSmartpos.js`, mirroring `community.routes.js`/
+  `.controller.js` exactly — public rate-limited `POST /api/smartpos/signup`, duplicate-check against
+  billing's own `Client` collection, creates a 6-month-trial `Client`, calls this repo's own
+  `POST /api/bridge/provision` with `X-Bridge-Secret`, stores the returned business id, responds with
+  `{ ok, businessCode, email, tempPassword, message }` — deliberately **no `loginUrl`** (unlike
+  community's response), since the client confirmed customers get in-app credentials for the
+  already-installed Android app, not a web login link. Added `SMARTPOS_API_BASE`/
+  `SMARTPOS_BRIDGE_SECRET` to that repo's `.env.example`/`.env.production.example`, mounted the route
+  in `src/index.js`. Verified fully end-to-end locally (billing-server against this repo's own
+  `dev:memory`, via `mongodb-memory-server`): valid signup → `201` with real tenant IDs, duplicate
+  email → `409`, missing field → `400`, and the returned temp password logs in against this repo's
+  real `/api/v1/auth/login` with full `BUSINESS_OWNER` permissions. Committed in the billing repo
+  (`a7cae8e`) — **not pushed to that repo's remote yet**, and `deploy.sh` has NOT been run on the
+  shared production VPS (needs explicit confirmation first, per the approved plan)
 
 DONE (2026-09-06)
 - Wired automatic access-token refresh into `apps/pos`: access tokens expire every 15 minutes

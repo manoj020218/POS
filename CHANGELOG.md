@@ -16,6 +16,13 @@
 - Verified the marketing page live in a real browser; fixed a real bug found while testing it — a
   non-JSON error response surfaced a raw parse-error string to the user instead of a clean message
 - Verified `pnpm typecheck`, `pnpm lint`, full `pnpm test` (79 files / 224 tests)
+- **Billing-platform integration (separate repo, `manoj020218/billing`)**: added
+  `POST /api/smartpos/signup` mirroring the existing `community` signup — records a 6-month trial
+  `Client`, calls this repo's `POST /api/bridge/provision`, returns in-app login credentials (no
+  `loginUrl`, per the client's confirmation that customers sign in via the already-installed Android
+  app). Verified end-to-end locally (billing-server against this repo's `dev:memory`): signup → real
+  tenant creation → duplicate/validation rejections → the returned temp password logging in with full
+  `BUSINESS_OWNER` permissions. Committed in the billing repo, not yet pushed or deployed
 
 ## 2026-09-07 (bulk product import/export)
 

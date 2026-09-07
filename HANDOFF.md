@@ -8,14 +8,15 @@ section; short version, in order:
 
 1. **Access-token refresh — DONE 2026-09-06.**
 2. **Bulk product upload/download — DONE 2026-09-07.**
-3. **Self-serve onboarding + marketing page — Parts 1 &amp; 3 DONE 2026-09-07, Part 2 not started:**
+3. **Self-serve onboarding + marketing page — Parts 1, 2 &amp; 3 DONE 2026-09-07, Part 4 not started:**
    - Part 1 (`POST /api/bridge/provision` in this repo) — done, see the dated entry below.
    - Part 3 (`apps/marketing/`, the signup/marketing page) — done, see the dated entry below.
-   - **Part 2 (billing-platform integration) — not started.** A *separate* repo
-     (`D:\IOT Device\Billing at IOT soft\billing-server`, git `manoj020218/billing`) needs a new
-     `smartpos.routes.js`/`.controller.js`/seed mirroring its existing `community.controller.js`
-     pattern exactly (confirmed by reading the live code). This touches a shared production service
-     other live client products depend on — confirm with the user before running its `deploy.sh`.
+   - Part 2 (billing-platform integration) — done, see the dated entry below. Built in the *separate*
+     repo (`D:\IOT Device\Billing at IOT soft\billing-server`, git `manoj020218/billing`), mirroring
+     its existing `community.controller.js` pattern exactly. Verified fully end-to-end locally.
+     **Committed there (`a7cae8e`) but not pushed to that repo's remote, and `deploy.sh` has NOT been
+     run on the shared production VPS** — that touches a live service other client products depend
+     on, so it needs explicit confirmation first.
    - Part 4 (deploy it all) is next, see #4 below.
 4. **VPS deployment — SSH access confirmed working for both VPSes, not started yet.** The client
    decided (2026-09-07) to move the whole stack to a *second*, more capable VPS
@@ -1337,7 +1338,7 @@ Self-Serve Onboarding Status (2026-09-07):
 - Client asked (2026-09-07) for self-serve signup through the same shared billing/trial system used
   by their other products (community, hotelqr, fireguard, etc.), plus a real marketing/signup page —
   see the "READ THIS FIRST" section at the top of this file for the current checklist position
-  (Parts 1 &amp; 3 done, Part 2 and Part 4 next).
+  (Parts 1, 2 &amp; 3 done, Part 4 next).
 - **Researched before writing any code**: SSH'd into the old/dev VPS (see the assistant's own
   reference notes for connection details, not this repo) and read the real
   `billing-platform` production service (`/var/www/billing-platform`, Node/Express/Mongoose, PM2
@@ -1394,6 +1395,38 @@ Self-Serve Onboarding Status (2026-09-07):
   checkout) — the user explicitly said so, referencing their own local `D:\plink_git.bat`/
   `D:\plink_git - new-server.bat` SSH helper scripts. Connection details live in the assistant's
   local memory system instead.
+- **Part 2 — billing-platform integration** (separate repo, `D:\IOT Device\Billing at IOT soft\billing-server`,
+  git `manoj020218/billing`): read `community.routes.js`/`.controller.js`/`Client.js`/`Product.js`/
+  `seedCommunity.js`/`.env.example`/`errorHandler.js` in full before writing anything, to mirror the
+  established pattern exactly rather than guessing. New `smartpos.routes.js` (rate-limited public
+  `POST /api/smartpos/signup`), `smartpos.controller.js` (validates required fields, duplicate-checks
+  by mobile/email against that repo's own `Client` collection, creates a 6-month-trial `Client`, calls
+  this repo's `POST /api/bridge/provision` with `X-Bridge-Secret: SMARTPOS_BRIDGE_SECRET`, stores the
+  returned `businessId` as `productEntityId`), `seedSmartpos.js` (idempotent `Product` seed, standalone
+  script — confirmed product seeds are never auto-run by the shared `seed.js`, matching
+  `seedCommunity.js`'s own convention). Two deliberate differences from the `community` template: (1)
+  field names map `contactPersonName` (billing/marketing-page's field) → `ownerName` (this repo's
+  bridge schema field) when calling the bridge; (2) the final response is
+  `{ ok, businessCode, email, tempPassword, message }` with **no `loginUrl`**, since the client
+  confirmed customers sign into the already-installed Android app with these credentials, not a web
+  login link. Registered the route in `src/index.js` (`/api` is already in that file's `apiPrefixes`
+  list, so no SPA-fallback change was needed) and added `SMARTPOS_API_BASE`/`SMARTPOS_BRIDGE_SECRET`
+  to `.env.example`/`.env.production.example`.
+- **Part 2 verification — real end-to-end run, not just unit-level**: started this repo's own
+  `dev:memory` server, then ran a standalone script (booting `mongodb-memory-server` so no real Mongo
+  install was needed) that required the billing-server's actual `src/index.js` and hit
+  `/api/smartpos/signup` with `supertest`. Confirmed: valid signup → `201` with a real `businessCode`/
+  `tempPassword`; second signup with the same email → `409`; a request missing `businessName` → `400`;
+  and — the strongest check — `POST`ing the returned email/`tempPassword` straight to this repo's real
+  `/api/v1/auth/login` succeeded with full `BUSINESS_OWNER` permissions. No community-style Jest test
+  file exists for any of the other bridge-signup routes either (`community`/`fireguard`/`hotelqr`), so
+  this ad hoc end-to-end script (kept only in the assistant's scratch directory, not committed) matches
+  that established (lack of) test-file convention rather than introducing a new one.
+- **Part 2 status — committed locally, not pushed or deployed**: committed in the billing repo as
+  `a7cae8e feat(smartpos): add self-serve signup bridge integration`. Deliberately **not pushed** to
+  that repo's remote and `deploy.sh` has **not** been run on the shared production VPS yet — the
+  approved plan explicitly calls for confirming with the user first, since that script reloads a live
+  `billing-platform` PM2 process every other client product's signup/billing flow depends on.
 
 Tests:
 - New `apps/api/test/bridge-provision.test.ts` (5 tests): missing/wrong bridge secret, successful
