@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart POS — Free Billing Software for Shops, Stalls &amp; Restaurants</title>
+  <meta name="description" content="Smart POS is free billing software for kirana stores, general retail, food stalls, dhabas, vegetable vendors, and restaurants. Works fully offline, prints receipts on Bluetooth/USB thermal printers, tracks stock automatically, and syncs when the internet comes back. No monthly fee." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://smartpos.iotsoft.in/" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Smart POS — Free Billing Software for Shops, Stalls &amp; Restaurants" />
+  <meta property="og:description" content="Offline-first billing, automatic stock tracking, and receipt printing on any Android tablet — for kirana stores, food stalls, dhabas, vegetable vendors, and restaurants. Free to use." />
+  <meta property="og:url" content="https://smartpos.iotsoft.in/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Smart POS — Free Billing Software for Shops, Stalls &amp; Restaurants" />
+  <meta name="twitter:description" content="Offline-first billing, automatic stock tracking, and receipt printing on any Android tablet — for kirana stores, food stalls, dhabas, vegetable vendors, and restaurants. Free to use." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Smart POS",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Android",
+    "description": "Free, offline-first point-of-sale and billing software for kirana stores, general retail, food stalls, dhabas, vegetable vendors, and restaurants. Prints receipts on Bluetooth/USB thermal printers, tracks inventory automatically, and syncs sales when back online.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "INR"
+    }
+  }
+  </script>
+
+  <style>
+    :root {
+      --brand-700: #0b3d2e;
+      --brand-600: #0f6b4f;
+      --brand-500: #14a76b;
+      --brand-100: #e4f6ec;
+      --ink: #10201c;
+      --ink-muted: #4d5f59;
+      --ink-faint: #7c8b86;
+      --surface: #ffffff;
+      --surface-sunken: #f4f8f6;
+      --line: #e1eae5;
+      --danger: #c0392b;
+      --shadow: 0 10px 30px rgba(11, 61, 46, 0.08);
+    }
+    * , *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--ink);
+      background: var(--surface);
+      line-height: 1.55;
+    }
+    img { max-width: 100%; }
+    a { color: inherit; }
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 1.5rem; }
+    .badge {
+      display: inline-flex; align-items: center; gap: .4rem;
+      background: var(--brand-100); color: var(--brand-700);
+      font-size: .8rem; font-weight: 700; letter-spacing: .02em;
+      padding: .35rem .8rem; border-radius: 999px;
+    }
+
+    /* ── Nav ── */
+    nav.site-nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(255,255,255,.92); backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+    }
+    nav.site-nav .container { display: flex; align-items: center; justify-content: space-between; padding-block: .9rem; }
+    .brand { display: flex; align-items: center; gap: .55rem; font-weight: 800; font-size: 1.15rem; text-decoration: none; }
+    .brand .mark {
+      width: 32px; height: 32px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
+      display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1rem;
+    }
+    .nav-links { display: flex; align-items: center; gap: 1.6rem; list-style: none; margin: 0; padding: 0; }
+    .nav-links a { text-decoration: none; color: var(--ink-muted); font-weight: 600; font-size: .92rem; }
+    .nav-links a:hover { color: var(--brand-700); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+      border-radius: 10px; font-weight: 700; font-size: .95rem; cursor: pointer;
+      text-decoration: none; border: 1px solid transparent; padding: .7rem 1.4rem;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .btn-primary { background: var(--brand-600); color: #fff; box-shadow: 0 6px 16px rgba(15,107,79,.28); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(15,107,79,.34); }
+    .btn-ghost { background: transparent; border-color: var(--line); color: var(--ink); }
+    .btn-ghost:hover { border-color: var(--brand-500); color: var(--brand-700); }
+    .btn-sm { padding: .5rem 1rem; font-size: .85rem; }
+    .btn:disabled { opacity: .6; cursor: progress; transform: none; }
+
+    /* ── Hero ── */
+    .hero { padding: 4.5rem 0 3.5rem; background: linear-gradient(180deg, var(--brand-100) 0%, #fff 65%); }
+    .hero .container { display: grid; grid-template-columns: 1.05fr .95fr; gap: 3rem; align-items: center; }
+    .hero h1 { font-size: clamp(2.1rem, 4vw, 3rem); line-height: 1.12; margin: .9rem 0 1rem; font-weight: 800; }
+    .hero h1 span { color: var(--brand-600); }
+    .hero p.lead { font-size: 1.1rem; color: var(--ink-muted); max-width: 46ch; margin-bottom: 1.6rem; }
+    .hero-ctas { display: flex; gap: .8rem; flex-wrap: wrap; margin-bottom: 1.4rem; }
+    .hero-trust { display: flex; gap: 1.4rem; flex-wrap: wrap; color: var(--ink-faint); font-size: .85rem; font-weight: 600; }
+    .hero-trust span { display: flex; align-items: center; gap: .4rem; }
+
+    .mock-tablet {
+      background: var(--ink); border-radius: 22px; padding: 14px; box-shadow: var(--shadow);
+      transform: rotate(1.2deg);
+    }
+    .mock-screen { background: var(--surface); border-radius: 12px; overflow: hidden; }
+    .mock-topbar { display: flex; justify-content: space-between; align-items: center; background: var(--surface-sunken); padding: .7rem 1rem; border-bottom: 1px solid var(--line); font-size: .75rem; font-weight: 700; color: var(--ink-muted); }
+    .mock-row { display: flex; justify-content: space-between; padding: .55rem 1rem; font-size: .78rem; border-bottom: 1px solid var(--line); }
+    .mock-row.total { font-weight: 800; color: var(--brand-700); background: var(--brand-100); }
+    .mock-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; padding: .8rem; }
+    .mock-item { background: var(--surface-sunken); border-radius: 8px; padding: .6rem .5rem; font-size: .68rem; text-align: center; font-weight: 700; color: var(--ink-muted); }
+
+    /* ── Sections ── */
+    section { padding: 4rem 0; }
+    .section-head { text-align: center; max-width: 640px; margin: 0 auto 2.6rem; }
+    .section-head h2 { font-size: clamp(1.6rem, 3vw, 2.1rem); font-weight: 800; margin: .6rem 0 .7rem; }
+    .section-head p { color: var(--ink-muted); }
+    .eyebrow { color: var(--brand-600); font-weight: 800; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
+
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; }
+    .feature-card { border: 1px solid var(--line); border-radius: 16px; padding: 1.6rem; background: var(--surface); }
+    .feature-card .icon {
+      width: 44px; height: 44px; border-radius: 12px; background: var(--brand-100); color: var(--brand-700);
+      display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: .9rem;
+    }
+    .feature-card h3 { font-size: 1.03rem; margin: 0 0 .4rem; }
+    .feature-card p { margin: 0; color: var(--ink-muted); font-size: .92rem; }
+
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6rem; counter-reset: step; }
+    .step { text-align: center; padding: 1.2rem; }
+    .step::before {
+      counter-increment: step; content: counter(step);
+      display: flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; border-radius: 999px; margin: 0 auto .9rem;
+      background: var(--brand-600); color: #fff; font-weight: 800;
+    }
+    .step h3 { margin: 0 0 .4rem; font-size: 1.02rem; }
+    .step p { margin: 0; color: var(--ink-muted); font-size: .9rem; }
+
+    .faq { max-width: 780px; margin: 0 auto; }
+    .faq details {
+      border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: .7rem; background: var(--surface);
+    }
+    .faq summary { cursor: pointer; font-weight: 700; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after { content: '+'; font-size: 1.3rem; color: var(--brand-600); flex-shrink: 0; }
+    .faq details[open] summary::after { content: '–'; }
+    .faq p { color: var(--ink-muted); margin: .7rem 0 0; font-size: .93rem; }
+
+    .signup-section { background: var(--surface-sunken); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .signup-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: 2.6rem; align-items: start; }
+    .signup-copy h2 { font-size: clamp(1.6rem, 3vw, 2rem); font-weight: 800; margin: .6rem 0 .8rem; }
+    .signup-copy ul { padding-left: 1.1rem; color: var(--ink-muted); margin: 0; }
+    .signup-copy li { margin-bottom: .4rem; }
+    form#signup-form {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 1.6rem; box-shadow: var(--shadow);
+    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
+    .form-grid .full { grid-column: 1 / -1; }
+    label { display: block; font-size: .82rem; font-weight: 700; margin-bottom: .3rem; color: var(--ink); }
+    input {
+      width: 100%; padding: .65rem .8rem; border-radius: 9px; border: 1px solid var(--line);
+      font-size: .92rem; font-family: inherit; background: #fff;
+    }
+    input:focus { outline: none; border-color: var(--brand-500); box-shadow: 0 0 0 3px rgba(20,167,107,.15); }
+    .field { margin-bottom: .9rem; }
+    #signup-submit { width: 100%; margin-top: .3rem; }
+    #signup-message { margin-top: 1rem; padding: .9rem 1rem; border-radius: 10px; font-size: .88rem; display: none; }
+    #signup-message.success { display: block; background: var(--brand-100); color: var(--brand-700); }
+    #signup-message.error { display: block; background: #fdecea; color: var(--danger); }
+    #signup-message code { background: rgba(0,0,0,.06); padding: .1rem .35rem; border-radius: 5px; }
+
+    .legal { background: var(--surface); }
+    .legal-tabs { display: flex; gap: .6rem; justify-content: center; margin-bottom: 1.6rem; flex-wrap: wrap; }
+    .legal-tab-btn {
+      border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
+      padding: .5rem 1.1rem; font-weight: 700; font-size: .85rem; cursor: pointer; color: var(--ink-muted);
+    }
+    .legal-tab-btn.active { background: var(--brand-600); color: #fff; border-color: var(--brand-600); }
+    .legal-content { max-width: 760px; margin: 0 auto; }
+    .legal-panel { display: none; color: var(--ink-muted); font-size: .92rem; }
+    .legal-panel.active { display: block; }
+    .legal-panel h3 { color: var(--ink); margin-top: 1.4rem; }
+    .legal-panel h3:first-child { margin-top: 0; }
+
+    footer { background: var(--ink); color: #cfe3da; padding: 2.4rem 0; }
+    footer .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; font-size: .85rem; }
+    footer a { color: #cfe3da; text-decoration: none; }
+    footer a:hover { color: #fff; }
+    .footer-links { display: flex; gap: 1.2rem; flex-wrap: wrap; }
+
+    @media (max-width: 860px) {
+      .hero .container { grid-template-columns: 1fr; }
+      .hero-order-2 { order: 2; }
+      .features-grid, .steps { grid-template-columns: 1fr 1fr; }
+      .signup-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+    @media (max-width: 520px) {
+      .features-grid, .steps { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="site-nav">
+    <div class="container">
+      <a class="brand" href="#top">
+        <span class="mark">₹</span> Smart POS
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how-it-works">How it works</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="#legal">Legal</a></li>
+      </ul>
+      <a class="btn btn-primary btn-sm" href="#signup">Get started free</a>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
+    <div class="container">
+      <div>
+        <span class="badge">100% Free · No card required</span>
+        <h1>Billing software for your shop, <span>free — and it works without internet.</span></h1>
+        <p class="lead">Smart POS runs on any Android tablet, prints receipts on your Bluetooth or USB thermal printer, tracks stock automatically with every sale, and syncs the moment you're back online. Built for kirana stores, general retail, food stalls, dhabas, vegetable vendors, and restaurants.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-primary" href="#signup">Create your free account</a>
+          <a class="btn btn-ghost" href="#features">See what it does</a>
+        </div>
+        <div class="hero-trust">
+          <span>✓ No monthly fee</span>
+          <span>✓ Works offline</span>
+          <span>✓ Your data stays yours</span>
+        </div>
+      </div>
+      <div class="hero-order-2">
+        <div class="mock-tablet">
+          <div class="mock-screen">
+            <div class="mock-topbar"><span>My Shop · Counter 1</span><span>5:42 PM</span></div>
+            <div class="mock-grid">
+              <div class="mock-item">Rice 1kg<br>₹55</div>
+              <div class="mock-item">Sugar 1kg<br>₹45</div>
+              <div class="mock-item">Milk 500ml<br>₹30</div>
+              <div class="mock-item">Tea 250g<br>₹90</div>
+              <div class="mock-item">Salt 1kg<br>₹20</div>
+              <div class="mock-item">Oil 1L<br>₹140</div>
+            </div>
+            <div class="mock-row"><span>Rice 1kg × 2</span><span>₹110.00</span></div>
+            <div class="mock-row"><span>Milk 500ml × 1</span><span>₹30.00</span></div>
+            <div class="mock-row total"><span>Total</span><span>₹140.00</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section id="features">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">Features</span>
+        <h2>Everything a counter needs, nothing it doesn't</h2>
+        <p>No bloated menus, no features you'll never use — just fast, reliable billing built for how a real shop actually runs.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="icon">⚡</div>
+          <h3>Works without internet</h3>
+          <p>Billing never stops for a bad connection. Every sale saves instantly on the tablet and syncs automatically once you're back online.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🖨️</div>
+          <h3>Prints real receipts</h3>
+          <p>Pair a Bluetooth or USB thermal printer once, and every sale prints a proper receipt — no phone screenshots, no handwritten bills.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">📦</div>
+          <h3>Stock tracks itself</h3>
+          <p>Every sale and every purchase updates your stock automatically. Know exactly what's running low without counting shelves.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🧾</div>
+          <h3>Cash, card, or UPI</h3>
+          <p>Take any payment your customer prefers, with automatic change calculation and a running total that's always correct.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🏪</div>
+          <h3>Multiple counters, one shop</h3>
+          <p>Add more tablets as you grow. Every counter shares the same product list and stock, and every sale gets its own invoice number.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🍽️</div>
+          <h3>Kitchen order tickets</h3>
+          <p>Dhabas and restaurants can print a separate kitchen order ticket alongside the customer receipt — the kitchen gets the order the moment it's placed.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🔒</div>
+          <h3>Private to your shop</h3>
+          <p>Your sales, customers, and stock belong to your business alone — no other shop on Smart POS can ever see your data.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">👥</div>
+          <h3>Customers &amp; discounts</h3>
+          <p>Look up regular customers in a tap and apply quick or custom discounts at checkout — without slowing the line down.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🏷️</div>
+          <h3>Barcode &amp; QR ready</h3>
+          <p>Scan barcoded products at checkout and print barcode or QR labels for items that need them — vegetable crates included.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how-it-works" style="background: var(--surface-sunken);">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">How it works</span>
+        <h2>Selling in three steps</h2>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <h3>Sign up free</h3>
+          <p>Fill in your shop's details below. It takes under a minute — no payment, no card.</p>
+        </div>
+        <div class="step">
+          <h3>Get your login</h3>
+          <p>You'll receive a shop code, an email, and a temporary password to sign in with, right away.</p>
+        </div>
+        <div class="step">
+          <h3>Open the app &amp; sell</h3>
+          <p>Open Smart POS on your Android tablet, sign in, add your products, and start billing.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">Frequently asked</span>
+        <h2>Questions shop owners actually ask</h2>
+      </div>
+      <div class="faq">
+        <details open>
+          <summary>Does it really work without internet?</summary>
+          <p>Yes. Billing, cart, discounts, and receipt printing all run entirely on the tablet itself. When your internet comes back — even hours later — everything you sold syncs up automatically. Nothing is lost.</p>
+        </details>
+        <details>
+          <summary>What hardware do I need?</summary>
+          <p>An Android tablet (most tablets from the last several years work fine) and, if you want printed receipts, a Bluetooth or USB thermal receipt printer. That's it — no special POS terminal or cash register required.</p>
+        </details>
+        <details>
+          <summary>Is my shop's data safe and private?</summary>
+          <p>Yes. Every shop's data is completely separate — another business using Smart POS can never see your sales, customers, products, or stock. Your data belongs to your shop alone.</p>
+        </details>
+        <details>
+          <summary>Can more than one counter or cashier use it at the same time?</summary>
+          <p>Yes. Add as many terminals as you have counters, and as many cashier logins as you need. They all share the same product list, customers, and stock, and sync together.</p>
+        </details>
+        <details>
+          <summary>What does it actually cost?</summary>
+          <p>Smart POS is free to use. Sign up, install the app, and start billing — no subscription, no card required.</p>
+        </details>
+        <details>
+          <summary>I already have hundreds of products — do I have to enter them one by one?</summary>
+          <p>No. Smart POS supports bulk import from a spreadsheet (CSV) file, including straight from a USB pen drive on your tablet, so you can load your whole catalog in one go.</p>
+        </details>
+        <details>
+          <summary>What if my printer isn't connected or breaks mid-sale?</summary>
+          <p>The sale still completes and saves normally — Smart POS shows the full receipt on screen so you can still tell the customer their total, and you can retry printing once the printer's back.</p>
+        </details>
+        <details>
+          <summary>Do I need to be tech-savvy to set this up?</summary>
+          <p>No. Sign up, install the app, sign in with the credentials you're given, and you're ready to bill. Pairing a printer is a one-time, guided step from within the app.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="signup-section" id="signup">
+    <div class="container">
+      <div class="signup-grid">
+        <div class="signup-copy">
+          <span class="eyebrow">Get started</span>
+          <h2>Create your free Smart POS account</h2>
+          <p>Tell us a little about your shop and we'll set up your account instantly.</p>
+          <ul>
+            <li>No payment or card required</li>
+            <li>Ready to use in under a minute</li>
+            <li>Works on any Android tablet</li>
+          </ul>
+        </div>
+        <form id="signup-form" novalidate>
+          <div class="form-grid">
+            <div class="field full">
+              <label for="businessName">Shop / business name *</label>
+              <input id="businessName" name="businessName" required maxlength="160" />
+            </div>
+            <div class="field full">
+              <label for="contactPersonName">Your name *</label>
+              <input id="contactPersonName" name="contactPersonName" required maxlength="160" />
+            </div>
+            <div class="field">
+              <label for="email">Email *</label>
+              <input id="email" name="email" type="email" required maxlength="160" />
+            </div>
+            <div class="field">
+              <label for="mobile">Mobile number *</label>
+              <input id="mobile" name="mobile" type="tel" required maxlength="16" />
+            </div>
+            <div class="field full">
+              <label for="address">Shop address</label>
+              <input id="address" name="address" maxlength="240" />
+            </div>
+            <div class="field">
+              <label for="city">City</label>
+              <input id="city" name="city" maxlength="120" />
+            </div>
+            <div class="field">
+              <label for="state">State</label>
+              <input id="state" name="state" maxlength="120" />
+            </div>
+            <div class="field">
+              <label for="pincode">Pincode</label>
+              <input id="pincode" name="pincode" maxlength="16" />
+            </div>
+            <div class="field">
+              <label for="agentCode">Referral / agent code (optional)</label>
+              <input id="agentCode" name="agentCode" maxlength="64" />
+            </div>
+          </div>
+          <button class="btn btn-primary" id="signup-submit" type="submit">Create my free account</button>
+          <div id="signup-message"></div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="legal" id="legal">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">Policies</span>
+        <h2>Privacy, Terms &amp; About</h2>
+      </div>
+      <div class="legal-content">
+        <div class="legal-tabs">
+          <button class="legal-tab-btn active" onclick="showLegalTab('privacy', this)" type="button">Privacy Policy</button>
+          <button class="legal-tab-btn" onclick="showLegalTab('terms', this)" type="button">Terms &amp; Conditions</button>
+          <button class="legal-tab-btn" onclick="showLegalTab('about', this)" type="button">About Us</button>
+        </div>
+
+        <div id="privacy" class="legal-panel active">
+          <h3>Privacy Policy</h3>
+          <p>Smart POS ("we", "our") is operated by IOT Soft. We take the privacy of your shop's data seriously.</p>
+          <h3>What we collect</h3>
+          <p>When you sign up, we collect your shop name, address, contact name, email, and mobile number to create your account. Within the app, we store the products, sales, customers, and inventory data you enter, scoped entirely to your own shop.</p>
+          <h3>How we use it</h3>
+          <p>Your data is used only to operate your Smart POS account — to process your sales, keep your stock accurate, and let you sign in. We do not sell your data or share it with other businesses.</p>
+          <h3>Data isolation</h3>
+          <p>Every shop's data is strictly separated at the database level. No other business on Smart POS can access your sales, customers, or inventory.</p>
+          <h3>Contact</h3>
+          <p>For privacy questions or to request deletion of your data, email <a href="mailto:jenixindia@gmail.com">jenixindia@gmail.com</a>.</p>
+        </div>
+
+        <div id="terms" class="legal-panel">
+          <h3>Terms &amp; Conditions</h3>
+          <ul>
+            <li>Smart POS is a free-to-use software-as-a-service (SaaS) billing product. Creating an account and using the app constitutes acceptance of these terms.</li>
+            <li>You are responsible for the accuracy of the product, pricing, and stock information you enter into your account.</li>
+            <li>Smart POS is provided "as is." While we take reasonable care to keep the service reliable, we are not liable for losses arising from service interruptions, device failure, or printer hardware issues.</li>
+            <li>We reserve the right to suspend accounts used for illegal purposes or in violation of these terms.</li>
+            <li>These terms may be updated from time to time; continued use of the app after an update constitutes acceptance of the revised terms.</li>
+          </ul>
+        </div>
+
+        <div id="about" class="legal-panel">
+          <h3>About Smart POS</h3>
+          <p>Smart POS is built for small and mid-size businesses — kirana stores, general retail shops, food stalls, dhabas, vegetable vendors, and restaurants — that need reliable billing without depending on a constant internet connection or expensive hardware.</p>
+          <p>It's built and maintained by IOT Soft, the team behind several other business and IoT software products.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <span>© <span id="year"></span> Smart POS · IOT Soft</span>
+      <div class="footer-links">
+        <a href="#legal">Privacy</a>
+        <a href="#legal">Terms</a>
+        <a href="#legal">About</a>
+        <a href="mailto:jenixindia@gmail.com">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    function showLegalTab(id, btn) {
+      document.querySelectorAll('.legal-panel').forEach(function (panel) { panel.classList.remove('active'); });
+      document.querySelectorAll('.legal-tab-btn').forEach(function (tabBtn) { tabBtn.classList.remove('active'); });
+      document.getElementById(id).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    // Configurable so the endpoint can be pointed at a different billing-platform
+    // deployment without touching any other code on this page.
+    var SIGNUP_ENDPOINT = 'https://iotsoft.in/api/smartpos/signup';
+
+    var form = document.getElementById('signup-form');
+    var submitBtn = document.getElementById('signup-submit');
+    var message = document.getElementById('signup-message');
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      message.className = '';
+      message.textContent = '';
+
+      var payload = {
+        businessName: form.businessName.value.trim(),
+        contactPersonName: form.contactPersonName.value.trim(),
+        email: form.email.value.trim(),
+        mobile: form.mobile.value.trim(),
+        address: form.address.value.trim() || undefined,
+        city: form.city.value.trim() || undefined,
+        state: form.state.value.trim() || undefined,
+        pincode: form.pincode.value.trim() || undefined,
+        agentCode: form.agentCode.value.trim() || undefined
+      };
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating your account…';
+
+      fetch(SIGNUP_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(function (response) {
+          return response
+            .json()
+            .catch(function () { return null; })
+            .then(function (body) { return { ok: response.ok, body: body }; });
+        })
+        .then(function (result) {
+          if (!result.ok) {
+            throw new Error((result.body && result.body.error) || 'Something went wrong. Please try again.');
+          }
+
+          var data = result.body;
+          message.className = 'success';
+          message.innerHTML =
+            'Your account is ready! Shop code <code>' + (data.businessCode || '') + '</code>. ' +
+            'Open the Smart POS app on your tablet and sign in with <code>' + (data.email || payload.email) + '</code> ' +
+            'and the temporary password <code>' + (data.tempPassword || '') + '</code>.';
+          form.reset();
+        })
+        .catch(function (error) {
+          message.className = 'error';
+          message.textContent = error.message || 'Something went wrong. Please try again.';
+        })
+        .finally(function () {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create my free account';
+        });
+    });
+  </script>
+</body>
+</html>
