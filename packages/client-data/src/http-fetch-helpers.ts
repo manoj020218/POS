@@ -74,3 +74,22 @@ export const requestJson = async <T>(
 
   return payload.data as T;
 };
+
+export const requestJsonEnvelope = async <T, M>(
+  fetchImpl: FetchLike,
+  url: string,
+  init: { body?: string; headers?: Record<string, string>; method?: string } = {}
+): Promise<{ data: T; meta: M }> => {
+  const response = await fetchImpl(url, init);
+
+  if (!response.ok) {
+    throw new HttpRequestError(await readErrorMessage(response), response.status);
+  }
+
+  const payload = (await response.json()) as Partial<{ data: T; meta: M }>;
+  if (!('data' in payload)) {
+    throw new Error('Remote API response missing data payload');
+  }
+
+  return { data: payload.data as T, meta: payload.meta as M };
+};

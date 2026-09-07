@@ -1,6 +1,16 @@
-import { buildApiUrl, ensureFetch, HttpRequestError, requestJson, type FetchLike } from './http-fetch-helpers.js';
+import {
+  buildApiUrl,
+  ensureFetch,
+  HttpRequestError,
+  requestJson,
+  requestJsonEnvelope,
+  type FetchLike
+} from './http-fetch-helpers.js';
 import type {
+  ClientProductListMeta,
   ClientRemoteApi,
+  ClientRemoteProductCreateInput,
+  ClientRemoteProductView,
   ClientRemoteSyncPullQuery,
   ClientRemoteSyncPullResult,
   ClientRemoteSyncPushResult,
@@ -30,12 +40,9 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
     'Content-Type': 'application/json'
   });
 
-  const requestWithAuth = async <T>(
-    url: string,
-    init: { body?: string; method?: string } = {}
-  ): Promise<T> => {
+  const withRefresh = async <T>(attempt: (accessToken?: string) => Promise<T>): Promise<T> => {
     try {
-      return await requestJson<T>(fetchImpl, url, { ...init, headers: await authHeaders() });
+      return await attempt();
     } catch (error) {
       if (!(error instanceof HttpRequestError) || error.status !== 401 || !options.onUnauthorized) {
         throw error;
@@ -46,16 +53,45 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
         throw error;
       }
 
-      return requestJson<T>(fetchImpl, url, { ...init, headers: await authHeaders(refreshedAccessToken) });
+      return attempt(refreshedAccessToken);
     }
   };
 
+  const requestWithAuth = <T>(url: string, init: { body?: string; method?: string } = {}): Promise<T> =>
+    withRefresh(async (accessTokenOverride) =>
+      requestJson<T>(fetchImpl, url, { ...init, headers: await authHeaders(accessTokenOverride) })
+    );
+
+  const requestEnvelopeWithAuth = <T, M>(
+    url: string,
+    init: { body?: string; method?: string } = {}
+  ): Promise<{ data: T; meta: M }> =>
+    withRefresh(async (accessTokenOverride) =>
+      requestJsonEnvelope<T, M>(fetchImpl, url, { ...init, headers: await authHeaders(accessTokenOverride) })
+    );
+
   return {
+    createProduct: (input: ClientRemoteProductCreateInput) =>
+      requestWithAuth<ClientRemoteProductView>(buildApiUrl(options.baseUrl, '/products'), {
+        body: JSON.stringify(input),
+        method: 'POST'
+      }),
     getBusinessSettings: (input) =>
       requestWithAuth<ClientBusinessSettings>(
         buildApiUrl(options.baseUrl, '/business-settings', { businessId: input?.businessId })
       ),
     listBranches: () => requestWithAuth(buildApiUrl(options.baseUrl, '/branches')),
+    listProducts: async (query) => {
+      const { data, meta } = await requestEnvelopeWithAuth<ClientRemoteProductView[], ClientProductListMeta>(
+        buildApiUrl(options.baseUrl, '/products', {
+          businessId: query?.businessId,
+          page: query?.page,
+          pageSize: query?.pageSize
+        })
+      );
+
+      return { items: data, meta };
+    },
     listTerminals: (input) =>
       requestWithAuth(buildApiUrl(options.baseUrl, '/terminals', { branchId: input?.branchId })),
     pullChanges: (query: ClientRemoteSyncPullQuery) =>

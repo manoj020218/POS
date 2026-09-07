@@ -47,10 +47,14 @@ describe('createClientSyncService', () => {
     });
 
     const remoteApi: ClientRemoteApi = {
+      createProduct: async () => {
+        throw new Error('unused');
+      },
       getBusinessSettings: async () => {
         throw new Error('unused');
       },
       listBranches: async () => [],
+      listProducts: async () => ({ items: [], meta: { hasNextPage: false, page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }),
       listTerminals: async () => [],
       pullChanges: async () => ({
         changes: [
@@ -154,10 +158,14 @@ describe('createClientSyncService', () => {
     const cursorsRequested: (string | undefined)[] = [];
 
     const remoteApi: ClientRemoteApi = {
+      createProduct: async () => {
+        throw new Error('unused');
+      },
       getBusinessSettings: async () => {
         throw new Error('unused');
       },
       listBranches: async () => [],
+      listProducts: async () => ({ items: [], meta: { hasNextPage: false, page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }),
       listTerminals: async () => [],
       pullChanges: async (query) => {
         cursorsRequested.push(query.cursor);

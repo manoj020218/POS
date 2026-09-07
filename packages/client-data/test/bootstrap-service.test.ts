@@ -12,8 +12,12 @@ describe('createClientBootstrapService', () => {
     const store = createInMemoryClientDataStore();
     const settings = createSettings();
     const remoteApi: ClientRemoteApi = {
+      createProduct: async () => {
+        throw new Error('unused');
+      },
       getBusinessSettings: async () => settings,
       listBranches: async () => [],
+      listProducts: async () => ({ items: [], meta: { hasNextPage: false, page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }),
       listTerminals: async () => [],
       pullChanges: async () => ({ changes: [], nextCursor: null, serverTime: '2026-08-29T12:00:00.000Z' }),
       pushEvents: async () => ({ acceptedCount: 0, duplicateCount: 0, events: [] }),

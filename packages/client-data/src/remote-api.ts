@@ -102,6 +102,61 @@ export type ClientRemoteTerminalSummary = {
   name: string;
 };
 
+export type ClientRemoteProductView = {
+  barcode?: string;
+  brand?: string;
+  businessCode: string;
+  businessId: string;
+  businessName: string;
+  categoryCode: string;
+  categoryId: string;
+  categoryName: string;
+  description?: string;
+  hsnSac?: string;
+  id: string;
+  imageUrl?: string;
+  isActive: boolean;
+  lowStockLevel: number;
+  name: string;
+  openingStock: number;
+  purchasePrice?: number;
+  sellingPrice: number;
+  sku?: string;
+  taxProfileCode: string;
+  taxProfileId: string;
+  taxProfileName: string;
+  taxRateBasisPoints: number;
+  trackInventory: boolean;
+  unitCode: string;
+  unitId: string;
+  unitName: string;
+  unitPrecision: number;
+  unitSymbol?: string;
+};
+
+export type ClientRemoteProductCreateInput = {
+  barcode?: string;
+  brand?: string;
+  businessId?: string;
+  description?: string;
+  hsnSac?: string;
+  lowStockLevel?: number;
+  name: string;
+  openingStock?: number;
+  purchasePrice?: number;
+  sellingPrice: number;
+  sku?: string;
+  trackInventory?: boolean;
+};
+
+export type ClientProductListMeta = {
+  hasNextPage: boolean;
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+};
+
 export type ClientUpdateBusinessSettingsInput = {
   branches?: Array<{
     address?: string;
@@ -120,8 +175,14 @@ export type ClientUpdateBusinessSettingsInput = {
 };
 
 export interface ClientRemoteApi {
+  createProduct(input: ClientRemoteProductCreateInput): Promise<ClientRemoteProductView>;
   getBusinessSettings(input?: { businessId?: string }): Promise<ClientBusinessSettings>;
   listBranches(): Promise<ClientRemoteBranchSummary[]>;
+  listProducts(query?: {
+    businessId?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<{ items: ClientRemoteProductView[]; meta: ClientProductListMeta }>;
   listTerminals(input?: { branchId?: string }): Promise<ClientRemoteTerminalSummary[]>;
   pullChanges(query: ClientRemoteSyncPullQuery): Promise<ClientRemoteSyncPullResult>;
   pushEvents(input: {
