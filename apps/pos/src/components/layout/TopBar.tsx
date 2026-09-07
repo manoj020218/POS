@@ -4,6 +4,7 @@ import { usePosContext } from '../../state/use-pos-context.js';
 import { CalculatorButton } from '../calculator/CalculatorButton.js';
 import { IconButton } from '../common/IconButton.js';
 import { PrinterSettingsButton } from '../settings/PrinterSettingsButton.js';
+import { ProductImportExportButton } from '../settings/ProductImportExportButton.js';
 import { LiveClock } from './LiveClock.js';
 
 export const TopBar = () => {
@@ -26,6 +27,7 @@ export const TopBar = () => {
       <div className="flex items-center gap-5">
         <CalculatorButton />
         <PrinterSettingsButton />
+        <ProductImportExportButton />
         <div className="flex items-center gap-2 rounded-2xl bg-surface-sunken px-4 py-2">
           <User size={18} className="text-ink-muted" />
           <span className="text-sm font-semibold text-ink">{terminalContext.cashierName}</span>
