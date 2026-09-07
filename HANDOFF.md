@@ -1,35 +1,40 @@
 # HANDOFF
 
-## ⚠ READ THIS FIRST — rollout checklist status (2026-09-07)
+## ⚠ READ THIS FIRST — rollout checklist status (2026-09-07, updated)
 
-The client wants to roll this out to a real kirana store (~300 products) and asked what software
-work is left. Full detail in TODO.md's NOW section; short version:
+The client wants to roll this out to a real business (kirana stores, but also food stalls, dhabas,
+vegetable vendors, restaurants) and asked what software work is left. Full detail in TODO.md's NOW
+section; short version, in order:
 
-1. **Access-token refresh — DONE 2026-09-06.** See the dated entry below for the fix (root cause:
-   `apps/pos` never refreshed the 15-minute access token, so cashiers would've been logged out
-   constantly in real use). Verified live end-to-end, not just unit-tested.
-2. **Bulk product upload/download — DONE 2026-09-07.** New "Import or export products" screen in
-   `apps/pos` (gear icon in `TopBar`). Per the client's explicit ask, upload/download go through a
-   plain file picker (works with a USB pen drive connected to the tablet), not a dedicated API. See
-   the dated entry below.
-3. **VPS deployment — blocked on SSH credentials.** The client gave a subdomain
-   (`smartpos.iotsoft.in`) and access to a shared dev VPS with explicit constraints: work under
-   `/root/projects/smartpos`, check for port conflicts with other services already running there
-   before binding anything, use `pnpm` on the VPS, and structure things so the folder can be copied
-   as-is to a real production server later and the domain can be swapped later without restructuring.
-   **The VPS IP/credentials are intentionally not written anywhere in this repo** — the user
-   explicitly said not to pass them to git (referencing their own `D:\plink_git.bat` helper). They're
-   in the assistant's local memory instead. Ask the user directly for SSH access to continue this.
-4. Once on the VPS: run `pnpm db:migrate` against a real Postgres (local dev Postgres has been
-   unreachable since 2026-08-29 and is unrelated to whatever the VPS/production DB will be), lock
-   down CORS to the real domain (currently wide open — fine for dev, not for production), and add
-   rate limiting (explicit requirement in PROJECT_PLAN.md §60, currently absent).
-5. Physical hardware test (tablet + printer) is still pending — see the 2026-09-04 entry below for
+1. **Access-token refresh — DONE 2026-09-06.**
+2. **Bulk product upload/download — DONE 2026-09-07.**
+3. **Self-serve onboarding + marketing page — Parts 1 &amp; 3 DONE 2026-09-07, Part 2 not started:**
+   - Part 1 (`POST /api/bridge/provision` in this repo) — done, see the dated entry below.
+   - Part 3 (`apps/marketing/`, the signup/marketing page) — done, see the dated entry below.
+   - **Part 2 (billing-platform integration) — not started.** A *separate* repo
+     (`D:\IOT Device\Billing at IOT soft\billing-server`, git `manoj020218/billing`) needs a new
+     `smartpos.routes.js`/`.controller.js`/seed mirroring its existing `community.controller.js`
+     pattern exactly (confirmed by reading the live code). This touches a shared production service
+     other live client products depend on — confirm with the user before running its `deploy.sh`.
+   - Part 4 (deploy it all) is next, see #4 below.
+4. **VPS deployment — SSH access confirmed working for both VPSes, not started yet.** The client
+   decided (2026-09-07) to move the whole stack to a *second*, more capable VPS
+   (AlmaLinux, 11GB RAM/4.8GB free, 6 CPUs, 126GB free disk) rather than the original dev VPS
+   (only ~213MB free RAM, other live services already running there). Domain layout decided:
+   path-based on one domain — `smartpos.iotsoft.in/` serves the marketing page,
+   `smartpos.iotsoft.in/api/` proxies to the API. Client also wants Postgres installed **once** on
+   the new VPS, reusable by future projects (one server, separate database+user per project), not
+   reinstalled each time. **Neither VPS's IP/credentials are written anywhere in this repo** — the
+   user explicitly said not to pass them to git; they're in the assistant's local memory instead.
+5. Once deployed: run `pnpm db:migrate` against the new VPS's Postgres, lock down CORS to the real
+   domain (currently wide open — fine for dev, not production), add rate limiting (PROJECT_PLAN.md
+   §60, currently absent).
+6. Physical hardware test (tablet + printer) is still pending — see the 2026-09-04 entry below for
    exact rebuild/sideload steps once that hardware is available.
 
 Explicitly **not** required for this rollout per the client's own MVP boundary: the admin/reports
 app, Windows/PWA support, and general UI polish (all still real gaps for eventual "full production
-launch," just not go-live blockers for a single-tablet kirana store).
+launch," just not go-live blockers).
 
 ---
 
@@ -1321,8 +1326,90 @@ Tests:
   export/import round-trip, zero console errors throughout
 
 Git Status:
+- Clean and fully pushed as of this entry: `codex/settings-printer-foundation` matches
+  `origin/codex/settings-printer-foundation`, `0` ahead / `0` behind
+
+Last Commit:
+- `aaeb7c2 docs: record token-refresh fix and the client's rollout checklist` (pushed; this
+  session's code + doc-update commits follow it)
+
+Self-Serve Onboarding Status (2026-09-07):
+- Client asked (2026-09-07) for self-serve signup through the same shared billing/trial system used
+  by their other products (community, hotelqr, fireguard, etc.), plus a real marketing/signup page —
+  see the "READ THIS FIRST" section at the top of this file for the current checklist position
+  (Parts 1 &amp; 3 done, Part 2 and Part 4 next).
+- **Researched before writing any code**: SSH'd into the old/dev VPS (see the assistant's own
+  reference notes for connection details, not this repo) and read the real
+  `billing-platform` production service (`/var/www/billing-platform`, Node/Express/Mongoose, PM2
+  process `billing-platform`) — a full multi-product SaaS billing/reseller platform shared across all
+  the client's other live products. Confirmed the exact integration pattern by reading
+  `community.controller.js`/`.routes.js` in full: public self-serve `POST /api/community/signup` →
+  billing-platform's own trial-tracking `Client` record → server-to-server
+  `POST {PRODUCT}_API_BASE/api/bridge/provision` with header
+  `X-Bridge-Secret: {PRODUCT}_BRIDGE_SECRET` → the actual product creates the real account and
+  returns credentials → billing-platform hands them back to the signup requester. Confirmed the exact
+  env-var naming (`COMMUNITY_API_BASE`/`COMMUNITY_BRIDGE_SECRET`, `HOTEL_QR_INTERNAL_URL`/
+  `HOTEL_QR_IOTSOFT_SECRET`, `FIREGUARD_API_BASE`/`FIREGUARD_BRIDGE_SECRET`) by reading the live
+  `.env`'s key names (values not read/repeated). Also located the actual local source repo for this
+  service — `D:\IOT Device\Billing at IOT soft` (`billing-server` + `billing-client`, git
+  `manoj020218/billing`, clean working tree) — which is where Part 2's changes belong, deployed via
+  its existing `deploy.sh`.
+- **Part 1 — `POST /api/bridge/provision`** (this repo, `apps/api/src/modules/bridge/`): see the
+  commit `b478ab9` for full detail. Key point for whoever picks this up: it does **not** reuse
+  `bootstrapDevelopmentTenant` even though that looked like the obvious reuse candidate — that
+  helper's idempotency lookups run raw Drizzle queries against a real `AppDatabase` handle, not the
+  `TenantCoreRepository` interface, so it silently can't work against the in-memory repository used
+  by `dev:memory`/tests. The new service composes `tenantCoreRepository.createTenant/createBusiness/
+  createBranch/registerTerminal` directly instead — fully repository-interface-driven, works
+  identically against both backends, and a signup is always a brand-new tenant anyway so the
+  idempotency wasn't needed. Verified with a real `curl` against `dev:memory`: correct provisioning,
+  `401` on missing/wrong `X-Bridge-Secret`, and the returned temp password logging in via
+  `POST /api/v1/auth/login` with full `BUSINESS_OWNER` permissions.
+- **Part 3 — `apps/marketing/`**: a plain static site (no build step — matches the client's own
+  `hotelqr-marketing` precedent, read directly off the VPS for the Privacy/Terms/About tab pattern
+  and SEO conventions to mirror). Positioned as **free** software, and broadened per the client's
+  follow-up message to cover kirana stores, general retail, food stalls, dhabas, vegetable vendors,
+  and restaurants (not kirana-only) — added a "Kitchen order tickets" feature card specifically for
+  the dhaba/restaurant segment, since `packages/printer` already has a kitchen-order print job
+  builder that fits this exactly. The signup form's `SIGNUP_ENDPOINT` constant points at
+  `https://iotsoft.in/api/smartpos/signup` (billing-platform's real public domain, confirmed from its
+  own `deploy.sh` health-check URLs) — that endpoint doesn't exist until Part 2 lands, so submitting
+  the form today correctly shows a graceful error, not a crash.
+- **Bug found and fixed while live-testing the marketing page**: the signup form's fetch handler
+  called `response.json()` unconditionally; a non-JSON error response (which is exactly what happens
+  right now, since `/api/smartpos/signup` doesn't exist yet) threw a raw `"Unexpected token '&lt;'"`
+  parse error string at the user instead of the intended clean message. Fixed by catching the
+  `.json()` failure and falling back to `null`, letting the existing "Something went wrong" fallback
+  message take over.
+- **VPS survey for the eventual Part 4** (not started, but the groundwork is done): the client
+  offered a second VPS described as a "real production server" also running
+  multiple projects, and asked Postgres be installed there once, reusable by future projects — surveyed
+  it (AlmaLinux 8.10, 11GB RAM/4.8GB free, 6 CPUs, 126GB free disk, no Postgres installed, only 4
+  lightweight PM2 services running) and confirmed it has real headroom, unlike the original dev VPS.
+  Client confirmed (2026-09-07) moving the whole Smart POS stack (API + Postgres + marketing page)
+  here, with path-based routing on one domain rather than a subdomain split (simpler, no new DNS
+  record needed since there's exactly one backend consumer — the Android app — today).
+- **Standing rule going forward, saved to memory**: never write either VPS's IP address or
+  credentials into any file inside this repo (or the billing repo, or any other git-tracked
+  checkout) — the user explicitly said so, referencing their own local `D:\plink_git.bat`/
+  `D:\plink_git - new-server.bat` SSH helper scripts. Connection details live in the assistant's
+  local memory system instead.
+
+Tests:
+- New `apps/api/test/bridge-provision.test.ts` (5 tests): missing/wrong bridge secret, successful
+  provisioning + real login with the returned temp password, missing required field, duplicate-email
+  409
+- `pnpm typecheck`, `pnpm lint`, full `pnpm test` — `79` test files / `224` tests passing (one
+  `drizzle-auth.repository.test.ts` timeout seen under heavy concurrent load from an unrelated
+  process on this machine — confirmed via isolated re-run that it passes cleanly in ~6s; not a
+  regression from this session's changes, matches a previously-documented PGlite-under-load flake)
+- Live verification: real `curl` against `dev:memory` for the bridge endpoint (see Part 1 above);
+  live browser walkthrough of the marketing page (feature grid, FAQ accordion, legal tab switching,
+  signup form's error path) via `claude-in-chrome` against a local static file server
+
+Git Status:
 - Working tree should be clean once the commits described in this entry are created; see Last Commit
 
 Last Commit:
-- `aaeb7c2 docs: record token-refresh fix and the client's rollout checklist` (this session's code +
-  doc-update commits follow it)
+- `b478ab9 feat(api): add POST /api/bridge/provision for self-serve signup` (this session's
+  remaining commits — marketing page, docs — follow it)

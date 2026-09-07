@@ -1,6 +1,23 @@
 # CHANGELOG
 
-## 2026-09-07
+## 2026-09-07 (self-serve onboarding)
+
+- Added `POST /api/bridge/provision` (`apps/api/src/modules/bridge/`): a shared-secret-authenticated
+  endpoint for the client's separate billing-platform service to call on customer signup, creating a
+  full tenant + business + default branch/terminal + `BUSINESS_OWNER` user with a generated temp
+  password. First shared-secret (non-JWT) auth in this codebase (`require-bridge-secret.ts`)
+- Added `apps/api/src/modules/auth/generate-temporary-password.ts` — no random-password utility
+  existed before this
+- Added `apps/marketing/` — a plain static marketing/signup page (hero, feature grid, FAQ, signup
+  form, Privacy/Terms/About tabs, SEO meta/structured data), positioned as free software for kirana
+  stores, general retail, food stalls, dhabas, vegetable vendors, and restaurants
+- Verified `POST /api/bridge/provision` live against `dev:memory`: real tenant/business/branch/
+  terminal/owner creation, and the returned temp password authenticating with full owner permissions
+- Verified the marketing page live in a real browser; fixed a real bug found while testing it — a
+  non-JSON error response surfaced a raw parse-error string to the user instead of a clean message
+- Verified `pnpm typecheck`, `pnpm lint`, full `pnpm test` (79 files / 224 tests)
+
+## 2026-09-07 (bulk product import/export)
 
 - Added bulk product import/export to `apps/pos` (new "Import or export products" screen, gear icon
   in `TopBar`): CSV download of the full catalog and CSV import of new products, addressing the

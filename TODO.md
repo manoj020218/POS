@@ -3,22 +3,39 @@
 NOW — client wants to roll out (asked 2026-09-06); go-live checklist, roughly in order:
 1. ~~Access-token refresh~~ — DONE 2026-09-06, see below
 2. ~~Bulk product upload/download~~ — DONE 2026-09-07, see below
-3. **VPS deployment** — client has provided a subdomain (`smartpos.iotsoft.in`) and access to a
-   shared dev VPS (other services already running on it; connection details intentionally kept out
-   of this repo — see the assistant's own reference notes, not git). Requirements given directly by
-   the client: work under `/root/projects/smartpos` on the VPS; check existing listening ports before
-   picking one, no conflicts with other services on that box; use `pnpm` on the VPS (matches its
-   existing tooling, saves disk via the shared store); structure the deployment so the folder can be
-   copied as-is to a real production server later with minimal changes, and so the domain can be
-   swapped later if the client changes it. **Blocked on SSH credentials** (user/password or key) —
-   not yet provided
-4. Re-run `cmd /c pnpm db:migrate` for `apps/api/drizzle/0014_oval_oracle.sql` once against a real
-   Postgres (local `localhost:5432` has been unreachable since 2026-08-29 — the VPS/production
-   Postgres is a separate instance and hasn't been touched yet)
-5. Lock down CORS for the real domain (currently `cors()` with no origin restriction — fine for
+3. **Self-serve onboarding via billing-platform + marketing page** (client asked 2026-09-07 for
+   customers to sign up the same way as the client's other products — community, hotelqr, etc. —
+   through their shared billing/trial system, plus a real marketing/signup page):
+   - ~~Part 1 — `POST /api/bridge/provision` in this repo~~ — DONE 2026-09-07, see below
+   - ~~Part 3 — marketing/signup page (`apps/marketing`)~~ — DONE 2026-09-07, see below. Its signup
+     form calls `https://iotsoft.in/api/smartpos/signup`, which doesn't exist until Part 2 lands
+   - **Part 2 — billing-platform integration — not started.** New `smartpos.routes.js`/
+     `.controller.js`/seed in the *separate* `manoj020218/billing` repo
+     (`D:\IOT Device\Billing at IOT soft\billing-server`), mirroring `community.controller.js`. This
+     touches a shared production service other live client products depend on — will confirm before
+     running `deploy.sh` on the VPS
+   - **Part 4 — deploy everything to the new VPS — not started**, see below
+4. **VPS deployment (Part 4 above)** — client decided (2026-09-07) to move the whole Smart POS stack
+   (API + Postgres + the new marketing page) to a *second*, more capable VPS
+   (AlmaLinux, 11GB RAM, 6 CPUs, 126GB free disk; connection details intentionally kept out of this
+   repo — see the assistant's own reference notes, not git) rather than the original
+   memory-constrained dev VPS (only ~213MB free RAM already, other live services running). Plan:
+   path-based routing on one domain — `smartpos.iotsoft.in/` serves the
+   marketing page, `smartpos.iotsoft.in/api/` proxies to the API — no new DNS record needed since
+   there's exactly one backend consumer (the Android app) today. Client's requirements for this VPS:
+   work under `/root/projects/smartpos`, check for port conflicts with the VPS's other services
+   first, use `pnpm`, structure everything so it can be copied as-is to a future production server
+   and the domain swapped later without restructuring. Client also asked (2026-09-07) that Postgres
+   be installed **once** on this VPS in a way multiple future projects can reuse (one Postgres
+   server, separate database+user per project), not reinstalled per project. **Not started yet** —
+   this comes after Part 2
+5. Re-run `cmd /c pnpm db:migrate` for `apps/api/drizzle/0014_oval_oracle.sql` once against a real
+   Postgres (local `localhost:5432` has been unreachable since 2026-08-29; will run this against the
+   new VPS's Postgres once Part 4 provisions it)
+6. Lock down CORS for the real domain (currently `cors()` with no origin restriction — fine for
    dev/localhost, not for a public domain) and add rate limiting (PROJECT_PLAN.md §60 lists this as a
    from-the-beginning security requirement; currently absent)
-6. Get a real Android tablet + a real BLE or USB thermal printer to run the plugin's own
+7. Get a real Android tablet + a real BLE or USB thermal printer to run the plugin's own
    `HARDWARE_TEST_CHECKLIST.md` and confirm actual printing works —
    `apps/pos/android/app/build/outputs/apk/debug/app-debug.apk` builds successfully (2026-09-04) but
    has NOT been run on physical hardware; nothing in this environment can verify that
@@ -54,8 +71,8 @@ LATER
 
 BLOCKED
 - Local PostgreSQL listener was unavailable for `cmd /c pnpm db:migrate` on 2026-08-29
-- VPS deployment needs SSH credentials for the client-provided VPS (see NOW #3; connection details
-  intentionally kept out of this repo)
+- Part 2 (billing-platform integration) and Part 4 (VPS deployment) are ready to start but not yet
+  begun — no external blocker, just next in sequence (see NOW #3-4)
 
 DONE (2026-09-07)
 - Bulk product upload/download for `apps/pos`: a new "Import or export products" screen (gear-like
@@ -92,6 +109,36 @@ DONE (2026-09-07)
 - Added 16 new tests (`apps/pos/test/lib/csv.test.ts`, `apps/pos/test/lib/product-csv.test.ts`)
   covering CSV quoting/escaping edge cases and product-row parsing/validation
 - Verified `pnpm typecheck`, `pnpm lint`, full `pnpm test` (78 files / 219 tests)
+
+- **Self-serve onboarding, Part 1 — `POST /api/bridge/provision`**: studied the client's existing
+  billing-platform (a separate production Node/MongoDB service on the old VPS used by every other
+  client product — community, hotelqr, fireguard) to learn its real integration pattern
+  (`{PRODUCT}_API_BASE`/`{PRODUCT}_BRIDGE_SECRET` env vars, a shared-secret-authenticated
+  `POST {API_BASE}/api/bridge/provision` call) before building anything. New `apps/api/src/modules/bridge/`
+  module: shared-secret auth (`require-bridge-secret.ts`, first non-JWT auth in this codebase),
+  creates tenant + business + a default "Main Branch"/"Counter 1" terminal (a terminal is required —
+  `apps/pos`'s picker only lists existing terminals, can't register new ones) + a `BUSINESS_OWNER`
+  auth user with a freshly generated temp password (new `generate-temporary-password.ts`, no such
+  utility existed before). Deliberately composes `TenantCoreRepository`'s `create*` methods directly
+  rather than reusing `bootstrapDevelopmentTenant` — that helper's idempotency lookups run raw
+  Drizzle queries against a real Postgres handle, so it can't run against the in-memory repository
+  used in tests/`dev:memory`, and a signup is always a brand-new tenant anyway so that idempotency
+  isn't needed. Verified live against `dev:memory`: correct/missing/wrong secret handling, and the
+  returned temp password actually logs in with full `BUSINESS_OWNER` permissions
+- **Self-serve onboarding, Part 3 — marketing/signup page**: new `apps/marketing/` (plain static
+  site, no build step, matching the client's `hotelqr-marketing` convention) — hero, a 9-card
+  feature grid (including kitchen-order-ticket printing for dhabas/restaurants and barcode/QR
+  support), an 8-question FAQ, a signup form, and a Privacy/Terms/About tabbed section (required for
+  Google OAuth consent + Play Store listing), plus `robots.txt`/`sitemap.xml`/OG tags/JSON-LD
+  `SoftwareApplication` structured data for SEO. Positioned as **free** software for kirana stores,
+  general retail, food stalls, dhabas, vegetable vendors, and restaurants (client's explicit
+  positioning, 2026-09-07). Verified live in a real browser (feature grid, FAQ accordion, legal tab
+  switching); found and fixed a real bug in the signup form's error handling — a non-JSON error
+  response (e.g. before Part 2's endpoint exists) surfaced a raw "Unexpected token '<'" parse error
+  to the user instead of a clean message
+- Part 2 (billing-platform integration) and Part 4 (VPS deployment of all of this) are the next two
+  NOW items, not done yet
+- Verified `pnpm typecheck`, `pnpm lint`, full `pnpm test` (79 files / 224 tests) after Part 1
 
 DONE (2026-09-06)
 - Wired automatic access-token refresh into `apps/pos`: access tokens expire every 15 minutes
