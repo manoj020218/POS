@@ -11,9 +11,17 @@ import type {
 
 import { CashierLoginScreen } from '../components/auth/CashierLoginScreen.js';
 import { LoadingScreen } from '../components/auth/LoadingScreen.js';
+import { SignUpScreen } from '../components/auth/SignUpScreen.js';
+import { SignUpSuccessScreen } from '../components/auth/SignUpSuccessScreen.js';
 import { TerminalPickerScreen } from '../components/auth/TerminalPickerScreen.js';
 import { prepareTerminalBundle, type TerminalBundle } from './prepare-terminal-bundle.js';
 import { useAuth } from './use-auth.js';
+
+type SignUpOutcome = { businessCode: string; email: string; tempPassword: string };
+type AuthView =
+  | { name: 'login'; prefill?: { email: string; password: string } }
+  | { name: 'signUp' }
+  | { name: 'signUpSuccess'; result: SignUpOutcome };
 
 export type PosContextValue = {
   checkoutService: ReturnType<typeof createLocalCheckoutService>;
@@ -30,6 +38,7 @@ export const PosContext = createContext<PosContextValue | null>(null);
 
 export const PosProvider = ({ children }: { children: ReactNode }) => {
   const auth = useAuth();
+  const [authView, setAuthView] = useState<AuthView>({ name: 'login' });
   const [terminal, setTerminal] = useState<ClientRemoteTerminalSummary | null>(null);
   const [bundle, setBundle] = useState<TerminalBundle | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
@@ -84,7 +93,39 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
   };
 
   if (!auth.session) {
-    return <CashierLoginScreen error={auth.error} onSubmit={auth.login} submitting={auth.status === 'submitting'} />;
+    if (authView.name === 'signUp') {
+      return (
+        <SignUpScreen
+          onBack={() => setAuthView({ name: 'login' })}
+          onSignedUp={(result) => setAuthView({ name: 'signUpSuccess', result })}
+        />
+      );
+    }
+
+    if (authView.name === 'signUpSuccess') {
+      const { result } = authView;
+      return (
+        <SignUpSuccessScreen
+          businessCode={result.businessCode}
+          email={result.email}
+          onContinue={() =>
+            setAuthView({ name: 'login', prefill: { email: result.email, password: result.tempPassword } })
+          }
+          tempPassword={result.tempPassword}
+        />
+      );
+    }
+
+    return (
+      <CashierLoginScreen
+        error={auth.error}
+        initialEmail={authView.prefill?.email}
+        initialPassword={authView.prefill?.password}
+        onNavigateToSignUp={() => setAuthView({ name: 'signUp' })}
+        onSubmit={auth.login}
+        submitting={auth.status === 'submitting'}
+      />
+    );
   }
 
   if (!terminal) {

@@ -1,18 +1,27 @@
 import { useState, type FormEvent } from 'react';
 import { Store } from 'lucide-react';
 
-import { signupUrl } from '../../lib/api-config.js';
 import { Button } from '../common/Button.js';
 
 type CashierLoginScreenProps = {
   error: string | null;
+  initialEmail?: string;
+  initialPassword?: string;
+  onNavigateToSignUp: () => void;
   onSubmit: (email: string, password: string) => void;
   submitting: boolean;
 };
 
-export const CashierLoginScreen = ({ error, onSubmit, submitting }: CashierLoginScreenProps) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+export const CashierLoginScreen = ({
+  error,
+  initialEmail = '',
+  initialPassword = '',
+  onNavigateToSignUp,
+  onSubmit,
+  submitting
+}: CashierLoginScreenProps) => {
+  const [email, setEmail] = useState(initialEmail);
+  const [password, setPassword] = useState(initialPassword);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -71,9 +80,9 @@ export const CashierLoginScreen = ({ error, onSubmit, submitting }: CashierLogin
 
         <p className="text-sm text-ink-faint">
           New here?{' '}
-          <a className="font-semibold text-brand-500" href={signupUrl} rel="noopener noreferrer">
+          <button className="font-semibold text-brand-500" onClick={onNavigateToSignUp} type="button">
             Create your free account
-          </a>
+          </button>
         </p>
       </form>
     </div>

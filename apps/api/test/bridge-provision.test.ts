@@ -67,6 +67,7 @@ describe('POST /api/bridge/provision', () => {
 
   it('rejects a request missing a required field', async () => {
     const app = buildApp();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructured only to omit it from withoutBusinessName
     const { businessName: _businessName, ...withoutBusinessName } = validPayload;
     const response = await request(app)
       .post('/api/bridge/provision')
