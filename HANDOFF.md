@@ -2,6 +2,15 @@
 
 ## ⚠ READ THIS FIRST — rollout checklist status (2026-09-08, updated)
 
+**Session resume note**: git is clean and fully pushed as of this entry — branch
+`codex/settings-printer-foundation` matches `origin/codex/settings-printer-foundation`
+(`94e3115`), nothing uncommitted, nothing unpushed. Safe to close and reopen this project at any
+time; nothing is at risk. One small non-urgent cleanup still open: a real (but harmless) test
+signup made during Part 4 verification left one trial record in billing-platform's MongoDB
+(`clientName: "Part4 Test Dhaba"`, email `suresh.part4test@example.com`) and a matching real tenant
+in Smart POS's production Postgres (`businessCode: PART4-TEST-DHABA`) — delete via
+billing-platform's superadmin UI whenever convenient, not urgent.
+
 The client wants to roll this out to a real business (kirana stores, but also food stalls, dhabas,
 vegetable vendors, restaurants) and asked what software work is left. Full detail in TODO.md's NOW
 section; short version, in order:
