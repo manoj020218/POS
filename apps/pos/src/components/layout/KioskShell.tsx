@@ -9,7 +9,7 @@ export const KioskShell = () => {
   return (
     <div className="flex h-full w-full flex-col bg-surface">
       <TopBar />
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
         <CatalogPane cartApi={cartApi} />
         <CartPanel cartApi={cartApi} />
       </div>

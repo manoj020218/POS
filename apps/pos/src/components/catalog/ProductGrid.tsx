@@ -14,7 +14,7 @@ type ProductGridProps = {
 export const ProductGrid = ({ cartQuantities, currencyCode, onAdd, products, stockByProductId }: ProductGridProps) => {
   if (products.length === 0) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 text-ink-faint">
+      <div className="flex min-h-[16rem] flex-col items-center justify-center gap-2 text-ink-faint lg:min-h-0 lg:flex-1">
         <PackageSearch size={40} />
         <p className="text-sm font-medium">No products match your search</p>
       </div>
@@ -22,7 +22,7 @@ export const ProductGrid = ({ cartQuantities, currencyCode, onAdd, products, sto
   }
 
   return (
-    <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-2 gap-3 overflow-y-auto p-2 pt-3 sm:grid-cols-3 xl:grid-cols-4">
+    <div className="grid auto-rows-min grid-cols-2 gap-3 p-2 pt-3 sm:grid-cols-3 xl:grid-cols-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
       {products.map((product) => (
         <ProductCard
           currencyCode={currencyCode}

@@ -23,10 +23,10 @@ export const CartPanel = ({ cartApi }: { cartApi: CartApi }) => {
   );
 
   return (
-    <aside className="flex w-[26rem] shrink-0 flex-col gap-4 overflow-hidden border-l border-line bg-surface p-4">
+    <aside className="flex w-full flex-col gap-4 border-t border-line bg-surface p-4 lg:w-[26rem] lg:shrink-0 lg:overflow-hidden lg:border-l lg:border-t-0">
       <CustomerBar customerName={customerName} onOpen={() => setPickerOpen(true)} />
 
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
+      <div className="space-y-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         {cart.lines.length === 0 ? (
           <CartEmptyState />
         ) : (

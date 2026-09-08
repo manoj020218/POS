@@ -18,7 +18,7 @@ export const CatalogPane = ({ cartApi }: { cartApi: CartApi }) => {
   );
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-4">
+    <section className="flex w-full min-w-0 flex-col gap-3 p-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden">
       <SearchBar onChange={setSearchText} value={searchText} />
       <CategoryTabs categories={categories} onSelect={setCategoryCode} selected={categoryCode} />
       <ProductGrid
