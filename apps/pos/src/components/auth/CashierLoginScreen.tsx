@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Store } from 'lucide-react';
 
+import { signupUrl } from '../../lib/api-config.js';
 import { Button } from '../common/Button.js';
 
 type CashierLoginScreenProps = {
@@ -67,6 +68,13 @@ export const CashierLoginScreen = ({ error, onSubmit, submitting }: CashierLogin
         >
           {submitting ? 'Signing in…' : 'Sign in'}
         </Button>
+
+        <p className="text-sm text-ink-faint">
+          New here?{' '}
+          <a className="font-semibold text-brand-500" href={signupUrl} rel="noopener noreferrer">
+            Create your free account
+          </a>
+        </p>
       </form>
     </div>
   );
