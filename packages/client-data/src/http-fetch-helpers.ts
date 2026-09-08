@@ -5,9 +5,11 @@ export type FetchResponseLike = {
   text(): Promise<string>;
 };
 
+export type FetchRequestBody = BodyInit;
+
 export type FetchLike = (
   input: string,
-  init?: { body?: string; headers?: Record<string, string>; method?: string }
+  init?: { body?: FetchRequestBody; headers?: Record<string, string>; method?: string }
 ) => Promise<FetchResponseLike>;
 
 export const ensureFetch = (fetchImpl?: FetchLike) => {
@@ -59,7 +61,7 @@ const readErrorMessage = async (response: FetchResponseLike) => {
 export const requestJson = async <T>(
   fetchImpl: FetchLike,
   url: string,
-  init: { body?: string; headers?: Record<string, string>; method?: string } = {}
+  init: { body?: FetchRequestBody; headers?: Record<string, string>; method?: string } = {}
 ): Promise<T> => {
   const response = await fetchImpl(url, init);
 
@@ -78,7 +80,7 @@ export const requestJson = async <T>(
 export const requestJsonEnvelope = async <T, M>(
   fetchImpl: FetchLike,
   url: string,
-  init: { body?: string; headers?: Record<string, string>; method?: string } = {}
+  init: { body?: FetchRequestBody; headers?: Record<string, string>; method?: string } = {}
 ): Promise<{ data: T; meta: M }> => {
   const response = await fetchImpl(url, init);
 

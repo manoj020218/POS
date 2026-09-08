@@ -138,8 +138,10 @@ export type ClientRemoteProductCreateInput = {
   barcode?: string;
   brand?: string;
   businessId?: string;
+  categoryId?: string;
   description?: string;
   hsnSac?: string;
+  imageUrl?: string;
   lowStockLevel?: number;
   name: string;
   openingStock?: number;
@@ -147,6 +149,15 @@ export type ClientRemoteProductCreateInput = {
   sellingPrice: number;
   sku?: string;
   trackInventory?: boolean;
+  unitId?: string;
+};
+
+export type ClientRemoteProductUpdateInput = Partial<ClientRemoteProductCreateInput>;
+
+export type ClientRemoteProductPriceChange = {
+  changedAt: string;
+  newPrice: number;
+  previousPrice: number;
 };
 
 export type ClientProductListMeta = {
@@ -165,6 +176,7 @@ export type ClientUpdateBusinessSettingsInput = {
   }>;
   businessId?: string;
   businessLogoUrl?: string | null;
+  businessType?: string;
   currencyCode?: string;
   defaultTaxProfileId?: string | null;
   defaultTrackInventory?: boolean;
@@ -177,6 +189,7 @@ export type ClientUpdateBusinessSettingsInput = {
 export interface ClientRemoteApi {
   createProduct(input: ClientRemoteProductCreateInput): Promise<ClientRemoteProductView>;
   getBusinessSettings(input?: { businessId?: string }): Promise<ClientBusinessSettings>;
+  getProductPriceHistory(productId: string): Promise<ClientRemoteProductPriceChange[]>;
   listBranches(): Promise<ClientRemoteBranchSummary[]>;
   listProducts(query?: {
     businessId?: string;
@@ -189,4 +202,9 @@ export interface ClientRemoteApi {
     events: ClientRemoteSyncEventInput[];
   }): Promise<ClientRemoteSyncPushResult>;
   updateBusinessSettings(input: ClientUpdateBusinessSettingsInput): Promise<ClientBusinessSettings>;
+  updateProduct(
+    productId: string,
+    input: ClientRemoteProductUpdateInput
+  ): Promise<ClientRemoteProductView>;
+  uploadProductImage(file: Blob, filename: string): Promise<{ url: string }>;
 }

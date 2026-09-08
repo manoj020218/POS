@@ -53,6 +53,7 @@ describe('createClientSyncService', () => {
       getBusinessSettings: async () => {
         throw new Error('unused');
       },
+      getProductPriceHistory: async () => [],
       listBranches: async () => [],
       listProducts: async () => ({ items: [], meta: { hasNextPage: false, page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }),
       listTerminals: async () => [],
@@ -123,6 +124,12 @@ describe('createClientSyncService', () => {
       },
       updateBusinessSettings: async () => {
         throw new Error('unused');
+      },
+      updateProduct: async () => {
+        throw new Error('unused');
+      },
+      uploadProductImage: async () => {
+        throw new Error('unused');
       }
     };
 
@@ -164,6 +171,7 @@ describe('createClientSyncService', () => {
       getBusinessSettings: async () => {
         throw new Error('unused');
       },
+      getProductPriceHistory: async () => [],
       listBranches: async () => [],
       listProducts: async () => ({ items: [], meta: { hasNextPage: false, page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }),
       listTerminals: async () => [],
@@ -208,6 +216,12 @@ describe('createClientSyncService', () => {
       },
       pushEvents: async () => ({ acceptedCount: 0, duplicateCount: 0, events: [] }),
       updateBusinessSettings: async () => {
+        throw new Error('unused');
+      },
+      updateProduct: async () => {
+        throw new Error('unused');
+      },
+      uploadProductImage: async () => {
         throw new Error('unused');
       }
     };

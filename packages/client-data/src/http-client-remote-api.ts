@@ -10,6 +10,8 @@ import type {
   ClientProductListMeta,
   ClientRemoteApi,
   ClientRemoteProductCreateInput,
+  ClientRemoteProductPriceChange,
+  ClientRemoteProductUpdateInput,
   ClientRemoteProductView,
   ClientRemoteSyncPullQuery,
   ClientRemoteSyncPullResult,
@@ -39,6 +41,10 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
     Authorization: `Bearer ${accessTokenOverride ?? (await options.getAccessToken())}`,
     'Content-Type': 'application/json'
   });
+  // No Content-Type here — fetch sets the multipart boundary itself for FormData bodies.
+  const uploadAuthHeaders = async (accessTokenOverride?: string) => ({
+    Authorization: `Bearer ${accessTokenOverride ?? (await options.getAccessToken())}`
+  });
 
   const withRefresh = async <T>(attempt: (accessToken?: string) => Promise<T>): Promise<T> => {
     try {
@@ -62,6 +68,15 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
       requestJson<T>(fetchImpl, url, { ...init, headers: await authHeaders(accessTokenOverride) })
     );
 
+  const requestUploadWithAuth = <T>(url: string, formData: FormData): Promise<T> =>
+    withRefresh(async (accessTokenOverride) =>
+      requestJson<T>(fetchImpl, url, {
+        body: formData,
+        headers: await uploadAuthHeaders(accessTokenOverride),
+        method: 'POST'
+      })
+    );
+
   const requestEnvelopeWithAuth = <T, M>(
     url: string,
     init: { body?: string; method?: string } = {}
@@ -79,6 +94,10 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
     getBusinessSettings: (input) =>
       requestWithAuth<ClientBusinessSettings>(
         buildApiUrl(options.baseUrl, '/business-settings', { businessId: input?.businessId })
+      ),
+    getProductPriceHistory: (productId: string) =>
+      requestWithAuth<ClientRemoteProductPriceChange[]>(
+        buildApiUrl(options.baseUrl, `/products/${productId}/price-history`)
       ),
     listBranches: () => requestWithAuth(buildApiUrl(options.baseUrl, '/branches')),
     listProducts: async (query) => {
@@ -111,6 +130,19 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
       requestWithAuth<ClientBusinessSettings>(buildApiUrl(options.baseUrl, '/business-settings'), {
         body: JSON.stringify(input),
         method: 'PATCH'
-      })
+      }),
+    updateProduct: (productId: string, input: ClientRemoteProductUpdateInput) =>
+      requestWithAuth<ClientRemoteProductView>(buildApiUrl(options.baseUrl, `/products/${productId}`), {
+        body: JSON.stringify(input),
+        method: 'PATCH'
+      }),
+    uploadProductImage: (file: Blob, filename: string) => {
+      const formData = new FormData();
+      formData.append('image', file, filename);
+      return requestUploadWithAuth<{ url: string }>(
+        buildApiUrl(options.baseUrl, '/products/image-upload'),
+        formData
+      );
+    }
   };
 };

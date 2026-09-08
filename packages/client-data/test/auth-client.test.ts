@@ -25,7 +25,7 @@ const authResult = {
 
 describe('createHttpAuthClient', () => {
   it('logs in, refreshes, and logs out against the auth routes', async () => {
-    const calls: Array<{ init?: { body?: string; method?: string }; url: string }> = [];
+    const calls: Array<{ init?: Parameters<FetchLike>[1]; url: string }> = [];
     const fetchImpl: FetchLike = async (url, init) => {
       calls.push({ init, url });
 

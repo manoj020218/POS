@@ -29,6 +29,7 @@ export type ClientBusinessSettings = {
   businessId: string;
   businessLogoUrl?: string;
   businessName: string;
+  businessType: string;
   currencyCode: string;
   defaultTaxProfile?: ClientSettingsTaxProfileSummary;
   defaultTaxProfileId?: string;
@@ -41,6 +42,7 @@ export type ClientBusinessSettings = {
 };
 
 export const defaultClientBusinessSettings = {
+  businessType: 'GENERAL',
   currencyCode: 'INR',
   defaultTrackInventory: true,
   invoicePrefix: 'INV',
@@ -61,6 +63,7 @@ export const resolveClientBusinessSettings = (
   businessId: settings?.businessId ?? fallback.businessId,
   businessLogoUrl: settings?.businessLogoUrl,
   businessName: settings?.businessName ?? fallback.businessName,
+  businessType: settings?.businessType ?? defaultClientBusinessSettings.businessType,
   currencyCode: settings?.currencyCode ?? defaultClientBusinessSettings.currencyCode,
   defaultTaxProfile: settings?.defaultTaxProfile,
   defaultTaxProfileId: settings?.defaultTaxProfileId,

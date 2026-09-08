@@ -5,7 +5,7 @@ import { createRemoteCustomerSnapshot, createRemoteProductSnapshot, createSettin
 
 describe('createHttpClientRemoteApi', () => {
   it('targets the current API routes with bearer auth and JSON payloads', async () => {
-    const calls: Array<{ init?: { body?: string; headers?: Record<string, string>; method?: string }; url: string }> = [];
+    const calls: Array<{ init?: Parameters<FetchLike>[1]; url: string }> = [];
     const settings = createSettings();
     const fetchImpl: FetchLike = async (url, init) => {
       calls.push({ init, url });
@@ -249,5 +249,61 @@ describe('createHttpClientRemoteApi', () => {
 
     await expect(api.listBranches()).rejects.toThrow('Not allowed');
     expect(onUnauthorized).not.toHaveBeenCalled();
+  });
+
+  it('updates a product, reads its price history, and uploads an image', async () => {
+    const product = createRemoteProductSnapshot();
+    const calls: Array<{ init?: Parameters<FetchLike>[1]; url: string }> = [];
+    const fetchImpl: FetchLike = async (url, init) => {
+      calls.push({ init, url });
+
+      if (url.includes('/price-history')) {
+        return {
+          json: async () => ({
+            data: [{ changedAt: '2026-09-08T10:00:00.000Z', newPrice: 4200, previousPrice: 4000 }]
+          }),
+          ok: true,
+          status: 200,
+          text: async () => ''
+        };
+      }
+
+      if (url.includes('/image-upload')) {
+        return {
+          json: async () => ({ data: { url: 'https://smartpos.iotsoft.in/api/uploads/products/abc.png' } }),
+          ok: true,
+          status: 201,
+          text: async () => ''
+        };
+      }
+
+      return { json: async () => ({ data: product }), ok: true, status: 200, text: async () => '' };
+    };
+
+    const api = createHttpClientRemoteApi({
+      baseUrl: 'https://example.com/api/v1',
+      fetchImpl,
+      getAccessToken: async () => 'secret-token'
+    });
+
+    const updated = await api.updateProduct(product.id, { sellingPrice: 4200 });
+    const history = await api.getProductPriceHistory(product.id);
+    const uploaded = await api.uploadProductImage(new Blob(['fake-bytes']), 'product.png');
+
+    expect(updated).toEqual(product);
+    expect(calls[0]?.url).toContain(`/products/${product.id}`);
+    expect(calls[0]?.init?.method).toBe('PATCH');
+    expect(calls[0]?.init?.headers?.Authorization).toBe('Bearer secret-token');
+    expect(calls[0]?.init?.body).toContain('4200');
+
+    expect(history).toEqual([{ changedAt: '2026-09-08T10:00:00.000Z', newPrice: 4200, previousPrice: 4000 }]);
+    expect(calls[1]?.url).toContain(`/products/${product.id}/price-history`);
+
+    expect(uploaded).toEqual({ url: 'https://smartpos.iotsoft.in/api/uploads/products/abc.png' });
+    expect(calls[2]?.url).toContain('/products/image-upload');
+    expect(calls[2]?.init?.method).toBe('POST');
+    expect(calls[2]?.init?.headers?.Authorization).toBe('Bearer secret-token');
+    expect(calls[2]?.init?.headers).not.toHaveProperty('Content-Type');
+    expect(calls[2]?.init?.body).toBeInstanceOf(FormData);
   });
 });

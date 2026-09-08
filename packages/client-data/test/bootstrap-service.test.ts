@@ -16,12 +16,19 @@ describe('createClientBootstrapService', () => {
         throw new Error('unused');
       },
       getBusinessSettings: async () => settings,
+      getProductPriceHistory: async () => [],
       listBranches: async () => [],
       listProducts: async () => ({ items: [], meta: { hasNextPage: false, page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }),
       listTerminals: async () => [],
       pullChanges: async () => ({ changes: [], nextCursor: null, serverTime: '2026-08-29T12:00:00.000Z' }),
       pushEvents: async () => ({ acceptedCount: 0, duplicateCount: 0, events: [] }),
-      updateBusinessSettings: async () => settings
+      updateBusinessSettings: async () => settings,
+      updateProduct: async () => {
+        throw new Error('unused');
+      },
+      uploadProductImage: async () => {
+        throw new Error('unused');
+      }
     };
 
     const service = createClientBootstrapService({ remoteApi, store });

@@ -38,6 +38,7 @@ export const createSettings = (autoPrintReceipt = true): ClientBusinessSettings 
   businessCode: 'SMART-POS-FOODS',
   businessId: terminalContext.businessId,
   businessName: terminalContext.businessName,
+  businessType: 'GENERAL',
   currencyCode: 'INR',
   defaultTrackInventory: true,
   invoicePrefix: 'INV',
