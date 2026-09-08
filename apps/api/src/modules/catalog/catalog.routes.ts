@@ -7,10 +7,15 @@ import { createCategoryController, listCategoriesController, updateCategoryContr
 import { createCatalogService } from './catalog.service.js';
 import {
   createProductController,
+  getProductPriceHistoryController,
   listProductsController,
   searchProductsController,
   updateProductController
 } from './product.controller.js';
+import {
+  createProductImageUploadController,
+  type ProductImageUploadConfig
+} from './product-image-upload.controller.js';
 import { createTaxProfileController, listTaxProfilesController, updateTaxProfileController } from './tax-profile.controller.js';
 import type { CatalogRepository } from './catalog.repository.js';
 import { createUnitController, listUnitsController, updateUnitController } from './unit.controller.js';
@@ -18,7 +23,8 @@ import { createUnitController, listUnitsController, updateUnitController } from 
 export const createCatalogRouter = (
   repository: CatalogRepository,
   settingsRepository: SettingsRepository,
-  tenantCoreRepository: TenantCoreRepository
+  tenantCoreRepository: TenantCoreRepository,
+  productImageUploadConfig: ProductImageUploadConfig
 ): ExpressRouter => {
   const router = Router();
   const service = createCatalogService(repository, settingsRepository, tenantCoreRepository);
@@ -38,7 +44,17 @@ export const createCatalogRouter = (
   router.get('/products/search', requirePermissions(['product:view']), searchProductsController(service));
   router.get('/products', requirePermissions(['product:view']), listProductsController(service));
   router.post('/products', requirePermissions(['product:create']), createProductController(service));
+  router.post(
+    '/products/image-upload',
+    requirePermissions(['product:create']),
+    createProductImageUploadController(productImageUploadConfig)
+  );
   router.patch('/products/:productId', requirePermissions(['product:update']), updateProductController(service));
+  router.get(
+    '/products/:productId/price-history',
+    requirePermissions(['product:view']),
+    getProductPriceHistoryController(service)
+  );
 
   return router;
 };

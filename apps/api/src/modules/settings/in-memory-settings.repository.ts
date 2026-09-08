@@ -55,6 +55,7 @@ export class InMemorySettingsRepository implements SettingsRepository {
     const record: BusinessSettingsRecord = {
       businessId: input.businessId,
       businessLogoUrl: input.businessLogoUrl ?? undefined,
+      businessType: input.businessType,
       createdAt: existing?.createdAt ?? now,
       currencyCode: input.currencyCode,
       defaultTaxProfileId: input.defaultTaxProfileId ?? undefined,

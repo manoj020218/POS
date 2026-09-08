@@ -25,6 +25,7 @@ export const businessSettings = pgTable(
     currencyCode: varchar('currency_code', { length: 3 }).notNull().default('INR'),
     timezone: varchar('timezone', { length: 64 }).notNull().default('Asia/Kolkata'),
     invoicePrefix: varchar('invoice_prefix', { length: 16 }).notNull().default('INV'),
+    businessType: varchar('business_type', { length: 32 }).notNull().default('GENERAL'),
     defaultUnitId: uuid('default_unit_id').references(() => units.id),
     defaultTaxProfileId: uuid('default_tax_profile_id').references(() => taxProfiles.id),
     defaultTrackInventory: boolean('default_track_inventory').notNull().default(true),

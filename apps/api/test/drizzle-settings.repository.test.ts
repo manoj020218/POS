@@ -59,6 +59,7 @@ describe('DrizzleSettingsRepository', () => {
     await repository.upsertBusinessSettings({
       businessId,
       businessLogoUrl: 'https://example.com/logo.png',
+      businessType: 'KIRANA',
       currencyCode: 'USD',
       defaultTaxProfileId: taxProfile.id,
       defaultTrackInventory: false,

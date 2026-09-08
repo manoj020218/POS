@@ -9,6 +9,7 @@ import type {
 } from './settings.types.js';
 
 export const defaultBusinessSettings = {
+  businessType: 'GENERAL',
   currencyCode: 'INR',
   defaultTrackInventory: true,
   invoicePrefix: 'INV',
@@ -32,6 +33,7 @@ export const resolveEffectiveBusinessSettings = (
   settings?: BusinessSettingsRecord | null
 ) => ({
   businessLogoUrl: settings?.businessLogoUrl,
+  businessType: settings?.businessType ?? defaultBusinessSettings.businessType,
   currencyCode: settings?.currencyCode ?? defaultBusinessSettings.currencyCode,
   defaultTaxProfileId: settings?.defaultTaxProfileId,
   defaultTrackInventory:

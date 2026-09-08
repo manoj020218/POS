@@ -58,6 +58,22 @@ export type ProductRecord = {
   updatedAt: Date;
 };
 
+export type ProductPriceChangeRecord = {
+  businessId: string;
+  changedAt: Date;
+  changedByUserId?: string;
+  id: string;
+  newPrice: number;
+  previousPrice: number;
+  productId: string;
+  tenantId: string;
+};
+
+export type RecordProductPriceChangeInput = Pick<
+  ProductPriceChangeRecord,
+  'businessId' | 'changedByUserId' | 'newPrice' | 'previousPrice' | 'productId' | 'tenantId'
+>;
+
 export type CreateCategoryInput = Pick<
   CategoryRecord,
   'businessId' | 'code' | 'isActive' | 'name' | 'tenantId'

@@ -202,4 +202,36 @@ describe('business settings routes', () => {
     expect(updated.status).toBe(403);
     expect(updated.body.code).toBe('FORBIDDEN');
   });
+
+  it('auto-provisions business-type-appropriate units when businessType is set', async () => {
+    const ownerAccess = await loginAs('owner@example.com');
+    const updated = await request(app).patch('/api/v1/business-settings').set(ownerAccess).send({
+      businessId: businessAId,
+      businessType: 'VEGETABLE'
+    });
+    const units = await request(app)
+      .get('/api/v1/units')
+      .query({ businessId: businessAId })
+      .set(ownerAccess);
+    const fetched = await request(app)
+      .get('/api/v1/business-settings')
+      .query({ businessId: businessAId })
+      .set(ownerAccess);
+
+    expect(updated.status).toBe(200);
+    expect(fetched.body.data.businessType).toBe('VEGETABLE');
+    expect(units.body.data.map((unit: { code: string }) => unit.code).sort()).toEqual(
+      ['GRAM', 'KG', 'PCS'].sort()
+    );
+  });
+
+  it('rejects an unrecognized business type', async () => {
+    const ownerAccess = await loginAs('owner@example.com');
+    const updated = await request(app).patch('/api/v1/business-settings').set(ownerAccess).send({
+      businessId: businessAId,
+      businessType: 'SPACE_STATION'
+    });
+
+    expect(updated.status).toBe(400);
+  });
 });

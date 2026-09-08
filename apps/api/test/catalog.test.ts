@@ -267,4 +267,54 @@ describe('catalog routes', () => {
       sku: 'GINGER-B'
     });
   });
+
+  it('records a capped price-change history when sellingPrice is updated', async () => {
+    const managerAccess = await loginAs('manager@example.com');
+    const created = await request(app).post('/api/v1/products').set(managerAccess).send({
+      name: 'Loose Tomatoes',
+      sellingPrice: 3000
+    });
+    const productId = created.body.data.id as string;
+
+    const prices = [3200, 3500, 3100, 2900, 3300];
+    for (const sellingPrice of prices) {
+      const updated = await request(app)
+        .patch(`/api/v1/products/${productId}`)
+        .set(managerAccess)
+        .send({ sellingPrice });
+      expect(updated.status).toBe(200);
+    }
+
+    const history = await request(app)
+      .get(`/api/v1/products/${productId}/price-history`)
+      .set(managerAccess);
+
+    expect(history.status).toBe(200);
+    expect(history.body.data).toHaveLength(4);
+    expect(history.body.data.map((entry: { newPrice: number }) => entry.newPrice)).toEqual([
+      3300, 2900, 3100, 3500
+    ]);
+    expect(history.body.data[0]).toMatchObject({ newPrice: 3300, previousPrice: 2900 });
+  });
+
+  it('does not record price history when a product update leaves sellingPrice unchanged', async () => {
+    const managerAccess = await loginAs('manager@example.com');
+    const created = await request(app).post('/api/v1/products').set(managerAccess).send({
+      name: 'Bottled Water',
+      sellingPrice: 2000
+    });
+    const productId = created.body.data.id as string;
+
+    await request(app)
+      .patch(`/api/v1/products/${productId}`)
+      .set(managerAccess)
+      .send({ description: 'Chilled' });
+
+    const history = await request(app)
+      .get(`/api/v1/products/${productId}/price-history`)
+      .set(managerAccess);
+
+    expect(history.status).toBe(200);
+    expect(history.body.data).toEqual([]);
+  });
 });

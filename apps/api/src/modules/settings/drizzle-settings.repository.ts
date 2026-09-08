@@ -84,6 +84,7 @@ export class DrizzleSettingsRepository implements SettingsRepository {
       .onConflictDoUpdate({
         set: {
           businessLogoUrl: input.businessLogoUrl,
+          businessType: input.businessType,
           currencyCode: input.currencyCode,
           defaultTaxProfileId: input.defaultTaxProfileId,
           defaultTrackInventory: input.defaultTrackInventory,
@@ -117,6 +118,7 @@ const normalizeBusinessSettings = (
 ): BusinessSettingsRecord => ({
   businessId: record.businessId,
   businessLogoUrl: record.businessLogoUrl ?? undefined,
+  businessType: record.businessType,
   createdAt: record.createdAt,
   currencyCode: record.currencyCode,
   defaultTaxProfileId: record.defaultTaxProfileId ?? undefined,

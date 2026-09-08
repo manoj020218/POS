@@ -10,6 +10,7 @@ import { isBusinessOwnedRecord } from './settings-view-loader.js';
 
 export const hasBusinessSettingsChanges = (input: UpdateBusinessSettingsInput) =>
   input.businessLogoUrl !== undefined ||
+  input.businessType !== undefined ||
   input.currencyCode !== undefined ||
   input.defaultTaxProfileId !== undefined ||
   input.defaultTrackInventory !== undefined ||

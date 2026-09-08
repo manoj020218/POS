@@ -5,6 +5,7 @@ export type ReceiptPrinterProfile = ReceiptPrinterProfileDocument;
 export type BusinessSettingsRecord = {
   businessId: string;
   businessLogoUrl?: string;
+  businessType: string;
   createdAt: Date;
   currencyCode: string;
   defaultTaxProfileId?: string;
@@ -20,6 +21,7 @@ export type BusinessSettingsRecord = {
 export type SaveBusinessSettingsInput = {
   businessId: string;
   businessLogoUrl: string | null;
+  businessType: string;
   currencyCode: string;
   defaultTaxProfileId: string | null;
   defaultTrackInventory: boolean;
@@ -58,6 +60,7 @@ export type UpdateBusinessSettingsInput = {
   branches?: BranchSettingsPatchInput[];
   businessId?: string;
   businessLogoUrl?: string | null;
+  businessType?: string;
   currencyCode?: string;
   defaultTaxProfileId?: string | null;
   defaultTrackInventory?: boolean;
@@ -96,6 +99,7 @@ export type BusinessSettingsView = {
   businessId: string;
   businessLogoUrl?: string;
   businessName: string;
+  businessType: string;
   currencyCode: string;
   defaultTaxProfile?: SettingsTaxProfileSummary;
   defaultTaxProfileId?: string;

@@ -18,7 +18,9 @@ const EnvSchema = z.object({
     .transform((value) => value === 'true'),
   SMTP_USER: z.string().min(1).optional(),
   SMTP_PASS: z.string().min(1).optional(),
-  SMTP_FROM: z.string().min(1).optional()
+  SMTP_FROM: z.string().min(1).optional(),
+  UPLOAD_DIR: z.string().min(1).default('./uploads/products'),
+  PUBLIC_BASE_URL: z.string().url().optional()
 });
 
 export type AppEnv = z.infer<typeof EnvSchema>;

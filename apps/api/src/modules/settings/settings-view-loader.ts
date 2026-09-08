@@ -41,6 +41,7 @@ export const loadBusinessSettingsView = async (
     ),
     business,
     businessLogoUrl: effective.businessLogoUrl,
+    businessType: effective.businessType,
     currencyCode: effective.currencyCode,
     defaultTaxProfile,
     defaultTaxProfileId: effective.defaultTaxProfileId,

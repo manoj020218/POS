@@ -23,7 +23,9 @@ import type {
   CreateTaxProfileInput,
   CreateUnitInput,
   PaginationInput,
+  ProductPriceChangeRecord,
   ProductRecord,
+  RecordProductPriceChangeInput,
   TaxProfileRecord,
   UnitRecord,
   UpdateCategoryInput,
@@ -34,6 +36,7 @@ import type {
 
 export class InMemoryCatalogRepository implements CatalogRepository {
   private readonly categories = new Map<string, CategoryRecord>();
+  private readonly priceChanges = new Map<string, ProductPriceChangeRecord>();
   private readonly products = new Map<string, ProductRecord>();
   private readonly taxProfiles = new Map<string, TaxProfileRecord>();
   private readonly units = new Map<string, UnitRecord>();
@@ -86,6 +89,25 @@ export class InMemoryCatalogRepository implements CatalogRepository {
 
   async listCategories(tenantId: string, businessIds?: string[]) {
     return byBusiness(this.categories.values(), tenantId, businessIds).sort(byCodeThenName);
+  }
+  async listRecentPriceChanges(tenantId: string, productId: string, limit: number) {
+    return [...this.priceChanges.values()]
+      .filter((change) => change.tenantId === tenantId && change.productId === productId)
+      .sort((left, right) => right.changedAt.getTime() - left.changedAt.getTime())
+      .slice(0, limit);
+  }
+  async recordProductPriceChange(input: RecordProductPriceChangeInput, keepLatest: number) {
+    const record: ProductPriceChangeRecord = { ...input, changedAt: new Date(), id: randomUUID() };
+    this.priceChanges.set(record.id, record);
+
+    const forProduct = [...this.priceChanges.values()]
+      .filter((change) => change.tenantId === input.tenantId && change.productId === input.productId)
+      .sort((left, right) => right.changedAt.getTime() - left.changedAt.getTime());
+    for (const stale of forProduct.slice(keepLatest)) {
+      this.priceChanges.delete(stale.id);
+    }
+
+    return record;
   }
   async listCategoriesUpdatedSince(
     tenantId: string,

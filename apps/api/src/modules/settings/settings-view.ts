@@ -22,6 +22,7 @@ export const toBusinessSettingsView = (input: {
   branches: BranchSettingsView[];
   business: BusinessRecord;
   businessLogoUrl?: string;
+  businessType: string;
   currencyCode: string;
   defaultTaxProfile?: SettingsTaxProfileSummary;
   defaultTaxProfileId?: string;
@@ -37,6 +38,7 @@ export const toBusinessSettingsView = (input: {
   businessId: input.business.id,
   businessLogoUrl: input.businessLogoUrl,
   businessName: input.business.name,
+  businessType: input.businessType,
   currencyCode: input.currencyCode,
   defaultTaxProfile: input.defaultTaxProfile,
   defaultTaxProfileId: input.defaultTaxProfileId,

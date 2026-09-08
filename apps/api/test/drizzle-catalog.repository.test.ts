@@ -226,6 +226,40 @@ describe('DrizzleCatalogRepository', () => {
 
     expect(crossBusiness.businessId).toBe(businessA2);
   });
+
+  it('records product price changes and prunes to the most recent entries', async () => {
+    const masters = await createMasterSet(repository, tenantA, businessA1);
+    const product = await repository.createProduct({
+      businessId: businessA1,
+      categoryId: masters.category.id,
+      isActive: true,
+      lowStockLevel: 0,
+      name: 'Loose Onions',
+      openingStock: 0,
+      sellingPrice: 2500,
+      sku: 'ONION-1',
+      taxProfileId: masters.taxProfile.id,
+      tenantId: tenantA,
+      trackInventory: true,
+      unitId: masters.unit.id
+    });
+
+    const prices = [2600, 2800, 2400, 2200, 2700];
+    let previousPrice = 2500;
+    for (const newPrice of prices) {
+      await repository.recordProductPriceChange(
+        { businessId: businessA1, newPrice, previousPrice, productId: product.id, tenantId: tenantA },
+        4
+      );
+      previousPrice = newPrice;
+    }
+
+    const history = await repository.listRecentPriceChanges(tenantA, product.id, 4);
+
+    expect(history).toHaveLength(4);
+    expect(history.map((entry) => entry.newPrice)).toEqual([2700, 2200, 2400, 2800]);
+    expect(history[0]).toMatchObject({ newPrice: 2700, previousPrice: 2200 });
+  });
 });
 
 const createMasterSet = async (

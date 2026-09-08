@@ -21,3 +21,6 @@ coverage
 
 # Browser-downloaded CSV exports landing at the repo root during manual/live testing
 /products-*.csv
+
+# Locally-uploaded product photos (apps/api UPLOAD_DIR default)
+apps/api/uploads/

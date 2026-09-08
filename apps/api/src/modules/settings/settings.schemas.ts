@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
+import { businessTypes } from '../catalog/catalog-defaults.js';
+
 const uuidSchema = z.string().uuid();
+const businessTypeSchema = z.enum(businessTypes as [string, ...string[]]);
 const nullableTrimmedString = (max: number) =>
   z
     .union([z.string().trim().max(max), z.null()])
@@ -73,6 +76,7 @@ export const updateBusinessSettingsSchema = z
       .union([z.string().trim().url().max(500), z.null()])
       .transform((value) => value ?? null)
       .optional(),
+    businessType: businessTypeSchema.optional(),
     currencyCode: currencyCodeSchema.optional(),
     defaultTaxProfileId: uuidSchema.nullable().optional(),
     defaultTrackInventory: z.boolean().optional(),
@@ -85,6 +89,7 @@ export const updateBusinessSettingsSchema = z
     (value) =>
       value.branches !== undefined ||
       value.businessLogoUrl !== undefined ||
+      value.businessType !== undefined ||
       value.currencyCode !== undefined ||
       value.defaultTaxProfileId !== undefined ||
       value.defaultTrackInventory !== undefined ||

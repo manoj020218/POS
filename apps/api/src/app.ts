@@ -16,6 +16,7 @@ import { createBridgeRouter } from './modules/bridge/bridge.routes.js';
 import { createCatalogRouter } from './modules/catalog/catalog.routes.js';
 import type { CatalogRepository } from './modules/catalog/catalog.repository.js';
 import { InMemoryCatalogRepository } from './modules/catalog/in-memory-catalog.repository.js';
+import type { ProductImageUploadConfig } from './modules/catalog/product-image-upload.controller.js';
 import { createCustomerRouter } from './modules/customer/customer.routes.js';
 import type { CustomerRepository } from './modules/customer/customer.repository.js';
 import { InMemoryCustomerRepository } from './modules/customer/in-memory-customer.repository.js';
@@ -56,6 +57,7 @@ export type AppOptions = {
   catalogRepository?: CatalogRepository;
   customerRepository?: CustomerRepository;
   logger: AppLogger;
+  productImageUploadConfig?: ProductImageUploadConfig;
   purchaseRepository?: PurchaseRepository;
   saleRepository?: SaleRepository & InventoryRepository & ReportingRepository;
   settingsRepository?: SettingsRepository;
@@ -83,6 +85,7 @@ export const createApp = (options: AppOptions): Express => {
   const settingsRepository = options.settingsRepository ?? new InMemorySettingsRepository();
   const tenantCoreRepository =
     options.tenantCoreRepository ?? new InMemoryTenantCoreRepository();
+  const productImageUploadConfig = options.productImageUploadConfig ?? { uploadDir: './uploads/products' };
   const accessContextResolver =
     options.accessContextResolver ??
     createAccessTokenAccessContextResolver(authConfig.jwtSecret, authRepository);
@@ -97,8 +100,9 @@ export const createApp = (options: AppOptions): Express => {
   app.use('/api/v1/auth', createAuthRouter(authRepository, tenantCoreRepository, authConfig));
   app.use(
     '/api/v1',
-    createCatalogRouter(catalogRepository, settingsRepository, tenantCoreRepository)
+    createCatalogRouter(catalogRepository, settingsRepository, tenantCoreRepository, productImageUploadConfig)
   );
+  app.use('/api/uploads', express.static(productImageUploadConfig.uploadDir));
   app.use('/api/v1', createCustomerRouter(customerRepository, tenantCoreRepository));
   app.use(
     '/api/v1',

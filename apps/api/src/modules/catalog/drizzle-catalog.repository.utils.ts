@@ -1,6 +1,7 @@
-import { categories, products, taxProfiles, units } from '../../db/schema/index.js';
+import { categories, productPriceChanges, products, taxProfiles, units } from '../../db/schema/index.js';
 import type {
   CategoryRecord,
+  ProductPriceChangeRecord,
   ProductRecord,
   TaxProfileRecord,
   UnitRecord
@@ -68,6 +69,19 @@ export const normalizeProduct = (record: typeof products.$inferSelect): ProductR
   trackInventory: record.trackInventory,
   unitId: record.unitId,
   updatedAt: record.updatedAt
+});
+
+export const normalizeProductPriceChange = (
+  record: typeof productPriceChanges.$inferSelect
+): ProductPriceChangeRecord => ({
+  businessId: record.businessId,
+  changedAt: record.changedAt,
+  changedByUserId: record.changedByUserId ?? undefined,
+  id: record.id,
+  newPrice: record.newPrice,
+  previousPrice: record.previousPrice,
+  productId: record.productId,
+  tenantId: record.tenantId
 });
 
 export const isDuplicateKeyError = (error: unknown): boolean => {

@@ -49,3 +49,10 @@ export const updateProductController = (service: CatalogService): RequestHandler
     );
     response.status(200).json({ data: product });
   });
+
+export const getProductPriceHistoryController = (service: CatalogService): RequestHandler =>
+  asyncHandler(async (request, response: Response) => {
+    const { productId } = parseSchema(productIdSchema, request.params);
+    const history = await service.getPriceHistory(getAccessContext(request), productId);
+    response.status(200).json({ data: history });
+  });

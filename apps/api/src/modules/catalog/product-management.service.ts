@@ -149,9 +149,34 @@ export const createProductHandlers = (
       ...(input.unitId ? { unitId: related.unit.id } : {})
     });
     if (!updated) throw createHttpError(404, 'PRODUCT_NOT_FOUND', 'Product not found');
+
+    if (input.sellingPrice !== undefined && input.sellingPrice !== existing.sellingPrice) {
+      await repository.recordProductPriceChange(
+        {
+          businessId: business.id,
+          changedByUserId: context.userId,
+          newPrice: updated.sellingPrice,
+          previousPrice: existing.sellingPrice,
+          productId: updated.id,
+          tenantId: context.tenantId
+        },
+        maxPriceHistoryEntries
+      );
+    }
+
     return toProductView(updated, business, related.category, related.unit, related.taxProfile);
+  },
+  getPriceHistory: async (context: AccessContext, productId: string) => {
+    const existing = await repository.findProductById(productId);
+    if (!existing || existing.tenantId !== context.tenantId) {
+      throw createHttpError(404, 'PRODUCT_NOT_FOUND', 'Product not found');
+    }
+    await resolveReadBusinessIds(context, tenantCoreRepository, existing.businessId);
+    return repository.listRecentPriceChanges(context.tenantId, productId, maxPriceHistoryEntries);
   }
 });
+
+const maxPriceHistoryEntries = 4;
 
 const emptyPage = (pagination: PaginationInput): PaginatedResult<ProductView> => ({
   items: [],

@@ -1,14 +1,15 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, eq, gt, ilike, inArray, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, ilike, inArray, or, sql } from 'drizzle-orm';
 
 import type { AppDatabase } from '../../db/client.js';
-import { products } from '../../db/schema/index.js';
+import { productPriceChanges, products } from '../../db/schema/index.js';
 import { createHttpError } from '../../lib/http-error.js';
 import { buildPaginationMeta } from './catalog-pagination.js';
 import {
   isDuplicateKeyError,
-  normalizeProduct
+  normalizeProduct,
+  normalizeProductPriceChange
 } from './drizzle-catalog.repository.utils.js';
 import { rankProductsForSearch } from './product-search-ranking.js';
 import type {
@@ -17,6 +18,7 @@ import type {
   PaginatedResult,
   PaginationInput,
   ProductRecord,
+  RecordProductPriceChangeInput,
   UpdateProductInput
 } from './catalog.types.js';
 
@@ -180,6 +182,50 @@ export const createDrizzleCatalogProductStore = (db: AppDatabase) => ({
       )
       .orderBy(asc(products.name), asc(products.sku));
     return rankProductsForSearch(records.map(normalizeProduct), query).slice(0, limit);
+  },
+
+  async listRecentPriceChanges(tenantId: string, productId: string, limit: number) {
+    const records = await db
+      .select()
+      .from(productPriceChanges)
+      .where(
+        and(eq(productPriceChanges.tenantId, tenantId), eq(productPriceChanges.productId, productId))
+      )
+      .orderBy(desc(productPriceChanges.changedAt))
+      .limit(limit);
+    return records.map(normalizeProductPriceChange);
+  },
+
+  async recordProductPriceChange(input: RecordProductPriceChangeInput, keepLatest: number) {
+    const [record] = await db
+      .insert(productPriceChanges)
+      .values({ id: randomUUID(), ...input })
+      .returning();
+    const inserted = normalizeProductPriceChange(
+      requireRow(record, 'PRODUCT_PRICE_CHANGE_NOT_FOUND', 'Price change not found')
+    );
+
+    const stale = await db
+      .select({ id: productPriceChanges.id })
+      .from(productPriceChanges)
+      .where(
+        and(
+          eq(productPriceChanges.tenantId, input.tenantId),
+          eq(productPriceChanges.productId, input.productId)
+        )
+      )
+      .orderBy(desc(productPriceChanges.changedAt))
+      .offset(keepLatest);
+    if (stale.length > 0) {
+      await db.delete(productPriceChanges).where(
+        inArray(
+          productPriceChanges.id,
+          stale.map((row) => row.id)
+        )
+      );
+    }
+
+    return inserted;
   },
 
   async updateProduct(productId: string, tenantId: string, input: UpdateProductInput) {

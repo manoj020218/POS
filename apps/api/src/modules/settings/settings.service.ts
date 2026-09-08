@@ -1,5 +1,6 @@
 import type { CatalogRepository } from '../catalog/catalog.repository.js';
 import { resolveWriteBusiness } from '../catalog/catalog-business-scope.js';
+import { ensureUnitsForBusinessType } from '../catalog/catalog-defaults.js';
 import type { AccessContext } from '../tenant-core/access-context.js';
 import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
 import { defaultBusinessSettings } from './settings-defaults.js';
@@ -47,6 +48,7 @@ export const createSettingsService = (
       await repository.upsertBusinessSettings({
         businessId: business.id,
         businessLogoUrl: resolveNullableUpdate(current?.businessLogoUrl, input.businessLogoUrl),
+        businessType: input.businessType ?? current?.businessType ?? defaultBusinessSettings.businessType,
         currencyCode: input.currencyCode ?? current?.currencyCode ?? defaultBusinessSettings.currencyCode,
         defaultTaxProfileId: resolveNullableUpdate(
           current?.defaultTaxProfileId,
@@ -63,6 +65,10 @@ export const createSettingsService = (
         tenantId: context.tenantId,
         timezone: input.timezone ?? current?.timezone ?? defaultBusinessSettings.timezone
       });
+
+      if (input.businessType) {
+        await ensureUnitsForBusinessType(catalogRepository, context.tenantId, business.id, input.businessType);
+      }
     }
 
     if (input.branches) {

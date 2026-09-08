@@ -10,6 +10,38 @@ export const defaultTaxProfileDefinition = {
 };
 export const defaultUnitDefinition = { code: 'PCS', name: 'PCS', precision: 0, symbol: 'pcs' };
 
+export type BusinessType = 'GENERAL' | 'KIRANA' | 'RESTAURANT_DHABA' | 'VEGETABLE';
+
+export const businessTypes: BusinessType[] = ['GENERAL', 'KIRANA', 'VEGETABLE', 'RESTAURANT_DHABA'];
+
+type UnitDefinition = { code: string; name: string; precision: number; symbol: string };
+
+export const businessTypeUnitDefinitions: Record<BusinessType, UnitDefinition[]> = {
+  GENERAL: [defaultUnitDefinition],
+  KIRANA: [
+    { code: 'KG', name: 'Kilogram', precision: 3, symbol: 'kg' },
+    { code: 'GRAM', name: 'Gram', precision: 0, symbol: 'g' },
+    defaultUnitDefinition
+  ],
+  VEGETABLE: [
+    { code: 'KG', name: 'Kilogram', precision: 3, symbol: 'kg' },
+    { code: 'GRAM', name: 'Gram', precision: 0, symbol: 'g' },
+    defaultUnitDefinition
+  ],
+  RESTAURANT_DHABA: [
+    { code: 'PLATE', name: 'Plate', precision: 0, symbol: 'plate' },
+    { code: 'HALF-PLATE', name: 'Half Plate', precision: 0, symbol: 'half' },
+    { code: 'FULL-PLATE', name: 'Full Plate', precision: 0, symbol: 'full' },
+    { code: 'SERVING', name: 'Serving', precision: 0, symbol: 'serving' },
+    // Dhabas commonly also sell small kirana-style items (snacks, cold drinks,
+    // cigarettes) priced by weight or piece, not just by plate — keep those
+    // suggested too instead of forcing a trip to the fallback unit picker.
+    { code: 'KG', name: 'Kilogram', precision: 3, symbol: 'kg' },
+    { code: 'GRAM', name: 'Gram', precision: 0, symbol: 'g' },
+    defaultUnitDefinition
+  ]
+};
+
 export const ensureDefaultCategory = async (
   repository: CatalogRepository,
   tenantId: string,
@@ -80,6 +112,35 @@ export const ensureDefaultUnit = async (
     symbol: defaultUnitDefinition.symbol,
     tenantId
   });
+};
+
+export const ensureUnitsForBusinessType = async (
+  repository: CatalogRepository,
+  tenantId: string,
+  businessId: string,
+  businessType: string
+) => {
+  const definitions =
+    businessTypeUnitDefinitions[businessType as BusinessType] ?? businessTypeUnitDefinitions.GENERAL;
+  const units = [];
+
+  for (const definition of definitions) {
+    const existing = await repository.findUnitByCode(tenantId, businessId, definition.code);
+    units.push(
+      existing ??
+        (await repository.createUnit({
+          businessId,
+          code: definition.code,
+          isActive: true,
+          name: definition.name,
+          precision: definition.precision,
+          symbol: definition.symbol,
+          tenantId
+        }))
+    );
+  }
+
+  return units;
 };
 
 export const generateProductSku = () => `PRD-${randomUUID().split('-')[0]!.toUpperCase()}`;

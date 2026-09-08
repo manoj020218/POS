@@ -48,6 +48,9 @@ const bootstrap = async () => {
   if (!passwordResetTokenSink) {
     logger.warn('SMTP not configured — password reset requests will not deliver a token to the user');
   }
+  if (!env.PUBLIC_BASE_URL) {
+    logger.warn('PUBLIC_BASE_URL not configured — product image uploads will be rejected');
+  }
 
   const app = createApp({
     authConfig: {
@@ -60,6 +63,10 @@ const bootstrap = async () => {
     catalogRepository,
     customerRepository,
     logger,
+    productImageUploadConfig: {
+      publicBaseUrl: env.PUBLIC_BASE_URL,
+      uploadDir: env.UPLOAD_DIR
+    },
     purchaseRepository,
     saleRepository,
     settingsRepository,
