@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026-09-08 (self-serve onboarding — VPS deployment, Part 4)
+
+- Deployed the whole Smart POS stack (API + PostgreSQL 16 + marketing page) to production — the
+  second, more capable VPS the client provided. Self-serve onboarding is now fully live end-to-end:
+  `https://iotsoft.in/api/smartpos/signup` → `https://smartpos.iotsoft.in/api/bridge/provision` →
+  real tenant creation → working login, verified with a real (test) signup
+- PostgreSQL 16 installed once, meant to be shared/reusable by future projects (separate
+  database+role per project, not a reinstall each time)
+- `apps/pos` (the Android app) is deliberately excluded from the server deployment — it has a
+  `file:` dependency on the separate `capacitor-plugins` repo that has no place on a server; only
+  `@smart-pos/api` is installed/built there
+- Path-based nginx routing on `smartpos.iotsoft.in` (`/` → marketing page, `/api/` → the API), TLS
+  via certbot
+- Found and fixed two real deployment bugs: AlmaLinux's SELinux blocking nginx from reading the
+  marketing page (wrong file context after copying from `/root`) and PowerShell 5.1 misclassifying
+  benign native-command stderr output as a fatal error mid-deploy
+
 ## 2026-09-07 (self-serve onboarding)
 
 - Added `POST /api/bridge/provision` (`apps/api/src/modules/bridge/`): a shared-secret-authenticated

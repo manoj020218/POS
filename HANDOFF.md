@@ -1,6 +1,6 @@
 # HANDOFF
 
-## ⚠ READ THIS FIRST — rollout checklist status (2026-09-07, updated)
+## ⚠ READ THIS FIRST — rollout checklist status (2026-09-08, updated)
 
 The client wants to roll this out to a real business (kirana stores, but also food stalls, dhabas,
 vegetable vendors, restaurants) and asked what software work is left. Full detail in TODO.md's NOW
@@ -8,30 +8,27 @@ section; short version, in order:
 
 1. **Access-token refresh — DONE 2026-09-06.**
 2. **Bulk product upload/download — DONE 2026-09-07.**
-3. **Self-serve onboarding + marketing page — Parts 1, 2 &amp; 3 DONE 2026-09-07, Part 4 not started:**
+3. **Self-serve onboarding + marketing page — ALL FOUR PARTS DONE, live in production as of
+   2026-09-08:**
    - Part 1 (`POST /api/bridge/provision` in this repo) — done, see the dated entry below.
    - Part 3 (`apps/marketing/`, the signup/marketing page) — done, see the dated entry below.
-   - Part 2 (billing-platform integration) — done and **live in production as of 2026-09-08**, see
-     the dated entry below. Built in the *separate* repo
-     (`D:\IOT Device\Billing at IOT soft\billing-server`, git `manoj020218/billing`), mirroring its
-     existing `community.controller.js` pattern exactly. Verified fully end-to-end locally, then
-     pushed (`a7cae8e`) and deployed to the shared production VPS (files copied to the live
-     `billing-platform`, env vars added, reseeded, `pm2 restart`) — `POST /api/smartpos/signup` is
-     live at `https://iotsoft.in/api/smartpos/signup`. A real signup will `502` at the
-     bridge-provision step until Part 4 below deploys Smart POS's own API.
-   - Part 4 (deploy it all) is next, see #4 below.
-4. **VPS deployment — SSH access confirmed working for both VPSes, not started yet.** The client
-   decided (2026-09-07) to move the whole stack to a *second*, more capable VPS
-   (AlmaLinux, 11GB RAM/4.8GB free, 6 CPUs, 126GB free disk) rather than the original dev VPS
-   (only ~213MB free RAM, other live services already running there). Domain layout decided:
-   path-based on one domain — `smartpos.iotsoft.in/` serves the marketing page,
-   `smartpos.iotsoft.in/api/` proxies to the API. Client also wants Postgres installed **once** on
-   the new VPS, reusable by future projects (one server, separate database+user per project), not
-   reinstalled each time. **Neither VPS's IP/credentials are written anywhere in this repo** — the
-   user explicitly said not to pass them to git; they're in the assistant's local memory instead.
-5. Once deployed: run `pnpm db:migrate` against the new VPS's Postgres, lock down CORS to the real
-   domain (currently wide open — fine for dev, not production), add rate limiting (PROJECT_PLAN.md
-   §60, currently absent).
+   - Part 2 (billing-platform integration, separate `manoj020218/billing` repo) — done, pushed, and
+     deployed to the shared production VPS, see the dated entry below.
+   - Part 4 (deploy Smart POS itself — API + Postgres + marketing page — to the second VPS) — done,
+     see the dated entry below. The full flow is verified live: a real signup at
+     `https://iotsoft.in/api/smartpos/signup` creates a real tenant via
+     `https://smartpos.iotsoft.in/api/bridge/provision`, and the returned temp password logs in
+     successfully against the live API.
+4. **VPS deployment — DONE 2026-09-08.** Deployed to the second, more capable VPS (AlmaLinux, 11GB
+   RAM, 6 CPUs, 126GB free disk) rather than the original memory-constrained dev VPS. Path-based
+   routing on one domain: `smartpos.iotsoft.in/` serves the marketing page, `smartpos.iotsoft.in/api/`
+   proxies to the API, both over TLS (certbot). PostgreSQL 16 installed once on this VPS, meant to be
+   reused by future projects (separate database+role per project). **Neither VPS's IP/credentials are
+   written anywhere in this repo** — kept in the assistant's local memory instead, per standing
+   instruction.
+5. ~~Run `pnpm db:migrate` against the new VPS's Postgres~~ — **DONE**, ran as part of the Part 4
+   deploy. Still open: lock down CORS to the real domain (currently wide open) and add rate limiting
+   (PROJECT_PLAN.md §60) — more pressing now that the API is actually internet-facing.
 6. Physical hardware test (tablet + printer) is still pending — see the 2026-09-04 entry below for
    exact rebuild/sideload steps once that hardware is available.
 
@@ -1466,3 +1463,102 @@ Git Status:
 Last Commit:
 - `b478ab9 feat(api): add POST /api/bridge/provision for self-serve signup` (this session's
   remaining commits — marketing page, docs — follow it)
+
+VPS Deployment Status (2026-09-08) — Self-Serve Onboarding, Part 4:
+
+- Deployed the whole Smart POS stack (API + PostgreSQL + marketing page) to the second VPS, per the
+  client's decision on 2026-09-07. DNS for `smartpos.iotsoft.in` was already repointed there before
+  starting (confirmed via `nslookup`).
+- **Packaging**: `git archive --format=tar.gz -o smartpos.tar.gz HEAD` locally — only committed
+  files, automatically excludes `node_modules`/`dist`/etc. via `.gitignore`, ~583KB. Transferred to
+  the VPS (checksummed both ends to confirm integrity), extracted to `/root/projects/smartpos` (the
+  client's own required path convention, so a future copy-to-production-server needs no
+  restructuring).
+- **Deliberately excluded `apps/pos` from the server deployment**: it's the Android/Capacitor app
+  and has a `file:` dependency on the separate `capacitor-plugins` repo (the native BLE/USB printer
+  plugin), which has no reason to exist on a Linux server and isn't needed to run the API or serve
+  the marketing page. `rm -rf apps/pos` right after extraction, then scoped both install and build to
+  `@smart-pos/api` specifically (`pnpm --filter @smart-pos/api build`, not the root `pnpm build`
+  script, which also targets `apps/pos`) — confirmed `@smart-pos/api`'s own `package.json` has zero
+  workspace-package dependencies, so this scoping loses nothing.
+- **PostgreSQL 16**: installed via AlmaLinux 8's built-in `dnf module enable postgresql:16` (no need
+  for the external PGDG repo — 8.10's AppStream already carries 16). `postgresql-setup --initdb`,
+  `systemctl enable --now postgresql`. Created a dedicated `smartpos` role + `smart_pos` database —
+  this is explicitly meant to be a **shared, reusable Postgres install** per the client's own ask
+  (2026-09-07: "once installed, no need to install again and again" for future projects) — this
+  project just gets its own database + role on it, not a whole new server.
+- **Real bug #1 — RHEL/AlmaLinux `pg_hba.conf` default is `ident`, not password auth**: a freshly
+  initialized PostgreSQL on this distro defaults local TCP connections (`127.0.0.1/32`, `::1/128`) to
+  `ident`, which app code can never authenticate against (no identd running, and even if there were,
+  the OS user and DB role don't correspond). `sed`-replaced those two lines to `scram-sha-256`
+  (backing up the original file first) and reloaded — confirmed working via a live connection before
+  moving on.
+- **App config**: wrote `.env` at the repo root (`chmod 600`) with `NODE_ENV=production`, `PORT=4090`
+  (checked `ss -tlnp`/`firewall-cmd --list-ports` first for conflicts — clear), a fresh
+  `DATABASE_URL` pointing at the new role/database, freshly generated `JWT_SECRET`/`REFRESH_SECRET`,
+  and `BRIDGE_SHARED_SECRET` set to the **exact same value** already configured as
+  `SMARTPOS_BRIDGE_SECRET` on the billing-platform side (Part 2) — see the assistant's own reference
+  notes for the actual secret values, not this repo. `loadWorkspaceEnv()`
+  (`apps/api/src/config/load-workspace-env.ts`) finds this `.env` by walking up from `process.cwd()`
+  looking for `pnpm-workspace.yaml`, so PM2's `cwd: apps/api` still resolves it correctly.
+- **PM2 + nginx + TLS**: new `ecosystem.config.js` (`smartpos-api`, `cwd: apps/api`,
+  `script: dist/index.js`), `pm2 start` + `pm2 save` (the VPS already has `pm2-root` enabled as a
+  systemd service from prior work, so this survives a reboot with no extra step). New
+  `/etc/nginx/conf.d/smartpos.conf` mirroring the client's existing `fireguard.conf` pattern exactly
+  — path-based, not subdomain-based: `location /api/ { proxy_pass http://127.0.0.1:4090; ... }` (no
+  trailing slash — passes the full `/api/...` path through unchanged, since the Express app itself
+  expects requests at `/api/bridge/...`, `/api/v1/auth/...` etc., matching how `fireguard.conf`'s own
+  API proxy is written) and `location / { root /var/www/smartpos-marketing; ... }`. Copied
+  `apps/marketing/*` there, then `certbot --nginx -d smartpos.iotsoft.in --non-interactive
+  --agree-tos --redirect` — succeeded on the first attempt since DNS was already correct.
+- **Real bug #2 — SELinux blocked the marketing page with a 403**: AlmaLinux ships with SELinux
+  enforcing by default. Files copied from `/root/projects/smartpos/apps/marketing` into
+  `/var/www/smartpos-marketing` landed with the wrong context (`var_t`) rather than
+  `httpd_sys_content_t`, so nginx (running in the `httpd_t` domain) was denied read access — Unix
+  permissions looked completely normal, which made this non-obvious; the real signal was
+  `/var/log/nginx/error.log` showing `"...is forbidden (13: Permission denied)"` for a file that
+  `ls -la` said was world-readable. Fixed with `restorecon -Rv /var/www/smartpos-marketing`, now
+  baked into the deploy script (`restorecon -Rv "$MARKETING_ROOT" || true` right after the `cp -r`)
+  so a future re-run or a same-pattern deploy for the next project doesn't hit this again.
+- **Tooling bug hit twice — PowerShell 5.1 misclassifies native-command stderr as fatal**: the local
+  orchestration script (run by the user via the terminal's `!` prefix — see
+  [[feedback-production-vps-writes-blocked]] for why this had to be a user-run script rather than
+  something run directly) had `$ErrorActionPreference = "Stop"` at the top. `postgresql-setup
+  --initdb` and `nginx -t` both write their normal, successful progress messages to stderr, which
+  PowerShell 5.1 wraps as a `NativeCommandError` and treats as script-terminating under that setting
+  even though the command itself succeeded (exit 0) — this killed the SSH session mid-`pnpm install`
+  the first time, requiring a second run to resume. Fixed by switching to
+  `$ErrorActionPreference = "Continue"` plus an explicit `$LASTEXITCODE` check after the actual
+  deploy call, so only a genuine non-zero exit is reported as a failure.
+- **The deploy script itself is idempotent by design** (each phase guards on whether it's already
+  done — role/database existence checks, a `PG_VERSION` file check before `initdb`, an `.env`-content
+  grep before appending, a `pm2 list | grep` before choosing `start` vs `reload`, an
+  `/etc/letsencrypt/live/<domain>` directory check before calling `certbot`), which is exactly what
+  made resuming cleanly after the PowerShell interruption possible — re-running it from scratch
+  skipped everything already done and picked up at `pnpm build`.
+- **Verified fully end-to-end in production** (not just "the service is up"): ran a real signup
+  against the live `https://iotsoft.in/api/smartpos/signup` (a test business, since cleaned up is
+  still pending — see below) — got back a real `businessCode`/`tempPassword`; confirmed that
+  password logs in successfully against `https://smartpos.iotsoft.in/api/v1/auth/login` with full
+  `BUSINESS_OWNER` permissions and a real `tenantId`. Also confirmed the API's raw port (`4090`) is
+  **not** reachable from outside — `firewall-cmd --list-ports` only shows `1883/tcp` and `4080/tcp`
+  (other existing services) plus the standard `http`/`https`/`ssh`/`cockpit` services, so the only
+  path to the API from the internet is through nginx's TLS-terminated proxy.
+- **Housekeeping still open**: the test signup used to verify the flow above (`"Part4 Test Dhaba"` /
+  `PART4-TEST-DHABA`, email `suresh.part4test@example.com`) created one real trial `Client` record in
+  billing-platform's production MongoDB and one real tenant/business/branch/terminal/owner in Smart
+  POS's production Postgres. Attempted to clean this up directly but MongoDB requires auth
+  credentials not available in this session — **flagged to the user rather than guessing at
+  credentials or improvising a delete path against a live billing database**. Harmless (isolated test
+  data, no real customer impact) but should be deleted via billing-platform's own superadmin UI
+  whenever convenient.
+- Whoever picks this up next: CORS lock-down and rate limiting (TODO.md NOW #6) are now more
+  pressing than before, since the API is genuinely internet-facing for the first time.
+
+Git Status:
+- Docs updated in this entry (TODO.md/HANDOFF.md/CHANGELOG.md); no application code in this repo
+  changed for Part 4 — only the separate deployment onto the VPS. See Last Commit for the doc commit.
+
+Last Commit:
+- See TODO.md's DONE (2026-09-08) entry and this file's own commit history around this entry's date
+  for the exact commit hash — docs-only change, no app code modified in this repo for Part 4.

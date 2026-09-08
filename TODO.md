@@ -9,32 +9,28 @@ NOW — client wants to roll out (asked 2026-09-06); go-live checklist, roughly 
    - ~~Part 1 — `POST /api/bridge/provision` in this repo~~ — DONE 2026-09-07, see below
    - ~~Part 3 — marketing/signup page (`apps/marketing`)~~ — DONE 2026-09-07, see below. Its signup
      form calls `https://iotsoft.in/api/smartpos/signup`
-   - ~~Part 2 — billing-platform integration~~ — DONE 2026-09-07, **pushed and deployed to
-     production 2026-09-08** in the *separate* `manoj020218/billing` repo
-     (`D:\IOT Device\Billing at IOT soft\billing-server`), see below. `POST /api/smartpos/signup` is
-     live at `https://iotsoft.in/api/smartpos/signup` — will 502 on the bridge call until Part 4
-     deploys Smart POS's own API (expected, not a bug)
-   - **Part 4 — deploy everything to the new VPS — not started**, see below
-4. **VPS deployment (Part 4 above)** — client decided (2026-09-07) to move the whole Smart POS stack
-   (API + Postgres + the new marketing page) to a *second*, more capable VPS
-   (AlmaLinux, 11GB RAM, 6 CPUs, 126GB free disk; connection details intentionally kept out of this
-   repo — see the assistant's own reference notes, not git) rather than the original
-   memory-constrained dev VPS (only ~213MB free RAM already, other live services running). Plan:
-   path-based routing on one domain — `smartpos.iotsoft.in/` serves the
-   marketing page, `smartpos.iotsoft.in/api/` proxies to the API — no new DNS record needed since
-   there's exactly one backend consumer (the Android app) today. Client's requirements for this VPS:
-   work under `/root/projects/smartpos`, check for port conflicts with the VPS's other services
-   first, use `pnpm`, structure everything so it can be copied as-is to a future production server
-   and the domain swapped later without restructuring. Client also asked (2026-09-07) that Postgres
-   be installed **once** on this VPS in a way multiple future projects can reuse (one Postgres
-   server, separate database+user per project), not reinstalled per project. **Not started yet** —
-   this comes after Part 2
-5. Re-run `cmd /c pnpm db:migrate` for `apps/api/drizzle/0014_oval_oracle.sql` once against a real
-   Postgres (local `localhost:5432` has been unreachable since 2026-08-29; will run this against the
-   new VPS's Postgres once Part 4 provisions it)
+   - ~~Part 2 — billing-platform integration~~ — DONE 2026-09-07, pushed and deployed to production
+     2026-09-08, in the *separate* `manoj020218/billing` repo
+     (`D:\IOT Device\Billing at IOT soft\billing-server`), see below.
+   - ~~Part 4 — deploy everything to the new VPS~~ — **DONE 2026-09-08**, see the dated entry below.
+     Self-serve onboarding is now fully live end-to-end in production: a real signup at
+     `https://iotsoft.in/api/smartpos/signup` creates a real tenant via
+     `https://smartpos.iotsoft.in/api/bridge/provision`, and the returned temp password logs in
+     against the live API — verified with a real (test) signup, then cleaned up.
+4. ~~**VPS deployment (Part 4 above)**~~ — **DONE 2026-09-08**. Deployed the whole Smart POS stack
+   (API + Postgres + marketing page) to the second, more capable VPS (connection details
+   intentionally kept out of this repo — see the assistant's own reference notes, not git).
+   Path-based routing on one domain: `smartpos.iotsoft.in/` serves the marketing page,
+   `smartpos.iotsoft.in/api/` proxies to the API. Everything lives under `/root/projects/smartpos`,
+   deployed via `pnpm`, structured so it can be copied to a future production server with minimal
+   changes. PostgreSQL 16 installed **once**, shared/reusable by future projects (separate
+   database + role per project — `smart_pos`/`smartpos` is just this project's slice of it).
+5. ~~Re-run `pnpm db:migrate` against a real Postgres~~ — **DONE 2026-09-08**, ran automatically as
+   part of the Part 4 deploy against the new VPS's Postgres.
 6. Lock down CORS for the real domain (currently `cors()` with no origin restriction — fine for
    dev/localhost, not for a public domain) and add rate limiting (PROJECT_PLAN.md §60 lists this as a
-   from-the-beginning security requirement; currently absent)
+   from-the-beginning security requirement; currently absent) — now that the API is actually
+   internet-facing, this is more pressing than before
 7. Get a real Android tablet + a real BLE or USB thermal printer to run the plugin's own
    `HARDWARE_TEST_CHECKLIST.md` and confirm actual printing works —
    `apps/pos/android/app/build/outputs/apk/debug/app-debug.apk` builds successfully (2026-09-04) but
@@ -70,9 +66,39 @@ LATER
   exposed via `PosContext`, just needs a small UI surface (pending-event count, online/offline)
 
 BLOCKED
-- Local PostgreSQL listener was unavailable for `cmd /c pnpm db:migrate` on 2026-08-29
-- Part 4 (VPS deployment) is ready to start but not yet begun — no external blocker, just next in
-  sequence (see NOW #3-4)
+- Local PostgreSQL listener was unavailable for `cmd /c pnpm db:migrate` on 2026-08-29 — moot now
+  that migrations run against the real production Postgres on the new VPS instead (Part 4, done
+  2026-09-08)
+
+DONE (2026-09-08)
+- **Self-serve onboarding, Part 4 — VPS deployment**: deployed the whole Smart POS stack to the
+  second VPS. Packaged the repo with `git archive` (only committed files — clean, no `node_modules`/
+  `dist`), transferred it, then on the server: installed PostgreSQL 16 (AlmaLinux's built-in module,
+  no extra repo needed) and switched local auth from the distro default (`ident`) to
+  `scram-sha-256`, since app code can't authenticate against `ident`; created a dedicated
+  `smartpos`/`smart_pos` role+database — deliberately just one project's slice of a Postgres install
+  meant to be reused by future projects, not a one-off. Excluded `apps/pos` from the server package
+  entirely — it's the Android app and has a `file:` dependency on the separate `capacitor-plugins`
+  repo that has no reason to exist on a server; `pnpm install`/`build` are scoped to
+  `@smart-pos/api` only, which has zero workspace-package dependencies of its own. Wrote a PM2
+  ecosystem file and an nginx config mirroring the client's existing `fireguard.conf` pattern
+  (path-based: `/api/` proxies to the app, `/` serves the static marketing page), then ran certbot
+  for TLS — DNS was already pointed at this VPS before starting.
+- **Two real bugs hit and fixed during deployment**: (1) AlmaLinux's SELinux (enforcing by default)
+  labels files copied from `/root` with the wrong context, so nginx got a `403` reading the
+  marketing page even though Unix permissions were fine — fixed with `restorecon -Rv` on the target
+  directory, now baked into the deploy script for future re-runs; (2) PowerShell 5.1 treats *any*
+  stderr output from a native command as a terminating error when `$ErrorActionPreference = "Stop"`
+  is set, which killed the deploy mid-`pnpm install` on a completely benign `postgresql-setup`
+  progress message — switched to `"Continue"` plus an explicit exit-code check instead.
+- **Verified fully end-to-end in production, not just component-by-component**: a real signup
+  against the live `https://iotsoft.in/api/smartpos/signup` created a real tenant via
+  `https://smartpos.iotsoft.in/api/bridge/provision`, and the returned temp password logged in
+  successfully against the live API with full `BUSINESS_OWNER` permissions. Confirmed the API port
+  (4090) is not reachable from outside — `firewalld` only has 80/443/22/cockpit and a couple of
+  other apps' ports open, so the only path in is through nginx's TLS-terminated proxy.
+- The self-serve onboarding checklist item (NOW #3) is now **fully done** — all four parts (bridge
+  endpoint, billing-platform integration, marketing page, VPS deployment) are live in production.
 
 DONE (2026-09-07)
 - Bulk product upload/download for `apps/pos`: a new "Import or export products" screen (gear-like
