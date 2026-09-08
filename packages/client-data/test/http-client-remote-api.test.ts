@@ -277,6 +277,17 @@ describe('createHttpClientRemoteApi', () => {
         };
       }
 
+      if (url.includes('/units')) {
+        return {
+          json: async () => ({
+            data: [{ code: 'KG', id: 'unit-1', isActive: true, name: 'Kilogram', precision: 3, symbol: 'kg' }]
+          }),
+          ok: true,
+          status: 200,
+          text: async () => ''
+        };
+      }
+
       return { json: async () => ({ data: product }), ok: true, status: 200, text: async () => '' };
     };
 
@@ -289,7 +300,9 @@ describe('createHttpClientRemoteApi', () => {
     const updated = await api.updateProduct(product.id, { sellingPrice: 4200 });
     const history = await api.getProductPriceHistory(product.id);
     const uploaded = await api.uploadProductImage(new Blob(['fake-bytes']), 'product.png');
+    const units = await api.listUnits({ businessId: product.businessId });
 
+    expect(units).toEqual([{ code: 'KG', id: 'unit-1', isActive: true, name: 'Kilogram', precision: 3, symbol: 'kg' }]);
     expect(updated).toEqual(product);
     expect(calls[0]?.url).toContain(`/products/${product.id}`);
     expect(calls[0]?.init?.method).toBe('PATCH');

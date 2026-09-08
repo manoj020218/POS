@@ -7,11 +7,21 @@ type ProductGridProps = {
   cartQuantities: Map<string, number>;
   currencyCode: string;
   onAdd: (product: ClientProductRecord) => void;
+  onEditPrice: (product: ClientProductRecord) => void;
+  onEditProduct: (product: ClientProductRecord) => void;
   products: ClientProductRecord[];
   stockByProductId: Map<string, number>;
 };
 
-export const ProductGrid = ({ cartQuantities, currencyCode, onAdd, products, stockByProductId }: ProductGridProps) => {
+export const ProductGrid = ({
+  cartQuantities,
+  currencyCode,
+  onAdd,
+  onEditPrice,
+  onEditProduct,
+  products,
+  stockByProductId
+}: ProductGridProps) => {
   if (products.length === 0) {
     return (
       <div className="flex min-h-[16rem] flex-col items-center justify-center gap-2 text-ink-faint lg:min-h-0 lg:flex-1">
@@ -28,6 +38,8 @@ export const ProductGrid = ({ cartQuantities, currencyCode, onAdd, products, sto
           currencyCode={currencyCode}
           key={product.id}
           onAdd={() => onAdd(product)}
+          onEditPrice={() => onEditPrice(product)}
+          onEditProduct={() => onEditProduct(product)}
           product={product}
           quantityInCart={cartQuantities.get(product.id) ?? 0}
           quantityOnHand={stockByProductId.get(product.id)}

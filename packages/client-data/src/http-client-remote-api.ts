@@ -16,6 +16,7 @@ import type {
   ClientRemoteSyncPullQuery,
   ClientRemoteSyncPullResult,
   ClientRemoteSyncPushResult,
+  ClientRemoteUnitSummary,
   ClientUpdateBusinessSettingsInput
 } from './remote-api.js';
 import type { ClientBusinessSettings } from './settings-repository.js';
@@ -113,6 +114,10 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
     },
     listTerminals: (input) =>
       requestWithAuth(buildApiUrl(options.baseUrl, '/terminals', { branchId: input?.branchId })),
+    listUnits: (input) =>
+      requestWithAuth<ClientRemoteUnitSummary[]>(
+        buildApiUrl(options.baseUrl, '/units', { businessId: input?.businessId })
+      ),
     pullChanges: (query: ClientRemoteSyncPullQuery) =>
       requestWithAuth<ClientRemoteSyncPullResult>(
         buildApiUrl(options.baseUrl, '/sync/pull', {

@@ -160,6 +160,15 @@ export type ClientRemoteProductPriceChange = {
   previousPrice: number;
 };
 
+export type ClientRemoteUnitSummary = {
+  code: string;
+  id: string;
+  isActive: boolean;
+  name: string;
+  precision: number;
+  symbol?: string;
+};
+
 export type ClientProductListMeta = {
   hasNextPage: boolean;
   page: number;
@@ -197,6 +206,7 @@ export interface ClientRemoteApi {
     pageSize?: number;
   }): Promise<{ items: ClientRemoteProductView[]; meta: ClientProductListMeta }>;
   listTerminals(input?: { branchId?: string }): Promise<ClientRemoteTerminalSummary[]>;
+  listUnits(input?: { businessId?: string }): Promise<ClientRemoteUnitSummary[]>;
   pullChanges(query: ClientRemoteSyncPullQuery): Promise<ClientRemoteSyncPullResult>;
   pushEvents(input: {
     events: ClientRemoteSyncEventInput[];

@@ -3,11 +3,16 @@ import { LogOut, Store, User } from 'lucide-react';
 import { usePosContext } from '../../state/use-pos-context.js';
 import { CalculatorButton } from '../calculator/CalculatorButton.js';
 import { IconButton } from '../common/IconButton.js';
+import { AddProductButton } from '../settings/AddProductButton.js';
 import { PrinterSettingsButton } from '../settings/PrinterSettingsButton.js';
 import { ProductImportExportButton } from '../settings/ProductImportExportButton.js';
 import { LiveClock } from './LiveClock.js';
 
-export const TopBar = () => {
+type TopBarProps = {
+  onProductSaved: () => void;
+};
+
+export const TopBar = ({ onProductSaved }: TopBarProps) => {
   const { logout, settings, terminalContext } = usePosContext();
 
   return (
@@ -26,6 +31,7 @@ export const TopBar = () => {
 
       <div className="flex shrink-0 items-center gap-2 lg:gap-5">
         <CalculatorButton />
+        <AddProductButton onProductSaved={onProductSaved} />
         <PrinterSettingsButton />
         <ProductImportExportButton />
         <div className="flex items-center gap-2 rounded-2xl bg-surface-sunken px-4 py-2">

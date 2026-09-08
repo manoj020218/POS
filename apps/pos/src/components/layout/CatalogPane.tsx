@@ -1,16 +1,26 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import type { ClientProductRecord } from '@smart-pos/client-data';
 
-import { useProductCatalog } from '../../state/use-product-catalog.js';
 import type { CartApi } from '../../state/use-cart.js';
+import type { useProductCatalog } from '../../state/use-product-catalog.js';
 import { usePosContext } from '../../state/use-pos-context.js';
+import { AddEditProductModal } from '../catalog/AddEditProductModal.js';
 import { CategoryTabs } from '../catalog/CategoryTabs.js';
 import { ProductGrid } from '../catalog/ProductGrid.js';
+import { QuickPriceEditPopover } from '../catalog/QuickPriceEditPopover.js';
 import { SearchBar } from '../catalog/SearchBar.js';
 
-export const CatalogPane = ({ cartApi }: { cartApi: CartApi }) => {
+type CatalogPaneProps = {
+  cartApi: CartApi;
+  catalog: ReturnType<typeof useProductCatalog>;
+};
+
+export const CatalogPane = ({ cartApi, catalog }: CatalogPaneProps) => {
   const { settings } = usePosContext();
-  const { categories, categoryCode, filteredProducts, searchText, setCategoryCode, setSearchText, stockByProductId } =
-    useProductCatalog();
+  const { categories, categoryCode, filteredProducts, refresh, searchText, setCategoryCode, setSearchText, stockByProductId } =
+    catalog;
+  const [priceEditProduct, setPriceEditProduct] = useState<ClientProductRecord | null>(null);
+  const [fullEditProduct, setFullEditProduct] = useState<ClientProductRecord | null>(null);
 
   const cartQuantities = useMemo(
     () => new Map(cartApi.cart.lines.map((line) => [line.productId, line.quantity])),
@@ -25,9 +35,33 @@ export const CatalogPane = ({ cartApi }: { cartApi: CartApi }) => {
         cartQuantities={cartQuantities}
         currencyCode={settings.currencyCode}
         onAdd={cartApi.addProduct}
+        onEditPrice={setPriceEditProduct}
+        onEditProduct={setFullEditProduct}
         products={filteredProducts}
         stockByProductId={stockByProductId}
       />
+
+      {priceEditProduct && (
+        <QuickPriceEditPopover
+          onClose={() => setPriceEditProduct(null)}
+          onSaved={() => {
+            setPriceEditProduct(null);
+            void refresh();
+          }}
+          product={priceEditProduct}
+        />
+      )}
+
+      {fullEditProduct && (
+        <AddEditProductModal
+          onClose={() => setFullEditProduct(null)}
+          onSaved={() => {
+            setFullEditProduct(null);
+            void refresh();
+          }}
+          product={fullEditProduct}
+        />
+      )}
     </section>
   );
 };

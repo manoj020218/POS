@@ -57,6 +57,7 @@ describe('createClientSyncService', () => {
       listBranches: async () => [],
       listProducts: async () => ({ items: [], meta: { hasNextPage: false, page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }),
       listTerminals: async () => [],
+      listUnits: async () => [],
       pullChanges: async () => ({
         changes: [
           {
@@ -175,6 +176,7 @@ describe('createClientSyncService', () => {
       listBranches: async () => [],
       listProducts: async () => ({ items: [], meta: { hasNextPage: false, page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }),
       listTerminals: async () => [],
+      listUnits: async () => [],
       pullChanges: async (query) => {
         cursorsRequested.push(query.cursor);
 
