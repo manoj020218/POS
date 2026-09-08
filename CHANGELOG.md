@@ -22,7 +22,9 @@
   `loginUrl`, per the client's confirmation that customers sign in via the already-installed Android
   app). Verified end-to-end locally (billing-server against this repo's `dev:memory`): signup → real
   tenant creation → duplicate/validation rejections → the returned temp password logging in with full
-  `BUSINESS_OWNER` permissions. Committed in the billing repo, not yet pushed or deployed
+  `BUSINESS_OWNER` permissions. Pushed (`a7cae8e`) and **deployed to production on 2026-09-08**:
+  `POST /api/smartpos/signup` is live at `https://iotsoft.in/api/smartpos/signup`. Will `502` on a
+  real signup until Part 4 deploys Smart POS's own API — expected, not a bug
 
 ## 2026-09-07 (bulk product import/export)
 

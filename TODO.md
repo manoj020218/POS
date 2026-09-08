@@ -9,11 +9,11 @@ NOW — client wants to roll out (asked 2026-09-06); go-live checklist, roughly 
    - ~~Part 1 — `POST /api/bridge/provision` in this repo~~ — DONE 2026-09-07, see below
    - ~~Part 3 — marketing/signup page (`apps/marketing`)~~ — DONE 2026-09-07, see below. Its signup
      form calls `https://iotsoft.in/api/smartpos/signup`
-   - ~~Part 2 — billing-platform integration~~ — DONE 2026-09-07 in the *separate* `manoj020218/billing`
-     repo (`D:\IOT Device\Billing at IOT soft\billing-server`), see below. Committed locally
-     (`a7cae8e`); **not yet pushed/deployed** — `deploy.sh` on the shared production VPS still needs
-     explicit confirmation before running, since it reloads a live service other client products
-     depend on
+   - ~~Part 2 — billing-platform integration~~ — DONE 2026-09-07, **pushed and deployed to
+     production 2026-09-08** in the *separate* `manoj020218/billing` repo
+     (`D:\IOT Device\Billing at IOT soft\billing-server`), see below. `POST /api/smartpos/signup` is
+     live at `https://iotsoft.in/api/smartpos/signup` — will 502 on the bridge call until Part 4
+     deploys Smart POS's own API (expected, not a bug)
    - **Part 4 — deploy everything to the new VPS — not started**, see below
 4. **VPS deployment (Part 4 above)** — client decided (2026-09-07) to move the whole Smart POS stack
    (API + Postgres + the new marketing page) to a *second*, more capable VPS
@@ -151,9 +151,12 @@ DONE (2026-09-07)
   in `src/index.js`. Verified fully end-to-end locally (billing-server against this repo's own
   `dev:memory`, via `mongodb-memory-server`): valid signup → `201` with real tenant IDs, duplicate
   email → `409`, missing field → `400`, and the returned temp password logs in against this repo's
-  real `/api/v1/auth/login` with full `BUSINESS_OWNER` permissions. Committed in the billing repo
-  (`a7cae8e`) — **not pushed to that repo's remote yet**, and `deploy.sh` has NOT been run on the
-  shared production VPS (needs explicit confirmation first, per the approved plan)
+  real `/api/v1/auth/login` with full `BUSINESS_OWNER` permissions. Committed (`a7cae8e`) and pushed
+  to that repo's remote, then **deployed to the shared production VPS (2026-09-08)**: files copied
+  to the live `billing-platform` (not a git checkout there — kept in sync via direct file transfer,
+  per that repo's own documented workflow), env vars added, product reseeded, `pm2 restart` — verified
+  live (`/health` OK, `/api/smartpos/signup` validating real requests). A real signup will `502` at
+  the bridge-provision step until Part 4 deploys Smart POS's own API — expected, not a bug
 
 DONE (2026-09-06)
 - Wired automatic access-token refresh into `apps/pos`: access tokens expire every 15 minutes
