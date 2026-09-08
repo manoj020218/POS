@@ -1,5 +1,86 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — manual product add/edit + layout fixes shipped (2026-09-08, latest session)
+
+Same branch (`codex/settings-printer-foundation`), a later same-day session, after the
+onboarding/forgot-password entry below. Two independent slices, both committed (not yet pushed to
+origin as of this entry — check `git status`/`git log origin/codex/settings-printer-foundation..HEAD`):
+
+**1. Responsive layout + safe-area fix.** The kiosk shell (`TopBar` + `CatalogPane` +
+fixed-`w-[26rem]` `CartPanel`) had zero responsive breakpoints — on a phone-width screen (as
+opposed to the target tablet) the fixed-width cart panel alone exceeded the viewport, squeezing
+`CatalogPane` to an unusable sliver. Fixed by stacking the shell vertically below the `lg`
+breakpoint (full-width catalog above, full-width cart below, one page scroll) and keeping the
+existing tablet side-by-side layout at `lg`+. Also added `viewport-fit=cover` +
+`env(safe-area-inset-*)` padding on `#root`, since `targetSdkVersion 35` (Android 15) enforces
+edge-to-edge rendering and the app had no safe-area handling — content was drawing straight under
+the status bar/gesture nav bar. Verified visually on the connected debug device.
+
+**2. Manual single-product add/edit (photo, barcode, business-type-aware pricing unit, fast price
+edits with history).** Full plan is preserved at the top of the conversation this was executed
+from; short version — client wants shop owners to catalog products one at a time from the tablet
+(not just bulk CSV), and vegetable vendors specifically need to reprice fast, daily, with the last
+few prices visible for reference.
+
+- **Server** (`apps/api`): new `business_settings.businessType`
+  (`GENERAL`/`KIRANA`/`VEGETABLE`/`RESTAURANT_DHABA`) — setting it auto-provisions that type's
+  suggested `units` rows (`ensureUnitsForBusinessType` in `catalog-defaults.ts`; dhaba's list is a
+  superset including KG/GRAM/PCS, not just plate units, since dhabas commonly also sell small
+  kirana-style items). New `product_price_changes` ledger (mirrors `inventory_movements`'
+  shape) — `updateProduct` now records previous/new price whenever `sellingPrice` actually
+  changes, pruned to the 4 most recent rows per product on insert (not a full history — explicit
+  client ask). New `GET /products/:id/price-history`. New `POST /products/image-upload` (multer,
+  5MB limit, jpeg/png/webp) writing to `UPLOAD_DIR` and returning an absolute URL under
+  `PUBLIC_BASE_URL`, served back via `app.use('/api/uploads', express.static(...))` — mounted
+  under `/api` like every other route, so **no nginx change is needed** for this (confirmed nginx
+  already forwards the whole `/api/` path). Both `UPLOAD_DIR`/`PUBLIC_BASE_URL` are optional;
+  missing `PUBLIC_BASE_URL` degrades the upload endpoint to a `503`, same pattern as this
+  session's earlier SMTP config. Migration `0015` generated, **not yet applied to production**.
+- **`packages/client-data`**: added `updateProduct`, `getProductPriceHistory`,
+  `uploadProductImage` (multipart, auth header only — no `Content-Type`, so `fetch` sets its own
+  boundary), and `listUnits` to `ClientRemoteApi` — none of these existed client-side before
+  (there was no `updateProduct` at all, only `createProduct`).
+- **`apps/pos`**: `ProductCard` now has three gestures instead of one — plain tap still adds to
+  cart (unchanged checkout speed); tapping the price opens `QuickPriceEditPopover` (numeric
+  keypad + last-price chips); long-pressing the card opens `AddEditProductModal` pre-filled for a
+  full edit (new hand-rolled `use-long-press.ts`, ~500ms threshold, no gesture library). New
+  "Add product" button in `TopBar` opens the same modal in create mode. Added
+  `@capacitor/camera@7.0.5` (photo: Take Photo / Gallery) and
+  `@capacitor-mlkit/barcode-scanning@7.5.0` (barcode scan button next to the manual entry field) —
+  **both pinned**, since each package's `latest` dist-tag has already moved to Capacitor 8,
+  incompatible with this repo's Capacitor 7. Added the `CAMERA` permission to
+  `AndroidManifest.xml`. `useProductCatalog` now exposes a separate `refresh()` (not called from
+  its own mount effect — that effect keeps an inline fetch to satisfy
+  `react-hooks/set-state-in-effect`) so a create/edit/price-change is reflected in the checkout
+  grid immediately, without waiting for the next sync pull.
+- All server/client-data/app layers fully tested (route tests, Drizzle integration tests via
+  PGlite, client-data unit tests) — full workspace `pnpm test` green (235 tests) at time of
+  writing. Built and installed on the connected debug device; **not yet manually verified
+  on-device** (photo capture, barcode scan, and the full add/edit/price-edit flow) — the device
+  disconnected from USB mid-session. An APK was sent directly to the user as a fallback install
+  path.
+
+**Next for this slice**: reconnect the debug device, `adb install -r` the already-built APK (or
+rebuild if anything changes first), and manually verify: Add Product (photo + barcode + unit
+chips), long-press edit, tap-price quick edit with history chips, and that plain-tap-to-cart still
+works normally. Then, once real hardware printer testing happens (see the 2026-09-04 entry
+further below), this slice's migration + new env vars (`UPLOAD_DIR`, `PUBLIC_BASE_URL`) will need
+a follow-up production deploy — not done in this session, flagged as a separate next step
+requiring the same careful, user-reviewed-script approach used for the SMTP change (see the
+onboarding entry below and `deployment-vps-target`/`feedback-production-vps-writes-blocked`
+memory).
+
+**Also planned in this session, not yet built**: a "Self-Service Kiosk" mode — customers browse a
+tap-to-select item grid (image/qty/price) themselves, get a printed token with the order details
+and total, hand that token to staff, staff hands over the goods. A per-terminal setting picks
+whether that terminal runs as "Billing POS" (current cashier flow, unchanged) or "Self-Service
+Kiosk," and within kiosk mode a further setting controls whether the kiosk itself collects payment
+(token prints marked PAID after a successful payment) or only prints an unpaid token for payment
+at a staff counter. No design/plan written yet at the time of this entry — the client asked for
+one and it's the next thing to produce, before any implementation.
+
+---
+
 ## ⚠ READ THIS FIRST — in-app onboarding + forgot-password shipped (2026-09-08, later session)
 
 Same day as the rollout-checklist entry below, a later session on branch
