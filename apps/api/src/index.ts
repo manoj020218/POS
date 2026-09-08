@@ -3,7 +3,10 @@ import { loadEnv } from './config/env.js';
 import { loadWorkspaceEnv } from './config/load-workspace-env.js';
 import { createDatabase } from './db/client.js';
 import { createLogger } from './lib/logger.js';
+import { createSmtpTransport } from './lib/mailer.js';
 import { DrizzleAuthRepository } from './modules/auth/drizzle-auth.repository.js';
+import { createSmtpPasswordResetTokenSink } from './modules/auth/smtp-password-reset-sink.js';
+import type { PasswordResetTokenSink } from './modules/auth/password-reset.service.js';
 import { DrizzleCatalogRepository } from './modules/catalog/drizzle-catalog.repository.js';
 import { DrizzleCustomerRepository } from './modules/customer/drizzle-customer.repository.js';
 import { DrizzlePurchaseRepository } from './modules/purchase/drizzle-purchase.repository.js';
@@ -28,9 +31,28 @@ const bootstrap = async () => {
   const supplierRepository = new DrizzleSupplierRepository(database.db);
   const tenantCoreRepository = new DrizzleTenantCoreRepository(database.db);
 
+  const passwordResetTokenSink: PasswordResetTokenSink | undefined =
+    env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS && env.SMTP_FROM
+      ? createSmtpPasswordResetTokenSink(
+          createSmtpTransport({
+            host: env.SMTP_HOST,
+            pass: env.SMTP_PASS,
+            port: env.SMTP_PORT,
+            secure: env.SMTP_SECURE,
+            user: env.SMTP_USER
+          }),
+          env.SMTP_FROM
+        )
+      : undefined;
+
+  if (!passwordResetTokenSink) {
+    logger.warn('SMTP not configured — password reset requests will not deliver a token to the user');
+  }
+
   const app = createApp({
     authConfig: {
       jwtSecret: env.JWT_SECRET,
+      passwordResetTokenSink,
       refreshSecret: env.REFRESH_SECRET
     },
     authRepository,

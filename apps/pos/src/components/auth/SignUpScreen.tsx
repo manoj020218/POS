@@ -6,6 +6,7 @@ import { Button } from '../common/Button.js';
 
 type SignUpFormState = {
   address: string;
+  agentCode: string;
   businessName: string;
   city: string;
   contactPersonName: string;
@@ -17,6 +18,7 @@ type SignUpFormState = {
 
 const emptyForm: SignUpFormState = {
   address: '',
+  agentCode: '',
   businessName: '',
   city: '',
   contactPersonName: '',
@@ -104,9 +106,7 @@ export const SignUpScreen = ({ onBack, onSignedUp }: SignUpScreenProps) => {
             <Store size={28} />
           </div>
           <p className="text-xl font-bold text-ink">Create your free account</p>
-          <p className="text-center text-sm text-ink-faint">
-            Free for 6 months. We'll set up your shop and hand you a temporary password.
-          </p>
+          <p className="text-center text-sm text-ink-faint">We'll set up your shop and hand you a temporary password.</p>
         </div>
 
         <div className="w-full space-y-3">
@@ -151,6 +151,12 @@ export const SignUpScreen = ({ onBack, onSignedUp }: SignUpScreenProps) => {
             onChange={update('pincode')}
             placeholder="Pincode"
             value={form.pincode}
+          />
+          <input
+            className={inputClassName}
+            onChange={update('agentCode')}
+            placeholder="Agent code (optional)"
+            value={form.agentCode}
           />
         </div>
 

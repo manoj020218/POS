@@ -10,6 +10,7 @@ import type {
 } from '@smart-pos/client-data';
 
 import { CashierLoginScreen } from '../components/auth/CashierLoginScreen.js';
+import { ForgotPasswordScreen } from '../components/auth/ForgotPasswordScreen.js';
 import { LoadingScreen } from '../components/auth/LoadingScreen.js';
 import { SignUpScreen } from '../components/auth/SignUpScreen.js';
 import { SignUpSuccessScreen } from '../components/auth/SignUpSuccessScreen.js';
@@ -21,7 +22,8 @@ type SignUpOutcome = { businessCode: string; email: string; tempPassword: string
 type AuthView =
   | { name: 'login'; prefill?: { email: string; password: string } }
   | { name: 'signUp' }
-  | { name: 'signUpSuccess'; result: SignUpOutcome };
+  | { name: 'signUpSuccess'; result: SignUpOutcome }
+  | { name: 'forgotPassword' };
 
 export type PosContextValue = {
   checkoutService: ReturnType<typeof createLocalCheckoutService>;
@@ -116,11 +118,21 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
       );
     }
 
+    if (authView.name === 'forgotPassword') {
+      return (
+        <ForgotPasswordScreen
+          onBack={() => setAuthView({ name: 'login' })}
+          onReset={(email, password) => setAuthView({ name: 'login', prefill: { email, password } })}
+        />
+      );
+    }
+
     return (
       <CashierLoginScreen
         error={auth.error}
         initialEmail={authView.prefill?.email}
         initialPassword={authView.prefill?.password}
+        onNavigateToForgotPassword={() => setAuthView({ name: 'forgotPassword' })}
         onNavigateToSignUp={() => setAuthView({ name: 'signUp' })}
         onSubmit={auth.login}
         submitting={auth.status === 'submitting'}

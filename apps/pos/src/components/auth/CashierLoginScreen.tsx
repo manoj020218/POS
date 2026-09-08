@@ -7,6 +7,7 @@ type CashierLoginScreenProps = {
   error: string | null;
   initialEmail?: string;
   initialPassword?: string;
+  onNavigateToForgotPassword: () => void;
   onNavigateToSignUp: () => void;
   onSubmit: (email: string, password: string) => void;
   submitting: boolean;
@@ -16,6 +17,7 @@ export const CashierLoginScreen = ({
   error,
   initialEmail = '',
   initialPassword = '',
+  onNavigateToForgotPassword,
   onNavigateToSignUp,
   onSubmit,
   submitting
@@ -77,6 +79,10 @@ export const CashierLoginScreen = ({
         >
           {submitting ? 'Signing in…' : 'Sign in'}
         </Button>
+
+        <button className="text-sm font-semibold text-ink-muted" onClick={onNavigateToForgotPassword} type="button">
+          Forgot password?
+        </button>
 
         <p className="text-sm text-ink-faint">
           New here?{' '}
