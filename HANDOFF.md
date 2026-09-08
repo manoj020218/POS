@@ -1,6 +1,52 @@
 # HANDOFF
 
-## ⚠ READ THIS FIRST — rollout checklist status (2026-09-08, updated)
+## ⚠ READ THIS FIRST — in-app onboarding + forgot-password shipped (2026-09-08, later session)
+
+Same day as the rollout-checklist entry below, a later session on branch
+`codex/settings-printer-foundation` closed out several of the remaining rollout gaps directly in
+`apps/pos`, and set up real email delivery in production:
+
+- **Branded Android app icon/splash**: replaced the default Capacitor placeholder with the exact
+  Store line-icon already used on the sign-in screen (rasterized from lucide's `store` SVG via
+  `resvg-cli`), on the app's own indigo brand gradient (`#4f5bd5` → `#333ba3`, matching
+  `apps/pos/src/styles/index.css`, not the marketing site's green). Source images live in
+  `apps/pos/resources/`; regenerate all Android densities with
+  `npx @capacitor/assets generate --android` from `apps/pos/` after changing them.
+- **In-app signup**: a sideloaded install no longer has to leave the app to sign up. New
+  `SignUpScreen`/`SignUpSuccessScreen` post straight to the billing server's public endpoint
+  (`POST https://iotsoft.in/api/smartpos/signup`, configurable via `VITE_BILLING_SIGNUP_URL`) and
+  show the returned business code/email/temp password before handing the user to sign-in with
+  those fields pre-filled. Includes the optional Agent Code field.
+- **In-app forgot-password, now actually working end-to-end in production**: the API's
+  `POST /auth/password/reset/request`+`/confirm` endpoints already existed but the token sink was
+  a no-op — a reset request accepted `202` and silently went nowhere. Added
+  `createSmtpPasswordResetTokenSink` (nodemailer) wired in `apps/api/src/index.ts` whenever
+  `SMTP_HOST`/`PORT`/`USER`/`PASS`/`FROM` are all set (falls back to the prior no-op, with a
+  startup warning, when they aren't — local/test/dev:memory behavior unchanged). New
+  `ForgotPasswordScreen` in the app: request a code by email, then enter that code + a new
+  password. **Live in production as of 2026-09-08**: VPS 2's `/root/projects/smartpos/.env` (not
+  `apps/api/.env` — the workspace-root `.env`, per `loadWorkspaceEnv()`) now has real Gmail SMTP
+  settings for `iotsoft.in@gmail.com` (app password stored only in the assistant's local memory,
+  see `deployment-vps-target` memory — never written to any git-tracked file), `smartpos-api` was
+  restarted to pick them up, and a live `POST /auth/password/reset/request` against production
+  returned `202` with no error in the PM2 logs — confirms Gmail's SMTP server accepted the message
+  (the app-password auth handshake works). **Not yet confirmed**: actual inbox delivery, since the
+  only account tested against was the fake `suresh.part4test@example.com` test address — verify
+  with a real, checkable email address next.
+- Also fixed a real pre-existing gap while touching lint: `apps/*/android/**` wasn't excluded from
+  ESLint, so the Capacitor-synced web build under `android/app/src/main/assets/public` was being
+  linted as source and producing ~2000 false errors. Root `pnpm lint` is clean again.
+- All of this is committed on `codex/settings-printer-foundation` (not yet pushed as of this
+  entry — check `git status`/`git log origin/codex/settings-printer-foundation..HEAD` before
+  assuming it's on the remote).
+
+**Next for this slice**: confirm real-inbox delivery of a reset email; then the physical
+tablet+printer hardware test (still the same open item as the entry below) is the main remaining
+gap before "full production launch."
+
+---
+
+## Rollout checklist status (2026-09-08)
 
 **Session resume note**: git is clean and fully pushed as of this entry — branch
 `codex/settings-printer-foundation` matches `origin/codex/settings-printer-foundation`
