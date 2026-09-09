@@ -177,6 +177,52 @@ export type ClientProductListMeta = {
   totalPages: number;
 };
 
+export type ClientKioskOrderLine = {
+  lineTotal: number;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+};
+
+export type ClientKioskOrderStatus = 'AWAITING_PAYMENT' | 'UNPAID_TOKEN' | 'FULFILLED' | 'EXPIRED' | 'CANCELLED';
+
+export type ClientKioskOrderView = {
+  businessId: string;
+  createdAt: string;
+  expiresAt?: string;
+  id: string;
+  items: ClientKioskOrderLine[];
+  paidStamp: boolean;
+  status: ClientKioskOrderStatus;
+  tokenNumber: string;
+  totalAmount: number;
+};
+
+export type ClientKioskOrderCreatedView = ClientKioskOrderView & {
+  gatewayQrImageUrl?: string;
+};
+
+export type ClientCreateKioskOrderInput = {
+  branchId: string;
+  items: Array<{ productId: string; quantity: number }>;
+  terminalId: string;
+};
+
+export type ClientTerminalMode = 'BILLING_POS' | 'SELF_SERVICE_KIOSK';
+
+export type ClientTerminalSettings = {
+  gatewayTimeoutMinutes: number;
+  kioskCollectsPayment: boolean;
+  mode: ClientTerminalMode;
+  printDualTokens: boolean;
+  terminalId: string;
+};
+
+export type ClientUpdateTerminalSettingsInput = Partial<
+  Pick<ClientTerminalSettings, 'gatewayTimeoutMinutes' | 'kioskCollectsPayment' | 'mode' | 'printDualTokens'>
+>;
+
 export type ClientUpdateBusinessSettingsInput = {
   branches?: Array<{
     address?: string;
@@ -196,10 +242,15 @@ export type ClientUpdateBusinessSettingsInput = {
 };
 
 export interface ClientRemoteApi {
+  createKioskOrder(input: ClientCreateKioskOrderInput): Promise<ClientKioskOrderCreatedView>;
   createProduct(input: ClientRemoteProductCreateInput): Promise<ClientRemoteProductView>;
+  fulfillKioskOrder(orderId: string, saleId: string): Promise<ClientKioskOrderView>;
   getBusinessSettings(input?: { businessId?: string }): Promise<ClientBusinessSettings>;
+  getKioskOrder(orderId: string): Promise<ClientKioskOrderView>;
   getProductPriceHistory(productId: string): Promise<ClientRemoteProductPriceChange[]>;
+  getTerminalSettings(terminalId: string): Promise<ClientTerminalSettings>;
   listBranches(): Promise<ClientRemoteBranchSummary[]>;
+  listKioskOrders(businessId?: string): Promise<ClientKioskOrderView[]>;
   listProducts(query?: {
     businessId?: string;
     page?: number;
@@ -216,5 +267,9 @@ export interface ClientRemoteApi {
     productId: string,
     input: ClientRemoteProductUpdateInput
   ): Promise<ClientRemoteProductView>;
+  updateTerminalSettings(
+    terminalId: string,
+    input: ClientUpdateTerminalSettingsInput
+  ): Promise<ClientTerminalSettings>;
   uploadProductImage(file: Blob, filename: string): Promise<{ url: string }>;
 }

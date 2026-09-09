@@ -7,6 +7,9 @@ import {
   type FetchLike
 } from './http-fetch-helpers.js';
 import type {
+  ClientCreateKioskOrderInput,
+  ClientKioskOrderCreatedView,
+  ClientKioskOrderView,
   ClientProductListMeta,
   ClientRemoteApi,
   ClientRemoteProductCreateInput,
@@ -17,7 +20,9 @@ import type {
   ClientRemoteSyncPullResult,
   ClientRemoteSyncPushResult,
   ClientRemoteUnitSummary,
-  ClientUpdateBusinessSettingsInput
+  ClientTerminalSettings,
+  ClientUpdateBusinessSettingsInput,
+  ClientUpdateTerminalSettingsInput
 } from './remote-api.js';
 import type { ClientBusinessSettings } from './settings-repository.js';
 
@@ -87,20 +92,40 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
     );
 
   return {
+    createKioskOrder: (input: ClientCreateKioskOrderInput) =>
+      requestWithAuth<ClientKioskOrderCreatedView>(buildApiUrl(options.baseUrl, '/kiosk/orders'), {
+        body: JSON.stringify(input),
+        method: 'POST'
+      }),
     createProduct: (input: ClientRemoteProductCreateInput) =>
       requestWithAuth<ClientRemoteProductView>(buildApiUrl(options.baseUrl, '/products'), {
         body: JSON.stringify(input),
+        method: 'POST'
+      }),
+    fulfillKioskOrder: (orderId: string, saleId: string) =>
+      requestWithAuth<ClientKioskOrderView>(buildApiUrl(options.baseUrl, `/kiosk/orders/${orderId}/fulfill`), {
+        body: JSON.stringify({ saleId }),
         method: 'POST'
       }),
     getBusinessSettings: (input) =>
       requestWithAuth<ClientBusinessSettings>(
         buildApiUrl(options.baseUrl, '/business-settings', { businessId: input?.businessId })
       ),
+    getKioskOrder: (orderId: string) =>
+      requestWithAuth<ClientKioskOrderView>(buildApiUrl(options.baseUrl, `/kiosk/orders/${orderId}`)),
     getProductPriceHistory: (productId: string) =>
       requestWithAuth<ClientRemoteProductPriceChange[]>(
         buildApiUrl(options.baseUrl, `/products/${productId}/price-history`)
       ),
+    getTerminalSettings: (terminalId: string) =>
+      requestWithAuth<ClientTerminalSettings>(
+        buildApiUrl(options.baseUrl, `/terminals/${terminalId}/kiosk-settings`)
+      ),
     listBranches: () => requestWithAuth(buildApiUrl(options.baseUrl, '/branches')),
+    listKioskOrders: (businessId?: string) =>
+      requestWithAuth<ClientKioskOrderView[]>(
+        buildApiUrl(options.baseUrl, '/kiosk/orders', { businessId })
+      ),
     listProducts: async (query) => {
       const { data, meta } = await requestEnvelopeWithAuth<ClientRemoteProductView[], ClientProductListMeta>(
         buildApiUrl(options.baseUrl, '/products', {
@@ -141,6 +166,11 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
         body: JSON.stringify(input),
         method: 'PATCH'
       }),
+    updateTerminalSettings: (terminalId: string, input: ClientUpdateTerminalSettingsInput) =>
+      requestWithAuth<ClientTerminalSettings>(
+        buildApiUrl(options.baseUrl, `/terminals/${terminalId}/kiosk-settings`),
+        { body: JSON.stringify(input), method: 'PATCH' }
+      ),
     uploadProductImage: (file: Blob, filename: string) => {
       const formData = new FormData();
       formData.append('image', file, filename);

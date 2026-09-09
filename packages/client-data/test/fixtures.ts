@@ -2,10 +2,42 @@ import type {
   ClientBusinessSettings,
   ClientCustomerRecord,
   ClientProductRecord,
+  ClientRemoteApi,
   ClientRemoteCustomerSnapshot,
   ClientRemoteProductSnapshot,
   ClientTerminalContext
 } from '../src/index.js';
+
+const unused = () => {
+  throw new Error('unused');
+};
+
+/**
+ * A ClientRemoteApi where every method throws if called. Spread into a test
+ * fake and override only the methods that test actually exercises, so
+ * adding a new method to the interface doesn't require touching every
+ * existing fake in this suite.
+ */
+export const createUnusedRemoteApi = (): ClientRemoteApi => ({
+  createKioskOrder: unused,
+  createProduct: unused,
+  fulfillKioskOrder: unused,
+  getBusinessSettings: unused,
+  getKioskOrder: unused,
+  getProductPriceHistory: unused,
+  getTerminalSettings: unused,
+  listBranches: unused,
+  listKioskOrders: unused,
+  listProducts: unused,
+  listTerminals: unused,
+  listUnits: unused,
+  pullChanges: unused,
+  pushEvents: unused,
+  updateBusinessSettings: unused,
+  updateProduct: unused,
+  updateTerminalSettings: unused,
+  uploadProductImage: unused
+});
 
 export const terminalContext: ClientTerminalContext = {
   branchCode: 'MAIN',

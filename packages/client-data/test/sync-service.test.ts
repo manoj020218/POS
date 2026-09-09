@@ -5,7 +5,13 @@ import {
   createInMemoryClientDataStore,
   type ClientRemoteApi
 } from '../src/index.js';
-import { createCustomer, createRemoteCustomerSnapshot, createRemoteProductSnapshot, terminalContext } from './fixtures.js';
+import {
+  createCustomer,
+  createRemoteCustomerSnapshot,
+  createRemoteProductSnapshot,
+  createUnusedRemoteApi,
+  terminalContext
+} from './fixtures.js';
 
 describe('createClientSyncService', () => {
   it('pushes outbox events first, then hydrates local product and customer changes from pull', async () => {
@@ -47,17 +53,7 @@ describe('createClientSyncService', () => {
     });
 
     const remoteApi: ClientRemoteApi = {
-      createProduct: async () => {
-        throw new Error('unused');
-      },
-      getBusinessSettings: async () => {
-        throw new Error('unused');
-      },
-      getProductPriceHistory: async () => [],
-      listBranches: async () => [],
-      listProducts: async () => ({ items: [], meta: { hasNextPage: false, page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }),
-      listTerminals: async () => [],
-      listUnits: async () => [],
+      ...createUnusedRemoteApi(),
       pullChanges: async () => ({
         changes: [
           {
@@ -122,15 +118,6 @@ describe('createClientSyncService', () => {
             }
           ]
         };
-      },
-      updateBusinessSettings: async () => {
-        throw new Error('unused');
-      },
-      updateProduct: async () => {
-        throw new Error('unused');
-      },
-      uploadProductImage: async () => {
-        throw new Error('unused');
       }
     };
 
@@ -166,17 +153,7 @@ describe('createClientSyncService', () => {
     const cursorsRequested: (string | undefined)[] = [];
 
     const remoteApi: ClientRemoteApi = {
-      createProduct: async () => {
-        throw new Error('unused');
-      },
-      getBusinessSettings: async () => {
-        throw new Error('unused');
-      },
-      getProductPriceHistory: async () => [],
-      listBranches: async () => [],
-      listProducts: async () => ({ items: [], meta: { hasNextPage: false, page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }),
-      listTerminals: async () => [],
-      listUnits: async () => [],
+      ...createUnusedRemoteApi(),
       pullChanges: async (query) => {
         cursorsRequested.push(query.cursor);
 
@@ -216,16 +193,7 @@ describe('createClientSyncService', () => {
 
         return { changes: [], nextCursor: 'cursor-page-2', serverTime: '2026-08-29T15:11:00.000Z' };
       },
-      pushEvents: async () => ({ acceptedCount: 0, duplicateCount: 0, events: [] }),
-      updateBusinessSettings: async () => {
-        throw new Error('unused');
-      },
-      updateProduct: async () => {
-        throw new Error('unused');
-      },
-      uploadProductImage: async () => {
-        throw new Error('unused');
-      }
+      pushEvents: async () => ({ acceptedCount: 0, duplicateCount: 0, events: [] })
     };
 
     const service = createClientSyncService({ remoteApi, store });
