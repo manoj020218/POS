@@ -42,9 +42,13 @@ export type ReceiptPrintJobInput = {
   totalAmount: number;
 };
 
+// Amounts throughout this package are whole currency units (e.g. rupees),
+// matching the convention used everywhere upstream (sale totals, product
+// prices, apps/pos's own currency formatter) — not the smallest subunit
+// (paise/cents).
 const formatMoney = (amount: number, currencySymbol: string) => {
   const prefix = amount < 0 ? '-' : '';
-  return `${prefix}${currencySymbol} ${Math.abs(amount / 100).toFixed(2)}`;
+  return `${prefix}${currencySymbol} ${Math.abs(amount).toFixed(2)}`;
 };
 
 const formatQuantity = (quantity: number) =>

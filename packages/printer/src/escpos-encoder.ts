@@ -47,6 +47,9 @@ const encodeCommand = (command: EscPosCommand): number[] => {
         ESC,
         0x45,
         command.bold ? 1 : 0,
+        GS,
+        0x21,
+        command.size === 2 ? 0x11 : 0x00,
         ...createTextChunk(command.value),
         LF
       ];

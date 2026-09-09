@@ -47,4 +47,25 @@ describe('encodeEscPosJob', () => {
     expect(bytes).toEqual(expect.arrayContaining([0x1d, 0x6b, 67, 13]));
     expect(bytes).toEqual(expect.arrayContaining([0x1d, 0x28, 0x6b, 3, 0, 49, 81, 48]));
   });
+
+  it('encodes a double-width/height size command for large text, and normal size by default', () => {
+    const bytes = Array.from(
+      encodeEscPosJob(
+        createEscPosJob([
+          createTextCommand('K-014', 'CENTER', true, 2),
+          createTextCommand('normal')
+        ])
+      )
+    );
+
+    // GS ! 0x11 (double width + double height) precedes the large text.
+    expect(bytes.slice(0, 12)).toEqual([
+      0x1b, 0x61, 0x01, 0x1b, 0x45, 0x01, 0x1d, 0x21, 0x11, 0x4b, 0x2d, 0x30
+    ]);
+    // GS ! 0x00 (normal size) precedes the default-size text.
+    const secondCommandStart = bytes.indexOf(0x0a) + 1;
+    expect(bytes.slice(secondCommandStart, secondCommandStart + 9)).toEqual([
+      0x1b, 0x61, 0x00, 0x1b, 0x45, 0x00, 0x1d, 0x21, 0x00
+    ]);
+  });
 });

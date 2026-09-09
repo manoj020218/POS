@@ -22,14 +22,14 @@ describe('createReceiptPrintJob', () => {
       footerLines: ['Thank you for shopping'],
       invoiceNumber: 'INV-MAIN-01-000125',
       items: [
-        { name: 'Masala Dosa', quantity: 2, totalAmount: 24000, unitPriceAmount: 12000 },
-        { name: 'Filter Coffee', note: 'Less sugar', quantity: 1, totalAmount: 4500, unitPriceAmount: 4500 }
+        { name: 'Masala Dosa', quantity: 2, totalAmount: 240, unitPriceAmount: 120 },
+        { name: 'Filter Coffee', note: 'Less sugar', quantity: 1, totalAmount: 45, unitPriceAmount: 45 }
       ],
-      payments: [{ amount: 28500, label: 'CASH' }],
+      payments: [{ amount: 285, label: 'CASH' }],
       printedAt: new Date('2026-08-29T12:20:00.000Z'),
       profile,
-      subtotalAmount: 28500,
-      totalAmount: 28500
+      subtotalAmount: 285,
+      totalAmount: 285
     });
 
     expect(job.driver).toBe('ESC_POS');

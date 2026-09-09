@@ -15,6 +15,8 @@ export type EscPosCommand =
   | {
       alignment?: EscPosTextAlignment;
       bold?: boolean;
+      /** Character size multiplier (width and height together). Omit or 1 for normal size. */
+      size?: 1 | 2;
       type: 'TEXT';
       value: string;
     }
@@ -44,10 +46,12 @@ export const createCutCommand = (mode: EscPosCutMode = 'FULL'): EscPosCommand =>
 export const createTextCommand = (
   value: string,
   alignment: EscPosTextAlignment = 'LEFT',
-  bold = false
+  bold = false,
+  size?: 1 | 2
 ): EscPosCommand => ({
   alignment,
   bold,
+  size,
   type: 'TEXT',
   value
 });
