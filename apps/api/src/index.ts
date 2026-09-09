@@ -9,6 +9,9 @@ import { createSmtpPasswordResetTokenSink } from './modules/auth/smtp-password-r
 import type { PasswordResetTokenSink } from './modules/auth/password-reset.service.js';
 import { DrizzleCatalogRepository } from './modules/catalog/drizzle-catalog.repository.js';
 import { DrizzleCustomerRepository } from './modules/customer/drizzle-customer.repository.js';
+import { DrizzleKioskRepository } from './modules/kiosk/drizzle-kiosk.repository.js';
+import { createRazorpayGateway } from './modules/kiosk/razorpay-payment-gateway.js';
+import type { PaymentGateway } from './modules/kiosk/payment-gateway.js';
 import { DrizzlePurchaseRepository } from './modules/purchase/drizzle-purchase.repository.js';
 import { DrizzleSaleRepository } from './modules/sale/drizzle-sale.repository.js';
 import { DrizzleSettingsRepository } from './modules/settings/drizzle-settings.repository.js';
@@ -24,6 +27,7 @@ const bootstrap = async () => {
   const authRepository = new DrizzleAuthRepository(database.db);
   const catalogRepository = new DrizzleCatalogRepository(database.db);
   const customerRepository = new DrizzleCustomerRepository(database.db);
+  const kioskRepository = new DrizzleKioskRepository(database.db);
   const purchaseRepository = new DrizzlePurchaseRepository(database.db);
   const saleRepository = new DrizzleSaleRepository(database.db);
   const settingsRepository = new DrizzleSettingsRepository(database.db);
@@ -52,6 +56,19 @@ const bootstrap = async () => {
     logger.warn('PUBLIC_BASE_URL not configured — product image uploads will be rejected');
   }
 
+  const paymentGateway: PaymentGateway | undefined =
+    env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET && env.RAZORPAY_WEBHOOK_SECRET
+      ? createRazorpayGateway({
+          keyId: env.RAZORPAY_KEY_ID,
+          keySecret: env.RAZORPAY_KEY_SECRET,
+          webhookSecret: env.RAZORPAY_WEBHOOK_SECRET
+        })
+      : undefined;
+
+  if (!paymentGateway) {
+    logger.warn('Razorpay not configured — kiosk terminals cannot enable payment collection yet');
+  }
+
   const app = createApp({
     authConfig: {
       jwtSecret: env.JWT_SECRET,
@@ -62,7 +79,9 @@ const bootstrap = async () => {
     bridgeSharedSecret: env.BRIDGE_SHARED_SECRET,
     catalogRepository,
     customerRepository,
+    kioskRepository,
     logger,
+    paymentGateway,
     productImageUploadConfig: {
       publicBaseUrl: env.PUBLIC_BASE_URL,
       uploadDir: env.UPLOAD_DIR

@@ -1,5 +1,5 @@
 import cors from 'cors';
-import express, { type Express } from 'express';
+import express, { type Express, type Request } from 'express';
 import helmet from 'helmet';
 
 import { attachAccessContext } from './http/middleware/access-context.js';
@@ -23,6 +23,11 @@ import { InMemoryCustomerRepository } from './modules/customer/in-memory-custome
 import { createInventoryRouter } from './modules/inventory/inventory.routes.js';
 import type { InventoryRepository } from './modules/inventory/inventory.repository.js';
 import type { InventoryMovementRecord } from './modules/inventory/inventory.types.js';
+import { InMemoryKioskRepository } from './modules/kiosk/in-memory-kiosk.repository.js';
+import { createKioskRouter, createKioskWebhookRouter } from './modules/kiosk/kiosk.routes.js';
+import type { KioskRepository } from './modules/kiosk/kiosk.repository.js';
+import { createKioskService } from './modules/kiosk/kiosk.service.js';
+import type { PaymentGateway } from './modules/kiosk/payment-gateway.js';
 import { InMemoryPurchaseRepository } from './modules/purchase/in-memory-purchase.repository.js';
 import { createPurchaseRouter } from './modules/purchase/purchase.routes.js';
 import type { PurchaseRepository } from './modules/purchase/purchase.repository.js';
@@ -56,7 +61,9 @@ export type AppOptions = {
   bridgeSharedSecret?: string;
   catalogRepository?: CatalogRepository;
   customerRepository?: CustomerRepository;
+  kioskRepository?: KioskRepository;
   logger: AppLogger;
+  paymentGateway?: PaymentGateway;
   productImageUploadConfig?: ProductImageUploadConfig;
   purchaseRepository?: PurchaseRepository;
   saleRepository?: SaleRepository & InventoryRepository & ReportingRepository;
@@ -86,6 +93,16 @@ export const createApp = (options: AppOptions): Express => {
   const tenantCoreRepository =
     options.tenantCoreRepository ?? new InMemoryTenantCoreRepository();
   const productImageUploadConfig = options.productImageUploadConfig ?? { uploadDir: './uploads/products' };
+  const kioskRepository = options.kioskRepository ?? new InMemoryKioskRepository();
+  const kioskService = createKioskService(
+    kioskRepository,
+    catalogRepository,
+    saleRepository,
+    customerRepository,
+    settingsRepository,
+    tenantCoreRepository,
+    options.paymentGateway
+  );
   const accessContextResolver =
     options.accessContextResolver ??
     createAccessTokenAccessContextResolver(authConfig.jwtSecret, authRepository);
@@ -93,7 +110,17 @@ export const createApp = (options: AppOptions): Express => {
   app.disable('x-powered-by');
   app.use(helmet());
   app.use(cors());
-  app.use(express.json({ limit: '1mb' }));
+  app.use(
+    express.json({
+      limit: '1mb',
+      // Kept for the Razorpay webhook, whose signature is computed over the
+      // exact raw bytes sent — a re-serialized JSON.parse/stringify round
+      // trip is not guaranteed to match byte-for-byte.
+      verify: (request, _response, buffer) => {
+        (request as Request).rawBody = buffer.toString('utf8');
+      }
+    })
+  );
   app.use(createRequestLogger(options.logger));
   app.use(healthRouter);
   app.use(attachAccessContext(accessContextResolver));
@@ -153,6 +180,8 @@ export const createApp = (options: AppOptions): Express => {
     )
   );
   app.use('/api/v1', createTenantCoreRouter(tenantCoreRepository));
+  app.use('/api/v1', createKioskRouter(kioskService));
+  app.use('/api/v1', createKioskWebhookRouter(kioskService));
   app.use('/api/bridge', createBridgeRouter(tenantCoreRepository, authRepository, bridgeSharedSecret));
   app.use(notFoundHandler);
   app.use(errorHandler(options.logger));

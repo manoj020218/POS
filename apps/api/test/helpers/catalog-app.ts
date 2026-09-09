@@ -5,6 +5,8 @@ import { createLogger } from '../../src/lib/logger.js';
 import { InMemoryAuthRepository } from '../../src/modules/auth/in-memory-auth.repository.js';
 import { hashPassword } from '../../src/modules/auth/password.js';
 import type { ProductImageUploadConfig } from '../../src/modules/catalog/product-image-upload.controller.js';
+import type { KioskRepository } from '../../src/modules/kiosk/kiosk.repository.js';
+import type { PaymentGateway } from '../../src/modules/kiosk/payment-gateway.js';
 import { InMemorySyncRepository } from '../../src/modules/sync/in-memory-sync.repository.js';
 import type { SyncRepository } from '../../src/modules/sync/sync.repository.js';
 import { InMemoryTenantCoreRepository } from '../../src/modules/tenant-core/in-memory-tenant-core.repository.js';
@@ -18,6 +20,8 @@ const password = 'Password123';
 const tenantId = '11111111-1111-4111-8111-111111111111';
 
 type CatalogTestContextOptions = {
+  kioskRepository?: KioskRepository;
+  paymentGateway?: PaymentGateway;
   productImageUploadConfig?: ProductImageUploadConfig;
   syncRepository?: SyncRepository;
 };
@@ -94,7 +98,9 @@ export const createCatalogTestContext = async (options: CatalogTestContextOption
   const app = createApp({
     authConfig,
     authRepository,
+    kioskRepository: options.kioskRepository,
     logger: createLogger('silent'),
+    paymentGateway: options.paymentGateway,
     productImageUploadConfig: options.productImageUploadConfig,
     syncRepository,
     tenantCoreRepository: tenantRepository

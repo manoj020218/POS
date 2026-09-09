@@ -20,7 +20,10 @@ const EnvSchema = z.object({
   SMTP_PASS: z.string().min(1).optional(),
   SMTP_FROM: z.string().min(1).optional(),
   UPLOAD_DIR: z.string().min(1).default('./uploads/products'),
-  PUBLIC_BASE_URL: z.string().url().optional()
+  PUBLIC_BASE_URL: z.string().url().optional(),
+  RAZORPAY_KEY_ID: z.string().min(1).optional(),
+  RAZORPAY_KEY_SECRET: z.string().min(1).optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().min(1).optional()
 });
 
 export type AppEnv = z.infer<typeof EnvSchema>;
