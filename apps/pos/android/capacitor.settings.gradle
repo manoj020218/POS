@@ -2,5 +2,11 @@
 include ':capacitor-android'
 project(':capacitor-android').projectDir = new File('../../../node_modules/.pnpm/@capacitor+android@7.6.9_@capacitor+core@7.6.9/node_modules/@capacitor/android/capacitor')
 
+include ':capacitor-mlkit-barcode-scanning'
+project(':capacitor-mlkit-barcode-scanning').projectDir = new File('../../../node_modules/.pnpm/@capacitor-mlkit+barcode-sc_8e16bffbd5e86bac40177778e19cf36d/node_modules/@capacitor-mlkit/barcode-scanning/android')
+
+include ':capacitor-camera'
+project(':capacitor-camera').projectDir = new File('../../../node_modules/.pnpm/@capacitor+camera@7.0.5_@capacitor+core@7.6.9/node_modules/@capacitor/camera/android')
+
 include ':jenix-cap-thermal-printer'
 project(':jenix-cap-thermal-printer').projectDir = new File('../../../node_modules/.pnpm/@jenix+cap-thermal-printer@_94e23e9e220cfae83983947853386ca0/node_modules/@jenix/cap-thermal-printer/android')
