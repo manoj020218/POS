@@ -1,18 +1,23 @@
 import { LogOut, Store, User } from 'lucide-react';
+import type { ClientTerminalSettings } from '@smart-pos/client-data';
 
 import { usePosContext } from '../../state/use-pos-context.js';
 import { CalculatorButton } from '../calculator/CalculatorButton.js';
 import { IconButton } from '../common/IconButton.js';
+import { KioskOrderQueueButton } from '../kiosk/KioskOrderQueueButton.js';
 import { AddProductButton } from '../settings/AddProductButton.js';
 import { PrinterSettingsButton } from '../settings/PrinterSettingsButton.js';
 import { ProductImportExportButton } from '../settings/ProductImportExportButton.js';
+import { TerminalModeSettingsButton } from '../settings/TerminalModeSettingsButton.js';
 import { LiveClock } from './LiveClock.js';
 
 type TopBarProps = {
   onProductSaved: () => void;
+  onTerminalSettingsSaved: () => void;
+  terminalSettings: ClientTerminalSettings;
 };
 
-export const TopBar = ({ onProductSaved }: TopBarProps) => {
+export const TopBar = ({ onProductSaved, onTerminalSettingsSaved, terminalSettings }: TopBarProps) => {
   const { logout, settings, terminalContext } = usePosContext();
 
   return (
@@ -34,6 +39,11 @@ export const TopBar = ({ onProductSaved }: TopBarProps) => {
         <AddProductButton onProductSaved={onProductSaved} />
         <PrinterSettingsButton />
         <ProductImportExportButton />
+        <KioskOrderQueueButton />
+        <TerminalModeSettingsButton
+          onTerminalSettingsSaved={onTerminalSettingsSaved}
+          terminalSettings={terminalSettings}
+        />
         <div className="flex items-center gap-2 rounded-2xl bg-surface-sunken px-4 py-2">
           <User size={18} className="text-ink-muted" />
           <span className="text-sm font-semibold text-ink">{terminalContext.cashierName}</span>

@@ -194,6 +194,7 @@ export type ClientKioskOrderView = {
   id: string;
   items: ClientKioskOrderLine[];
   paidStamp: boolean;
+  paymentReference?: string;
   status: ClientKioskOrderStatus;
   tokenNumber: string;
   totalAmount: number;

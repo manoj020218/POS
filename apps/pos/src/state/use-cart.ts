@@ -5,6 +5,7 @@ import { emptyCartState, type CartState } from './cart-types.js';
 
 type CartAction =
   | { type: 'ADD_PRODUCT'; product: ClientProductRecord }
+  | { product: ClientProductRecord; quantity: number; type: 'ADD_PRODUCT_QUANTITY' }
   | { productId: string; type: 'INCREMENT' }
   | { productId: string; type: 'DECREMENT' }
   | { productId: string; type: 'REMOVE' }
@@ -33,6 +34,36 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
             name: action.product.name,
             productId: action.product.id,
             quantity: 1,
+            sku: action.product.sku,
+            taxRateBasisPoints: action.product.taxRateBasisPoints,
+            trackInventory: action.product.trackInventory,
+            unitPrice: action.product.sellingPrice,
+            unitSymbol: action.product.unitSymbol
+          }
+        ]
+      };
+    }
+    case 'ADD_PRODUCT_QUANTITY': {
+      const existing = state.lines.find((line) => line.productId === action.product.id);
+      if (existing) {
+        return {
+          ...state,
+          lines: state.lines.map((line) =>
+            line.productId === action.product.id
+              ? { ...line, quantity: line.quantity + action.quantity }
+              : line
+          )
+        };
+      }
+
+      return {
+        ...state,
+        lines: [
+          ...state.lines,
+          {
+            name: action.product.name,
+            productId: action.product.id,
+            quantity: action.quantity,
             sku: action.product.sku,
             taxRateBasisPoints: action.product.taxRateBasisPoints,
             trackInventory: action.product.trackInventory,
@@ -75,6 +106,11 @@ export const useCart = () => {
   const [cart, dispatch] = useReducer(cartReducer, emptyCartState);
 
   const addProduct = useCallback((product: ClientProductRecord) => dispatch({ product, type: 'ADD_PRODUCT' }), []);
+  const addProductWithQuantity = useCallback(
+    (product: ClientProductRecord, quantity: number) =>
+      dispatch({ product, quantity, type: 'ADD_PRODUCT_QUANTITY' }),
+    []
+  );
   const increment = useCallback((productId: string) => dispatch({ productId, type: 'INCREMENT' }), []);
   const decrement = useCallback((productId: string) => dispatch({ productId, type: 'DECREMENT' }), []);
   const remove = useCallback((productId: string) => dispatch({ productId, type: 'REMOVE' }), []);
@@ -111,7 +147,18 @@ export const useCart = () => {
     });
   }, [cart.lines, cart.discountPercent]);
 
-  return { addProduct, cart, clear, decrement, increment, remove, setCustomer, setDiscountPercent, totals };
+  return {
+    addProduct,
+    addProductWithQuantity,
+    cart,
+    clear,
+    decrement,
+    increment,
+    remove,
+    setCustomer,
+    setDiscountPercent,
+    totals
+  };
 };
 
 export type CartApi = ReturnType<typeof useCart>;

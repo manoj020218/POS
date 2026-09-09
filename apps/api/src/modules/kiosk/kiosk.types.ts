@@ -71,6 +71,7 @@ export type KioskOrderView = {
   id: string;
   items: KioskOrderLineSnapshot[];
   paidStamp: boolean;
+  paymentReference?: string;
   status: KioskOrderStatus;
   tokenNumber: string;
   totalAmount: number;

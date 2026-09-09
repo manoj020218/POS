@@ -82,6 +82,7 @@ export const createKioskService = (
     id: order.id,
     items: order.items,
     paidStamp: order.status === 'FULFILLED' && Boolean(order.gatewayPaymentRef),
+    paymentReference: order.gatewayPaymentRef,
     status: order.status,
     tokenNumber: order.tokenNumber,
     totalAmount: order.totalAmount

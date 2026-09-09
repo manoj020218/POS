@@ -1,4 +1,5 @@
 import {
+  createBarcodeCommand,
   createCutCommand,
   createEscPosJob,
   createFeedCommand,
@@ -68,6 +69,9 @@ export const createTokenPrintJob = (input: TokenPrintJobInput): EscPosPrintJob =
     createTextCommand(input.tokenNumber, 'CENTER', true, 2),
     createFeedCommand()
   );
+
+  // Lets a counter cashier scan the token at checkout instead of typing it.
+  commands.push(createBarcodeCommand(input.tokenNumber, 'CODE128'));
 
   appendLines(commands, [createDividerLine(input.profile)]);
 

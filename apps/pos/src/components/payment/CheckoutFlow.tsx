@@ -11,10 +11,12 @@ type CheckoutFlowProps = {
   cart: CartState;
   currencyCode: string;
   onSaleCompleted: () => void;
+  /** Fired the moment a sale is recorded, before the user dismisses the receipt — lets a caller link the sale back to something else (e.g. a kiosk token) without waiting for "Start new sale". */
+  onSaleRecorded?: (saleId: string) => void;
   totalAmount: number;
 };
 
-export const CheckoutFlow = ({ cart, currencyCode, onSaleCompleted, totalAmount }: CheckoutFlowProps) => {
+export const CheckoutFlow = ({ cart, currencyCode, onSaleCompleted, onSaleRecorded, totalAmount }: CheckoutFlowProps) => {
   const [activeMethod, setActiveMethod] = useState<PaymentMethod | null>(null);
   const { error, reset, result, saleDetail, status, submit } = useCheckout();
 
@@ -25,6 +27,7 @@ export const CheckoutFlow = ({ cart, currencyCode, onSaleCompleted, totalAmount 
     const outcome = await submit({ cart, method: activeMethod, tenderedAmount });
     if (outcome) {
       setActiveMethod(null);
+      onSaleRecorded?.(outcome.saleId);
     }
   };
 
