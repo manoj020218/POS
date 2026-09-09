@@ -1,6 +1,106 @@
 # HANDOFF
 
-## ⚠ READ THIS FIRST — manual product add/edit + layout fixes shipped (2026-09-08, latest session)
+## ⚠ READ THIS FIRST — Self-Service Kiosk built end-to-end (2026-09-09, latest session)
+
+Same branch (`codex/settings-printer-foundation`), a new session, following on from the "planned,
+not yet built" note at the bottom of the entry below. The client's Self-Service Kiosk (SSK) design
+was reviewed, refined twice on feedback, and then the user explicitly asked to execute the whole
+plan in one session. All four phases below are built, tested, and committed — **not yet deployed
+to the production VPS** (new migration `0016` + no new env vars beyond the three optional Razorpay
+ones), and not yet manually verified on real hardware (no device was connected this session — see
+"Next" below).
+
+**Core design**: a kiosk order is not a `Sale` until money has actually moved. Kiosk orders live in
+a brand-new `kiosk_orders` table, untouched by `sales`/reporting, and only ever become a real Sale
+by calling the existing, unmodified `createSaleHandler` — either from a Razorpay webhook (kiosk
+collects payment itself) or from a normal counter checkout (token-only, pay-at-counter). This means
+Billing POS's checkout code and sale/report data are completely unaffected by any of this.
+
+- **Server** (`apps/api`, all committed): new `kiosk_orders` (statuses
+  `AWAITING_PAYMENT`/`UNPAID_TOKEN`/`FULFILLED`/`EXPIRED`/`CANCELLED`) and `kiosk_token_sequences`
+  (per-terminal, per-day token numbering — `K-001`, `K-002`, ... resetting daily, deliberately
+  separate from the ever-incrementing `sale_sequences`) tables, plus `terminal_settings` (per
+  terminal, not per business: `mode` Billing POS vs Self-Service Kiosk,
+  `kioskCollectsPayment`, `printDualTokens`, `gatewayTimeoutMinutes` default 5). Migration `0016`
+  generated, **not applied to production**. Full `kiosk` module
+  (`apps/api/src/modules/kiosk/`): repository (in-memory + Drizzle), service, routes
+  (`sale:create` gates order CRUD, `terminal:view`/`terminal:create` gate settings read/write —
+  confirmed `terminal:create` is owner/admin-only in this codebase's existing permission map, same
+  as `settings:manage`, so a `BRANCH_MANAGER` can view but not change a terminal's mode), and an
+  **unauthenticated** webhook route (`POST /kiosk/webhooks/razorpay`, HMAC-SHA256 verified against
+  the raw request body — `app.ts` now captures `request.rawBody` via `express.json({ verify })`).
+  Razorpay integration uses the dedicated **QR Code API** (`razorpay.qrCode.create`, `type:
+  'upi_qr'`), not Orders+Checkout, since the kiosk only needs to show a ready `image_url` with no
+  webview/checkout.js embed. Unpaid gateway orders past `expiresAt` flip to `EXPIRED` lazily on the
+  next read (`getKioskOrder`/`listActiveKioskOrders`) — there's no cron/queue infra in this
+  codebase, so this mirrors how the rest of the app already avoids needing one.
+  `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET`/`RAZORPAY_WEBHOOK_SECRET` are all optional env vars — the
+  gateway is only constructed when all three are present; otherwise kiosk terminals still work in
+  token-only mode and `kioskCollectsPayment` just isn't offered.
+- **Real bug fixed while building this**: `packages/printer`'s `receipt-job.ts` was dividing
+  amounts by 100 (`formatMoney`), assuming paise input — but every amount in this system (sale
+  totals, product prices, the app's own currency formatter) is whole rupees, never paise. This had
+  never been caught because the physical printer test hasn't happened yet. Fixed the formatter and
+  the test literals that had been written assuming the wrong scale.
+- **`packages/printer`**: new `createTokenPrintJob` (large bold token number, itemized lines,
+  total, either a `PAID` stamp + UPI reference or "Pay at counter to collect", plus a **CODE128
+  barcode of the token number** so a counter cashier can actually scan it, not just read it) and a
+  `size?: 1 | 2` field on the `TEXT` command (`GS ! n`) to support the large token-number text,
+  added without breaking any existing exact-equality test (left `undefined` by default).
+- **`packages/client-data`**: `createKioskOrder`/`getKioskOrder`/`listKioskOrders`/
+  `fulfillKioskOrder`/`getTerminalSettings`/`updateTerminalSettings` added to `ClientRemoteApi` +
+  the HTTP implementation. New `createUnusedRemoteApi()` test fixture (`test/fixtures.ts`) so the
+  next time this interface grows, existing hand-rolled test fakes don't all need manual edits again
+  — this had happened four separate times already this project (image upload, price history,
+  units, now kiosk).
+- **`apps/pos`** — the actual on-device experience:
+  - Each terminal now fetches its own `terminal_settings` on login (`use-terminal-mode.ts`,
+    falls back to Billing POS defaults on any fetch failure — e.g. before the migration is deployed
+    — so nothing breaks) and `AppShell` routes to either the existing `KioskShell` (Billing POS,
+    unchanged) or the new `SelfServiceKioskShell`.
+  - `SelfServiceKioskShell`: a customer-facing tap-to-add grid (`CustomerProductGrid`/
+    `CustomerProductCard` — plain tap only, no price-edit or long-press, since customers should
+    never reach product editing) plus an order summary panel reusing the existing `CartLineItem`.
+    "Print my token" (token-only) or "Pay ₹X" (kiosk-collects-payment) calls `useKioskOrder`, which
+    either prints immediately or shows a QR + polls `getKioskOrder` every 3s until
+    `FULFILLED`/`EXPIRED`, then prints via the new `printKioskToken` helper — respecting
+    `printDualTokens` (prints the same job twice, not a single torn slip, per the client's explicit
+    "1+1 token" ask for real multi-step handovers) and stamping the real Razorpay payment reference
+    (exposed as `paymentReference` on the order view) rather than a placeholder.
+  - Staff reach terminal settings from inside kiosk mode via a **long-press** (not a tap) on a
+    small corner icon — deliberately not a plain tap, so a customer can't stumble into
+    configuration; the same settings modal is also reachable normally from Billing POS's `TopBar`.
+  - `TopBar` (Billing POS) gained a "Kiosk orders" queue button — **business-scoped, not
+    terminal-scoped**, per the client's explicit correction that the same single kiosk tablet might
+    be the only device on-site, with staff monitoring it from another tab/phone rather than a
+    dedicated second terminal.
+  - Counter checkout (`CartPanel`) gained a token-lookup button: scan (reuses the existing ML Kit
+    barcode scanner against the new CODE128 token barcode) or type a token number, which pre-fills
+    the cart from that unpaid kiosk order's items and — once checkout completes — calls
+    `fulfillKioskOrder` to link the resulting sale back to it (`CheckoutFlow` gained an
+    `onSaleRecorded` callback fired the moment a sale is recorded, not on the later "start new
+    sale" dismissal).
+- **Explicitly deferred (phase 5, per the client)**: a physical "now serving" token display over
+  the LAN. Only the concept was specified (a call-next action broadcasting one number locally) —
+  transport and display hardware are deliberately undecided. Not started.
+- Full workspace test suite green (248 tests, 84 files) including 9 new kiosk-specific tests
+  (route + Drizzle/PGlite integration). `pnpm lint`/`typecheck`/`build` all clean across
+  `apps/api`, `apps/pos`, `packages/client-data`, `packages/printer`. Debug APK built (pointed at
+  production API) and sent directly to the user — **no device was connected via USB this session**,
+  so on-device verification (QR display, token printing, barcode scan-to-lookup, the staff
+  long-press escape hatch) has not happened yet.
+
+**Next for this slice**: reconnect the debug device (or `adb install -r` the already-sent APK) and
+manually verify the whole loop once a printer is available — token-only print, kiosk-pay QR +
+webhook-confirmed print with a real UPI reference, 1+1 dual printing, scan-to-lookup at counter
+checkout, and the long-press settings escape hatch from kiosk mode. Then deploy migration `0016` +
+(optionally) the three `RAZORPAY_*` env vars to the VPS, using the same careful, reviewed-script
+approach as every prior production change to this VPS (see `feedback-production-vps-writes-blocked`
+memory) — not attempted in this session.
+
+---
+
+## ⚠ READ THIS FIRST — manual product add/edit + layout fixes shipped (2026-09-08)
 
 Same branch (`codex/settings-printer-foundation`), a later same-day session, after the
 onboarding/forgot-password entry below. Two independent slices, both committed (not yet pushed to
