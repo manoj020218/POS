@@ -80,6 +80,17 @@ more gateway cards later by extending `paymentGatewayCodes` (schema),
 data model and UI pattern are already generic per the client's "similar PG cards" ask, only
 Razorpay's actual adapter is wired up today.
 
+**⚠ Explicit pacing instruction from the user (2026-09-10) — do not deploy or build an APK yet.**
+Physical hardware (printer/tablet) is arriving for testing. Until then:
+- **Do NOT** apply migration `0017` or set `CREDENTIALS_ENCRYPTION_KEY` on the VPS.
+- **Do NOT** build/send a new APK.
+- Once hardware arrives and the whole loop (kiosk order → payment gateway card → Razorpay QR →
+  webhook → real sale → token print, 1+1 dual printing, scan-to-lookup at counter checkout) has
+  been manually verified on-device, *then* deploy this migration + env var to the VPS and build the
+  APK — in that order, not before. If a session picks this up cold (e.g. after a power cut), check
+  with the user whether hardware has arrived before doing either of these two things, even though
+  all the code above is already committed and ready to go.
+
 ---
 
 ## ⚠ READ THIS FIRST — Self-Service Kiosk built end-to-end (2026-09-09; its Razorpay env-var config is superseded by the entry above — everything else below still stands)
