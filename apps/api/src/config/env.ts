@@ -21,9 +21,14 @@ const EnvSchema = z.object({
   SMTP_FROM: z.string().min(1).optional(),
   UPLOAD_DIR: z.string().min(1).default('./uploads/products'),
   PUBLIC_BASE_URL: z.string().url().optional(),
-  RAZORPAY_KEY_ID: z.string().min(1).optional(),
-  RAZORPAY_KEY_SECRET: z.string().min(1).optional(),
-  RAZORPAY_WEBHOOK_SECRET: z.string().min(1).optional()
+  // Encrypts tenant-owned payment-gateway secrets (Razorpay keys, etc.) at
+  // rest — 32 bytes as 64 hex characters. Without it, businesses can still
+  // view/enable payment gateway cards but writing new credentials is
+  // refused rather than ever stored in plaintext.
+  CREDENTIALS_ENCRYPTION_KEY: z
+    .string()
+    .regex(/^[0-9a-fA-F]{64}$/, 'CREDENTIALS_ENCRYPTION_KEY must be 64 hex characters (32 bytes)')
+    .optional()
 });
 
 export type AppEnv = z.infer<typeof EnvSchema>;

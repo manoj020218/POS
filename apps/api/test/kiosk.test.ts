@@ -11,12 +11,32 @@ const fakeGateway = (): PaymentGateway & { lastOrderId?: string } => {
       gateway.lastOrderId = `qr_${Math.random().toString(36).slice(2)}`;
       return { gatewayOrderId: gateway.lastOrderId, qrImageUrl: 'https://razorpay.example/qr.png' };
     },
-    parseWebhookPaymentEvent: (rawBody) => {
+    extractWebhookGatewayOrderId: (rawBody) =>
+      (JSON.parse(rawBody) as { gatewayOrderId: string }).gatewayOrderId,
+    // A fake test double — real signature verification is covered by
+    // razorpay-payment-gateway's own unit coverage, not re-tested here.
+    verifyAndParseWebhookEvent: (rawBody) => {
       const body = JSON.parse(rawBody) as { gatewayOrderId: string; paymentRef: string };
       return { gatewayOrderId: body.gatewayOrderId, paymentRef: body.paymentRef };
     }
   };
   return gateway;
+};
+
+const enableRazorpayCredentials = async (
+  app: Awaited<ReturnType<typeof createCatalogTestContext>>['app'],
+  ownerAccess: { authorization: string },
+  businessId: string
+) => {
+  const response = await request(app)
+    .patch('/api/v1/payment-gateways/razorpay')
+    .set(ownerAccess)
+    .send({
+      businessId,
+      credentials: { keyId: 'rzp_test_fake', keySecret: 'fake_secret', webhookSecret: 'fake_webhook_secret' },
+      isEnabled: true
+    });
+  expect(response.status).toBe(200);
 };
 
 describe('kiosk routes', () => {
@@ -112,9 +132,12 @@ describe('kiosk routes', () => {
 
   it('creates a gateway-backed order and completes it into a real sale via the webhook', async () => {
     const gateway = fakeGateway();
-    ({ app, branchAId, loginAs, terminalAId } = await createCatalogTestContext({ paymentGateway: gateway }));
+    ({ app, branchAId, businessAId, loginAs, terminalAId } = await createCatalogTestContext({
+      paymentGateway: gateway
+    }));
     const ownerAccess = await loginAs('owner@example.com');
     const managerAccess = await loginAs('manager@example.com');
+    await enableRazorpayCredentials(app, ownerAccess, businessAId);
 
     const settingsUpdate = await request(app)
       .patch(`/api/v1/terminals/${terminalAId}/kiosk-settings`)
@@ -154,12 +177,13 @@ describe('kiosk routes', () => {
   it('expires an awaiting-payment order past its gateway timeout', async () => {
     const kioskRepository = new InMemoryKioskRepository();
     const gateway = fakeGateway();
-    ({ app, branchAId, loginAs, terminalAId } = await createCatalogTestContext({
+    ({ app, branchAId, businessAId, loginAs, terminalAId } = await createCatalogTestContext({
       kioskRepository,
       paymentGateway: gateway
     }));
     const ownerAccess = await loginAs('owner@example.com');
     const managerAccess = await loginAs('manager@example.com');
+    await enableRazorpayCredentials(app, ownerAccess, businessAId);
 
     const settingsUpdate = await request(app)
       .patch(`/api/v1/terminals/${terminalAId}/kiosk-settings`)

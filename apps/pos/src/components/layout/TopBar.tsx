@@ -6,6 +6,7 @@ import { CalculatorButton } from '../calculator/CalculatorButton.js';
 import { IconButton } from '../common/IconButton.js';
 import { KioskOrderQueueButton } from '../kiosk/KioskOrderQueueButton.js';
 import { AddProductButton } from '../settings/AddProductButton.js';
+import { PaymentGatewaysButton } from '../settings/PaymentGatewaysButton.js';
 import { PrinterSettingsButton } from '../settings/PrinterSettingsButton.js';
 import { ProductImportExportButton } from '../settings/ProductImportExportButton.js';
 import { TerminalModeSettingsButton } from '../settings/TerminalModeSettingsButton.js';
@@ -40,6 +41,7 @@ export const TopBar = ({ onProductSaved, onTerminalSettingsSaved, terminalSettin
         <PrinterSettingsButton />
         <ProductImportExportButton />
         <KioskOrderQueueButton />
+        <PaymentGatewaysButton />
         <TerminalModeSettingsButton
           onTerminalSettingsSaved={onTerminalSettingsSaved}
           terminalSettings={terminalSettings}

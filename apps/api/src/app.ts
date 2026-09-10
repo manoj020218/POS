@@ -28,6 +28,11 @@ import { createKioskRouter, createKioskWebhookRouter } from './modules/kiosk/kio
 import type { KioskRepository } from './modules/kiosk/kiosk.repository.js';
 import { createKioskService } from './modules/kiosk/kiosk.service.js';
 import type { PaymentGateway } from './modules/kiosk/payment-gateway.js';
+import { createRazorpayGateway } from './modules/kiosk/razorpay-payment-gateway.js';
+import { InMemoryPaymentGatewayCredentialRepository } from './modules/payment-gateways/in-memory-payment-gateway-credential.repository.js';
+import { createPaymentGatewayCredentialRouter } from './modules/payment-gateways/payment-gateway-credential.routes.js';
+import type { PaymentGatewayCredentialRepository } from './modules/payment-gateways/payment-gateway-credential.repository.js';
+import { createPaymentGatewayCredentialService } from './modules/payment-gateways/payment-gateway-credential.service.js';
 import { InMemoryPurchaseRepository } from './modules/purchase/in-memory-purchase.repository.js';
 import { createPurchaseRouter } from './modules/purchase/purchase.routes.js';
 import type { PurchaseRepository } from './modules/purchase/purchase.repository.js';
@@ -60,10 +65,12 @@ export type AppOptions = {
   authRepository?: AuthRepository;
   bridgeSharedSecret?: string;
   catalogRepository?: CatalogRepository;
+  credentialsEncryptionKey?: string;
   customerRepository?: CustomerRepository;
   kioskRepository?: KioskRepository;
   logger: AppLogger;
   paymentGateway?: PaymentGateway;
+  paymentGatewayCredentialRepository?: PaymentGatewayCredentialRepository;
   productImageUploadConfig?: ProductImageUploadConfig;
   purchaseRepository?: PurchaseRepository;
   saleRepository?: SaleRepository & InventoryRepository & ReportingRepository;
@@ -94,6 +101,19 @@ export const createApp = (options: AppOptions): Express => {
     options.tenantCoreRepository ?? new InMemoryTenantCoreRepository();
   const productImageUploadConfig = options.productImageUploadConfig ?? { uploadDir: './uploads/products' };
   const kioskRepository = options.kioskRepository ?? new InMemoryKioskRepository();
+  // Deliberately no hardcoded fallback here (unlike bridgeSharedSecret above) —
+  // a default encryption key baked into source would be a real vulnerability
+  // if it were ever silently reused in production. Missing this in production
+  // just means writes are refused (503) until it's actually configured; tests
+  // that exercise the write path pass their own fixed key explicitly.
+  const paymentGatewayCredentialRepository =
+    options.paymentGatewayCredentialRepository ?? new InMemoryPaymentGatewayCredentialRepository();
+  const paymentGatewayCredentialService = createPaymentGatewayCredentialService(
+    paymentGatewayCredentialRepository,
+    tenantCoreRepository,
+    options.credentialsEncryptionKey
+  );
+  const paymentGateway = options.paymentGateway ?? createRazorpayGateway();
   const kioskService = createKioskService(
     kioskRepository,
     catalogRepository,
@@ -101,7 +121,8 @@ export const createApp = (options: AppOptions): Express => {
     customerRepository,
     settingsRepository,
     tenantCoreRepository,
-    options.paymentGateway
+    paymentGateway,
+    paymentGatewayCredentialService
   );
   const accessContextResolver =
     options.accessContextResolver ??
@@ -182,6 +203,7 @@ export const createApp = (options: AppOptions): Express => {
   app.use('/api/v1', createTenantCoreRouter(tenantCoreRepository));
   app.use('/api/v1', createKioskRouter(kioskService));
   app.use('/api/v1', createKioskWebhookRouter(kioskService));
+  app.use('/api/v1', createPaymentGatewayCredentialRouter(paymentGatewayCredentialService));
   app.use('/api/bridge', createBridgeRouter(tenantCoreRepository, authRepository, bridgeSharedSecret));
   app.use(notFoundHandler);
   app.use(errorHandler(options.logger));

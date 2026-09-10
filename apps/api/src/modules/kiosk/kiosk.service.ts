@@ -3,6 +3,7 @@ import type { CatalogRepository } from '../catalog/catalog.repository.js';
 import { createSaleHandler } from '../sale/create-sale.js';
 import type { SaleRepository } from '../sale/sale.repository.js';
 import type { CustomerRepository } from '../customer/customer.repository.js';
+import type { PaymentGatewayCredentialService } from '../payment-gateways/payment-gateway-credential.service.js';
 import type { SettingsRepository } from '../settings/settings.repository.js';
 import type { AccessContext } from '../tenant-core/access-context.js';
 import { assertBranchAccess } from '../tenant-core/branch-scope.js';
@@ -34,7 +35,8 @@ export const createKioskService = (
   customerRepository: CustomerRepository,
   settingsRepository: SettingsRepository,
   tenantCoreRepository: TenantCoreRepository,
-  paymentGateway?: PaymentGateway
+  paymentGateway: PaymentGateway,
+  credentialService: PaymentGatewayCredentialService
 ) => {
   const createSale = createSaleHandler(
     saleRepository,
@@ -158,17 +160,33 @@ export const createKioskService = (
         return { ...toView(order), gatewayQrImageUrl: undefined };
       }
 
-      if (!paymentGateway) {
-        throw createHttpError(503, 'PAYMENT_GATEWAY_NOT_CONFIGURED', 'Payment collection is not configured');
+      const credentials = await credentialService.getResolvedCredentials(
+        context.tenantId,
+        branch.businessId,
+        'razorpay'
+      );
+      if (!credentials) {
+        throw createHttpError(
+          503,
+          'PAYMENT_GATEWAY_NOT_CONFIGURED',
+          'Payment collection is not configured for this business — add Razorpay credentials in Settings first'
+        );
       }
 
       const expiresAt = new Date(Date.now() + settings.gatewayTimeoutMinutes * 60 * 1000);
-      const gatewayOrder = await paymentGateway.createUpiQrOrder({
-        amount: totalAmount,
-        closeBy: expiresAt,
-        notes: { kioskOrderId: order.id, tokenNumber },
-        receipt: order.id
-      });
+      const gatewayOrder = await paymentGateway.createUpiQrOrder(
+        {
+          keyId: credentials.fields.keyId ?? '',
+          keySecret: credentials.fields.keySecret ?? '',
+          webhookSecret: credentials.fields.webhookSecret ?? ''
+        },
+        {
+          amount: totalAmount,
+          closeBy: expiresAt,
+          notes: { kioskOrderId: order.id, tokenNumber },
+          receipt: order.id
+        }
+      );
 
       const updated = await repository.updateKioskOrder(order.id, context.tenantId, {
         expiresAt,
@@ -214,17 +232,35 @@ export const createKioskService = (
     },
 
     handleGatewayWebhook: async (rawBody: string, signature: string) => {
-      if (!paymentGateway) {
+      // The order id inside the (still-unverified) body is only a lookup
+      // key — it tells us which business's webhook secret to verify the
+      // signature against next. Nothing from this step is trusted or acted
+      // on until verifyAndParseWebhookEvent below actually confirms it.
+      const gatewayOrderId = paymentGateway.extractWebhookGatewayOrderId(rawBody);
+      if (!gatewayOrderId) {
         return;
       }
 
-      const event = paymentGateway.parseWebhookPaymentEvent(rawBody, signature);
-      if (!event) {
-        return;
-      }
-
-      const order = await repository.findKioskOrderByGatewayOrderId(event.gatewayOrderId);
+      const order = await repository.findKioskOrderByGatewayOrderId(gatewayOrderId);
       if (!order || order.status !== 'AWAITING_PAYMENT') {
+        return;
+      }
+
+      const credentials = await credentialService.getResolvedCredentials(
+        order.tenantId,
+        order.businessId,
+        'razorpay'
+      );
+      if (!credentials?.fields.webhookSecret) {
+        return;
+      }
+
+      const event = paymentGateway.verifyAndParseWebhookEvent(
+        rawBody,
+        signature,
+        credentials.fields.webhookSecret
+      );
+      if (!event || event.gatewayOrderId !== order.gatewayOrderId) {
         return;
       }
 

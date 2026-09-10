@@ -12,6 +12,7 @@ export * from './customer.js';
 export * from './inventory-movement.js';
 export * from './kiosk-order.js';
 export * from './kiosk-token-sequence.js';
+export * from './payment-gateway-credential.js';
 export * from './product.js';
 export * from './product-price-change.js';
 export * from './purchase-item.js';

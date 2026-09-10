@@ -224,6 +224,22 @@ export type ClientUpdateTerminalSettingsInput = Partial<
   Pick<ClientTerminalSettings, 'gatewayTimeoutMinutes' | 'kioskCollectsPayment' | 'mode' | 'printDualTokens'>
 >;
 
+export type ClientPaymentGatewayCode = 'razorpay';
+
+export type ClientPaymentGatewayCard = {
+  code: ClientPaymentGatewayCode;
+  configured: boolean;
+  isEnabled: boolean;
+  label: string;
+  updatedAt?: string;
+};
+
+export type ClientUpdatePaymentGatewayCredentialsInput = {
+  businessId?: string;
+  credentials?: Record<string, string>;
+  isEnabled?: boolean;
+};
+
 export type ClientUpdateBusinessSettingsInput = {
   branches?: Array<{
     address?: string;
@@ -257,6 +273,7 @@ export interface ClientRemoteApi {
     page?: number;
     pageSize?: number;
   }): Promise<{ items: ClientRemoteProductView[]; meta: ClientProductListMeta }>;
+  listPaymentGatewayCards(businessId?: string): Promise<ClientPaymentGatewayCard[]>;
   listTerminals(input?: { branchId?: string }): Promise<ClientRemoteTerminalSummary[]>;
   listUnits(input?: { businessId?: string }): Promise<ClientRemoteUnitSummary[]>;
   pullChanges(query: ClientRemoteSyncPullQuery): Promise<ClientRemoteSyncPullResult>;
@@ -268,6 +285,10 @@ export interface ClientRemoteApi {
     productId: string,
     input: ClientRemoteProductUpdateInput
   ): Promise<ClientRemoteProductView>;
+  updatePaymentGatewayCredentials(
+    gatewayCode: ClientPaymentGatewayCode,
+    input: ClientUpdatePaymentGatewayCredentialsInput
+  ): Promise<ClientPaymentGatewayCard>;
   updateTerminalSettings(
     terminalId: string,
     input: ClientUpdateTerminalSettingsInput

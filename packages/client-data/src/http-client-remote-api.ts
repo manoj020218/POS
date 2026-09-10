@@ -10,6 +10,8 @@ import type {
   ClientCreateKioskOrderInput,
   ClientKioskOrderCreatedView,
   ClientKioskOrderView,
+  ClientPaymentGatewayCard,
+  ClientPaymentGatewayCode,
   ClientProductListMeta,
   ClientRemoteApi,
   ClientRemoteProductCreateInput,
@@ -22,6 +24,7 @@ import type {
   ClientRemoteUnitSummary,
   ClientTerminalSettings,
   ClientUpdateBusinessSettingsInput,
+  ClientUpdatePaymentGatewayCredentialsInput,
   ClientUpdateTerminalSettingsInput
 } from './remote-api.js';
 import type { ClientBusinessSettings } from './settings-repository.js';
@@ -126,6 +129,10 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
       requestWithAuth<ClientKioskOrderView[]>(
         buildApiUrl(options.baseUrl, '/kiosk/orders', { businessId })
       ),
+    listPaymentGatewayCards: (businessId?: string) =>
+      requestWithAuth<ClientPaymentGatewayCard[]>(
+        buildApiUrl(options.baseUrl, '/payment-gateways', { businessId })
+      ),
     listProducts: async (query) => {
       const { data, meta } = await requestEnvelopeWithAuth<ClientRemoteProductView[], ClientProductListMeta>(
         buildApiUrl(options.baseUrl, '/products', {
@@ -161,6 +168,14 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
         body: JSON.stringify(input),
         method: 'PATCH'
       }),
+    updatePaymentGatewayCredentials: (
+      gatewayCode: ClientPaymentGatewayCode,
+      input: ClientUpdatePaymentGatewayCredentialsInput
+    ) =>
+      requestWithAuth<ClientPaymentGatewayCard>(
+        buildApiUrl(options.baseUrl, `/payment-gateways/${gatewayCode}`),
+        { body: JSON.stringify(input), method: 'PATCH' }
+      ),
     updateProduct: (productId: string, input: ClientRemoteProductUpdateInput) =>
       requestWithAuth<ClientRemoteProductView>(buildApiUrl(options.baseUrl, `/products/${productId}`), {
         body: JSON.stringify(input),

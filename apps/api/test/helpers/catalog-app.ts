@@ -7,6 +7,7 @@ import { hashPassword } from '../../src/modules/auth/password.js';
 import type { ProductImageUploadConfig } from '../../src/modules/catalog/product-image-upload.controller.js';
 import type { KioskRepository } from '../../src/modules/kiosk/kiosk.repository.js';
 import type { PaymentGateway } from '../../src/modules/kiosk/payment-gateway.js';
+import type { PaymentGatewayCredentialRepository } from '../../src/modules/payment-gateways/payment-gateway-credential.repository.js';
 import { InMemorySyncRepository } from '../../src/modules/sync/in-memory-sync.repository.js';
 import type { SyncRepository } from '../../src/modules/sync/sync.repository.js';
 import { InMemoryTenantCoreRepository } from '../../src/modules/tenant-core/in-memory-tenant-core.repository.js';
@@ -18,10 +19,14 @@ const authConfig = {
 
 const password = 'Password123';
 const tenantId = '11111111-1111-4111-8111-111111111111';
+const testCredentialsEncryptionKey = 'abcdef0123456789'.repeat(4);
 
 type CatalogTestContextOptions = {
+  /** Pass `null` to simulate CREDENTIALS_ENCRYPTION_KEY being unset in production. */
+  credentialsEncryptionKey?: string | null;
   kioskRepository?: KioskRepository;
   paymentGateway?: PaymentGateway;
+  paymentGatewayCredentialRepository?: PaymentGatewayCredentialRepository;
   productImageUploadConfig?: ProductImageUploadConfig;
   syncRepository?: SyncRepository;
 };
@@ -98,9 +103,14 @@ export const createCatalogTestContext = async (options: CatalogTestContextOption
   const app = createApp({
     authConfig,
     authRepository,
+    credentialsEncryptionKey:
+      options.credentialsEncryptionKey === null
+        ? undefined
+        : (options.credentialsEncryptionKey ?? testCredentialsEncryptionKey),
     kioskRepository: options.kioskRepository,
     logger: createLogger('silent'),
     paymentGateway: options.paymentGateway,
+    paymentGatewayCredentialRepository: options.paymentGatewayCredentialRepository,
     productImageUploadConfig: options.productImageUploadConfig,
     syncRepository,
     tenantCoreRepository: tenantRepository
