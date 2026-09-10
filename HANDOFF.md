@@ -1,6 +1,88 @@
 # HANDOFF
 
-## ⚠ READ THIS FIRST — Self-Service Kiosk built end-to-end (2026-09-09, latest session)
+## ⚠ READ THIS FIRST — per-business Razorpay credentials, replacing env-var config (2026-09-10, latest session)
+
+Same branch (`codex/settings-printer-foundation`), a new session. The previous session's kiosk
+Phase 1 had wired Razorpay as a single **platform-wide** gateway configured via
+`RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET`/`RAZORPAY_WEBHOOK_SECRET` env vars — fine for a demo, wrong
+for a real multi-tenant SaaS where each business owner has their **own** Razorpay merchant account
+and needs their own money landing in their own account. The user pointed at a reference project
+(`jenixindia.com`'s own live admin panel, at `D:\IOT Device\jenixindia.com\jenix\VPS`) that already
+has exactly this pattern — a "PG card" per gateway in Settings where the business enters its own
+Key ID / Key Secret / Webhook Secret and flips an enable toggle — and asked for the same in Smart
+POS. Reviewed that reference's `payment-gateways` module (server: JSON-file-backed store, generic
+`credentials: Record<string,any>` per gateway, `credentialsConfigured` boolean never leaks secrets
+back to the list view; admin UI: `CREDENTIAL_FIELDS` map driving per-gateway password inputs with
+"leave blank to keep existing" placeholders) and built the equivalent for Smart POS's real
+multi-tenant Postgres setup, deliberately going further on security than the reference did:
+
+- **New `payment_gateway_credentials` table** (migration `0017`, not yet applied to production):
+  one row per `(businessId, gatewayCode)`, `isEnabled` boolean, and an `encryptedCredentials` text
+  column — **AES-256-GCM encrypted, never plaintext** (the reference project stores its JSON store
+  in plaintext on disk; Smart POS's credentials are live third-party account secrets for many
+  different real businesses in one shared database, so this got real encryption at rest). New
+  `apps/api/src/lib/credential-encryption.ts` (`encryptCredentialPayload`/`decryptCredentialPayload`,
+  random IV per call) keyed by a new optional `CREDENTIALS_ENCRYPTION_KEY` env var (32 bytes, 64 hex
+  chars). **Deliberately no hardcoded fallback key in `app.ts`'s production path** — unlike
+  `bridgeSharedSecret`'s test-only default, a baked-in encryption-key fallback would be a real
+  vulnerability if it were ever silently reused in production; missing the env var just means
+  writes are refused (503) while reads/list still work, so nothing crashes, it just can't save
+  secrets yet. Tests supply their own fixed key explicitly.
+- **`PaymentGateway` interface reshaped from stateful to stateless** (`apps/api/src/modules/kiosk/
+  payment-gateway.ts`/`razorpay-payment-gateway.ts`): credentials are now resolved per-business at
+  call time and passed into each method, instead of being bound once at server startup from env
+  vars. This is what actually makes "every business uses their own Razorpay account" possible.
+- **Solved the webhook multi-tenancy problem**: Razorpay calls one shared webhook URL
+  (`/kiosk/webhooks/razorpay`) with no businessId in the path, but verifying its HMAC signature
+  requires knowing *which* business's webhook secret to check against — before verification, we
+  don't yet know who it's for. Fixed by splitting the old single `parseWebhookPaymentEvent` into
+  two steps: `extractWebhookGatewayOrderId` reads the (still-unverified) gateway order id out of the
+  raw body purely as a lookup key — never trusted or acted on — to find the specific kiosk order and
+  therefore its business; only then is `verifyAndParseWebhookEvent` called with *that* business's
+  own stored webhook secret. An attacker who doesn't know a business's real webhook secret cannot
+  forge a valid signature no matter what order id they claim, so this stays safe despite the
+  unverified initial read.
+- **New `apps/api/src/modules/payment-gateways/` module**: repository (in-memory + Drizzle) +
+  service (`listGatewayCards` — sanitized, `configured`/`isEnabled` booleans only, never secrets;
+  `updateGatewayCredentials` — merges new fields into whatever's already stored so leaving a field
+  blank keeps its previous value, refuses to enable a gateway until all its required fields
+  (`keyId`/`keySecret`/`webhookSecret` for Razorpay) are present, 503s if
+  `CREDENTIALS_ENCRYPTION_KEY` isn't configured; `getResolvedCredentials` — internal-only, decrypted,
+  used exclusively by `kiosk.service`, never exposed over HTTP) + routes (`GET`/`PATCH
+  /api/v1/payment-gateways[/:gatewayCode]`, both gated behind `settings:manage`, i.e. owner/admin
+  only — same gating tier as business settings and terminal-mode config).
+- **`apps/pos`**: new "Payment gateways" card in Billing POS's `TopBar` (`PaymentGatewaysButton`/
+  `PaymentGatewaysModal`) — one card per known gateway code (just Razorpay today), each with an
+  enable toggle and an "Add/Update credentials" expand-in-place form (Key ID / Key Secret / Webhook
+  Secret, password-masked, blank = keep existing). `packages/client-data` gained
+  `listPaymentGatewayCards`/`updatePaymentGatewayCredentials` on `ClientRemoteApi`.
+- Existing kiosk-order tests (`apps/api/test/kiosk.test.ts`) updated to seed real per-business
+  credentials through the new `PATCH /payment-gateways/razorpay` endpoint before exercising the
+  gateway-collects-payment flow, rather than relying on a directly-injected gateway config —  this
+  also serves as an implicit end-to-end check that the new credential flow feeds correctly into
+  kiosk order creation and webhook fulfillment. New dedicated tests: `credential-encryption.test.ts`
+  (round-trip, random-IV-per-call, wrong-key failure, key-length validation),
+  `payment-gateway-credentials.test.ts` (permission gating, incomplete-credentials rejection,
+  secrets never echoed back in any response body, blank-field-keeps-existing merge behavior,
+  missing-encryption-key refuses writes but not reads), and
+  `drizzle-payment-gateway-credential.repository.test.ts` (PGlite integration: upsert-in-place,
+  per-business isolation). Full workspace suite green (259 tests, 87 files) — `pnpm lint`/
+  `typecheck`/`build` all clean across `apps/api`, `apps/pos`, `packages/client-data`.
+
+**Next for this slice**: apply migration `0017` and set `CREDENTIALS_ENCRYPTION_KEY` on the
+production VPS (same careful, reviewed-script approach as every prior production change — not
+attempted this session, and this one specifically should NOT be regenerated/rotated carelessly once
+real businesses have saved real credentials against it, since that would make existing encrypted
+rows undecryptable). Manually verify on-device: open the new Payment gateways card, save real (or
+sandbox) Razorpay credentials, enable it, then run the existing kiosk-pay QR flow against it. Add
+more gateway cards later by extending `paymentGatewayCodes` (schema),
+`requiredFieldsByGateway`/`gatewayLabels` (service), and `CREDENTIAL_FIELDS` (apps/pos modal) — the
+data model and UI pattern are already generic per the client's "similar PG cards" ask, only
+Razorpay's actual adapter is wired up today.
+
+---
+
+## ⚠ READ THIS FIRST — Self-Service Kiosk built end-to-end (2026-09-09; its Razorpay env-var config is superseded by the entry above — everything else below still stands)
 
 Same branch (`codex/settings-printer-foundation`), a new session, following on from the "planned,
 not yet built" note at the bottom of the entry below. The client's Self-Service Kiosk (SSK) design
