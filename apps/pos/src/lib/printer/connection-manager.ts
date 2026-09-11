@@ -20,7 +20,21 @@ export const createPrinterConnectionManager = (plugin: ThermalPrinterPlugin) => 
       return;
     }
 
-    await plugin.connect(options);
+    try {
+      await plugin.connect(options);
+    } catch (error) {
+      // The native plugin keeps its own connection state independent of this
+      // manager's `connectedKey` (e.g. a BLE link left open from a previous
+      // app session survives a reload), so it rejects a connect to a
+      // different transport/device until the old one is torn down first.
+      if (!(error instanceof ThermalPrinterError) || error.code !== 'CONNECTION_FAILED') {
+        throw error;
+      }
+
+      await plugin.disconnect();
+      await plugin.connect(options);
+    }
+
     connectedKey = key;
   };
 

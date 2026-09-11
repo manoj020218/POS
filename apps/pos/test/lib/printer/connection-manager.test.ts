@@ -6,6 +6,7 @@ import { createPrinterConnectionManager } from '../../../src/lib/printer/connect
 const createFakePlugin = (overrides: Partial<ThermalPrinterPlugin> = {}) =>
   ({
     connect: vi.fn(async () => ({ connected: true, connectionState: 'connected' as const })),
+    disconnect: vi.fn(async () => ({ connected: false as const, connectionState: 'disconnected' as const })),
     write: vi.fn(async () => ({ written: 1 })),
     ...overrides
   }) as unknown as ThermalPrinterPlugin;
@@ -53,6 +54,26 @@ describe('createPrinterConnectionManager', () => {
 
     expect(plugin.connect).toHaveBeenCalledTimes(2);
     expect(plugin.write).toHaveBeenCalledTimes(2);
+  });
+
+  it('disconnects and retries once when the plugin refuses to connect a different transport', async () => {
+    let connectCalls = 0;
+    const plugin = createFakePlugin({
+      connect: vi.fn(async () => {
+        connectCalls += 1;
+        if (connectCalls === 1) {
+          throw new ThermalPrinterError('CONNECTION_FAILED', 'Disconnect the current printer before connecting another.');
+        }
+        return { connected: true, connectionState: 'connected' as const };
+      })
+    });
+    const manager = createPrinterConnectionManager(plugin);
+
+    await manager.write({ deviceId: 'usb-1', transport: 'usb' }, new Uint8Array([1]));
+
+    expect(plugin.disconnect).toHaveBeenCalledTimes(1);
+    expect(plugin.connect).toHaveBeenCalledTimes(2);
+    expect(plugin.write).toHaveBeenCalledTimes(1);
   });
 
   it('does not retry non-connection write failures', async () => {
