@@ -1,5 +1,43 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — paused, waiting on a BLE fix from a parallel session (2026-09-11)
+
+This session (branch `codex/settings-printer-foundation`, this repo) just finished the
+real-hardware printer test session documented in the entry immediately below — **read that entry
+first**, it has the full detail. This note is only the "what to do when picking this back up"
+summary.
+
+**Where things are paused**: the BLE printing bug (entry below, item 3) is being worked on **right
+now in a separate, parallel Claude Code session** rooted at the sibling repo
+`D:\IOT Device\Smart POS\capacitor-plugins` — the user explicitly asked for that fix to be
+attempted in Kotlin as a one-off exception to [[printer-plugin-division-of-labor]]'s normal "don't
+write Kotlin" rule, since the developer who normally owns that repo is away for 7 days. Agreed
+approach there: a **new branch**, not `main`, so the returning developer reviews rather than finds
+a surprise change. If a session picks up *this* repo (`POS`) cold, check whether that parallel
+session finished and what branch/state it landed in before assuming BLE is still broken — the
+memory entry [[printer-plugin-division-of-labor]] should have the outcome once that session
+reports back.
+
+**Local dev environment left running for continued testing** (all local-only, nothing touches the
+VPS): Postgres service `postgresql-x64-18` and the `pnpm dev` API server on port 4012, both
+started this session against the local `smart_pos` database (migrations `0016`/`0017` applied
+locally only). `.env` in this repo root has local-only additions (`CREDENTIALS_ENCRYPTION_KEY`,
+`BRIDGE_SHARED_SECRET`) needed for those to work — gitignored, not committed, safe to regenerate if
+lost. If resuming hardware testing: `apps/pos/capacitor.config.ts` needs a temporary
+`server: { androidScheme: 'http' }` added back (not committed — removed before every commit this
+session) for the app to be able to fetch this local plain-HTTP API without hitting Android's
+mixed-content block; and the web build needs `VITE_API_BASE_URL` pointing at this PC's LAN IP
+(`192.168.1.211:4012` as of this session, may have changed) rather than `localhost`, since the
+printer occupies the phone's only USB-C port via OTG, ruling out `adb reverse`.
+
+**Not yet done, still gated on hardware per [[deployment-pacing-hardware-gate]]**: migration `0017`
++ `CREDENTIALS_ENCRYPTION_KEY` are not applied to the VPS, and no APK has been built for
+distribution. USB printing is now verified; BLE and the tablet itself are not. Re-check with the
+user before deploying or building a distributable APK, even once BLE is fixed — the tablet still
+hasn't been tested at all.
+
+---
+
 ## ⚠ READ THIS FIRST — first real-hardware printer test, three bugs found and fixed (2026-09-11, latest session)
 
 Same branch (`codex/settings-printer-foundation`), a new session. The physical thermal printer
