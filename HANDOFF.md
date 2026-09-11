@@ -1,5 +1,73 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — first real-hardware printer test, three bugs found and fixed (2026-09-11, latest session)
+
+Same branch (`codex/settings-printer-foundation`), a new session. The physical thermal printer
+arrived (a BLE/USB combo board, model markings **PSF588** over BLE, **SR588** over USB, **SC588**
+on its label — same board). Per [[deployment-pacing-hardware-gate]] this was the trigger to
+actually test on real hardware for the first time. No tablet yet — testing used a phone (adb over
+USB, later wireless adb once the printer needed the phone's only USB-C port for OTG) plus a local
+dev API server (Postgres started locally, migrations `0016`/`0017` applied to the **local** dev DB
+only, `CREDENTIALS_ENCRYPTION_KEY`/`BRIDGE_SHARED_SECRET` added to local `.env` — none of this
+touched the VPS). Full loop verified end-to-end over **USB**: login → terminal picker → Billing POS
+checkout → receipt print → Self-Service Kiosk → token order → dual (1+1) token print with a QR
+code → counter "Scan token" lookup → cart prefill. Three real bugs found and fixed, committed as
+three separate commits on this branch:
+
+1. **Printer transport-switch bug** (`apps/pos/src/lib/printer/connection-manager.ts`): switching
+   a terminal's paired printer between BLE and USB left the native plugin's own connection state
+   pointing at the old transport, so every reconnect attempt was rejected and checkout silently
+   claimed the receipt printed without ever writing to the new transport. Fixed with a
+   disconnect-and-retry-once path. **First fix attempt was wrong** — it checked
+   `error instanceof ThermalPrinterError`, which never matches a real device error because
+   `@jenix/cap-thermal-printer`'s `connect()`/`write()` return the raw Capacitor native-bridge
+   promise directly; a real rejection is a plain `CapacitorException` with a `.code` string, never
+   that class. This silently broke the plugin's own pre-existing `NOT_CONNECTED` retry too, not
+   just the new code. Second commit switched both checks to read `.code` directly — confirmed
+   working on-device only after that correction.
+2. **Kiosk token barcode misdecodes on this printer** (CODE128): scanning a printed token
+   consistently lost its last character (`K-004` scanned back as `K-00...`), reproducing identically
+   with or without the ESC/POS `{B` code-set-selector prefix, and *worse* — a NUL-terminated GS k
+   variant tried mid-session made the printer physically stall mid-print (no jam, but no print
+   either; immediately reverted, don't retry that variant blind). Rather than keep guessing at this
+   clone board's undocumented GS k quirks, switched the token's scannable code to a **QR code**
+   (`createQrCodeCommand`, already implemented) — no code-set bytes to mishandle, counter-side
+   scanning needed no changes since ML Kit reads QR the same way it reads 1D codes. Confirmed
+   correct round-trip on real hardware. The general `BARCODE` command path (e.g. product barcodes)
+   still keeps the `{B`-prefix-removal half of the fix, since that part was independently correct.
+3. **BLE printing silently fails on this printer** (not fixed — needs the native plugin developer,
+   not this session, per [[printer-plugin-division-of-labor]]): BLE `write()` calls succeed at the
+   Android GATT layer (`status=0`) and the app reports "Receipt sent to the printer," but nothing
+   prints. GATT service discovery shows a `49535343-...` service — the well-known ISSC/Microchip
+   "Transparent UART" bridge common in cheap thermal-printer BLE modules. The plugin writes ~540
+   bytes in three chunks roughly 5ms apart using `WRITE_TYPE_NO_RESPONSE` (fire-and-forget, no
+   ack) — almost certainly faster than this class of UART bridge can drain over its serial link,
+   silently overflowing its buffer with no error surfaced back to the app. **USB printing on this
+   same hardware works correctly** and is the confirmed path for now. Needs either
+   `WRITE_TYPE_DEFAULT` (acknowledged writes) or an inter-chunk delay in
+   `BleWriteSession.kt`/`BlePrinterConnection.kt` in the `capacitor-plugins` repo — flag this
+   precisely to the plugin developer rather than re-diagnosing from scratch.
+
+Also surfaced (not fixed, just noted) while testing on a phone-width screen rather than a tablet:
+Billing POS's `TopBar` has 6+ icon buttons in a horizontally-scrolling row with no visual affordance
+that it scrolls — "Terminal mode" is the last icon and was genuinely hard to find. The
+Self-Service-Kiosk screen's own settings gear (`SelfServiceKioskShell`) only opens
+`TerminalModeSettingsModal`, not printer settings — switching a kiosk-mode terminal's printer
+requires switching back to Billing POS mode first. Neither shell shows a persistent
+"printer connected" indicator; connection status is only visible inside the Printer Settings modal
+itself. Local dev DB also had three leftover empty test businesses from earlier smoke-testing
+sessions under the same dev tenant (deleted with the user's explicit OK) — they made the dev owner
+account hit "business context required" ambiguity that a real single-business account never would.
+
+**Next**: get BLE printing working needs the plugin developer (see bug 3 above) — until then, USB
+is the way to test/demo on this printer. Tablet still hasn't arrived; this session's testing used a
+phone. Migration `0017` + `CREDENTIALS_ENCRYPTION_KEY` are still not applied to the VPS and no APK
+has been built for distribution — per [[deployment-pacing-hardware-gate]], re-check with the user
+before doing either now that *some* hardware testing has happened (USB path only; BLE and the
+tablet itself are still unverified).
+
+---
+
 ## ⚠ READ THIS FIRST — per-business Razorpay credentials, replacing env-var config (2026-09-10, latest session)
 
 Same branch (`codex/settings-printer-foundation`), a new session. The previous session's kiosk
