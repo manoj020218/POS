@@ -27,13 +27,13 @@ const createQrDataLengthBytes = (payloadLength: number): [number, number] => {
   return [commandLength % 256, Math.floor(commandLength / 256)];
 };
 
-const encodeBarcodeValue = (command: Extract<EscPosCommand, { type: 'BARCODE' }>) => {
-  if (command.symbology === 'CODE128') {
-    return createTextChunk(`{B${command.value}`);
-  }
-
-  return createTextChunk(command.value);
-};
+// CODE128 (GS k m=73) technically wants a leading "{A"/"{B"/"{C" code-set
+// selector per Epson's spec, but the printer this was tested against doesn't
+// honor that convention — it doesn't strip the selector, so scanners read
+// the prefix as literal data (e.g. token "K-003" decodes back as "BK-00...").
+// Sending the raw value lets its firmware default to Code Set B on its own,
+// which round-trips correctly on that hardware.
+const encodeBarcodeValue = (command: Extract<EscPosCommand, { type: 'BARCODE' }>) => createTextChunk(command.value);
 
 const encodeCommand = (command: EscPosCommand): number[] => {
   switch (command.type) {

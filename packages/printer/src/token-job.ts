@@ -1,8 +1,8 @@
 import {
-  createBarcodeCommand,
   createCutCommand,
   createEscPosJob,
   createFeedCommand,
+  createQrCodeCommand,
   createTextCommand,
   type EscPosCommand,
   type EscPosPrintJob
@@ -71,7 +71,10 @@ export const createTokenPrintJob = (input: TokenPrintJobInput): EscPosPrintJob =
   );
 
   // Lets a counter cashier scan the token at checkout instead of typing it.
-  commands.push(createBarcodeCommand(input.tokenNumber, 'CODE128'));
+  // QR rather than CODE128: QR has no code-set-switching bytes for firmware
+  // to mishandle, and one clone printer in the field truncated CODE128's
+  // last character regardless of encoding variant tried (see git history).
+  commands.push(createQrCodeCommand(input.tokenNumber));
 
   appendLines(commands, [createDividerLine(input.profile)]);
 

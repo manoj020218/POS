@@ -49,7 +49,7 @@ describe('createTokenPrintJob', () => {
     expect(job.commands).toContainEqual(
       expect.objectContaining({ alignment: 'CENTER', type: 'TEXT', value: 'Pay at counter to collect' })
     );
-    expect(job.commands).toContainEqual({ symbology: 'CODE128', type: 'BARCODE', value: 'K-014' });
+    expect(job.commands).toContainEqual({ size: 6, type: 'QRCODE', value: 'K-014' });
     expect(job.commands[job.commands.length - 1]).toEqual({ mode: 'FULL', type: 'CUT' });
   });
 
