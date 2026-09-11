@@ -1,7 +1,13 @@
-import { ThermalPrinterError, type PrinterConnectionOptions, type ThermalPrinterPlugin } from '@jenix/cap-thermal-printer';
+import type { PrinterConnectionOptions, ThermalPrinterPlugin } from '@jenix/cap-thermal-printer';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createPrinterConnectionManager } from '../../../src/lib/printer/connection-manager.js';
+
+// Mirrors what the real Capacitor native bridge actually rejects with (a
+// plain CapacitorException carrying a `.code` string) — not the plugin
+// package's own ThermalPrinterError class, which nothing in the real
+// call path ever constructs. See connection-manager.ts's `errorCode` helper.
+const capacitorError = (code: string, message: string) => Object.assign(new Error(message), { code });
 
 const createFakePlugin = (overrides: Partial<ThermalPrinterPlugin> = {}) =>
   ({
@@ -43,7 +49,7 @@ describe('createPrinterConnectionManager', () => {
       write: vi.fn(async () => {
         writeCalls += 1;
         if (writeCalls === 1) {
-          throw new ThermalPrinterError('NOT_CONNECTED', 'link dropped');
+          throw capacitorError('NOT_CONNECTED', 'link dropped');
         }
         return { written: 1 };
       })
@@ -62,7 +68,7 @@ describe('createPrinterConnectionManager', () => {
       connect: vi.fn(async () => {
         connectCalls += 1;
         if (connectCalls === 1) {
-          throw new ThermalPrinterError('CONNECTION_FAILED', 'Disconnect the current printer before connecting another.');
+          throw capacitorError('CONNECTION_FAILED', 'Disconnect the current printer before connecting another.');
         }
         return { connected: true, connectionState: 'connected' as const };
       })
@@ -79,7 +85,7 @@ describe('createPrinterConnectionManager', () => {
   it('does not retry non-connection write failures', async () => {
     const plugin = createFakePlugin({
       write: vi.fn(async () => {
-        throw new ThermalPrinterError('WRITE_FAILED', 'buffer overflow');
+        throw capacitorError('WRITE_FAILED', 'buffer overflow');
       })
     });
     const manager = createPrinterConnectionManager(plugin);

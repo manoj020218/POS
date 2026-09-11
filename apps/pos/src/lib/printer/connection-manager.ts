@@ -1,9 +1,19 @@
-import { ThermalPrinterError, type PrinterConnectionOptions, type ThermalPrinterPlugin } from '@jenix/cap-thermal-printer';
+import type { PrinterConnectionOptions, PrinterErrorCode, ThermalPrinterPlugin } from '@jenix/cap-thermal-printer';
 
 const connectionKey = (options: PrinterConnectionOptions) =>
   options.transport === 'ble'
     ? `ble:${options.deviceId}`
     : `usb:${options.deviceId ?? `${options.vendorId ?? ''}:${options.productId ?? ''}`}`;
+
+// The plugin's methods return the raw Capacitor native-bridge promise (see
+// @jenix/cap-thermal-printer's index.ts), which rejects with a plain
+// CapacitorException carrying a `.code` string — never an actual
+// ThermalPrinterError instance. Match on that `.code` directly rather than
+// `instanceof ThermalPrinterError`, which never matches a real device error.
+const errorCode = (error: unknown): PrinterErrorCode | undefined =>
+  typeof error === 'object' && error !== null && 'code' in error
+    ? ((error as { code?: unknown }).code as PrinterErrorCode | undefined)
+    : undefined;
 
 /**
  * Bridges packages/printer's stateless per-job transports onto the plugin's
@@ -27,7 +37,7 @@ export const createPrinterConnectionManager = (plugin: ThermalPrinterPlugin) => 
       // manager's `connectedKey` (e.g. a BLE link left open from a previous
       // app session survives a reload), so it rejects a connect to a
       // different transport/device until the old one is torn down first.
-      if (!(error instanceof ThermalPrinterError) || error.code !== 'CONNECTION_FAILED') {
+      if (errorCode(error) !== 'CONNECTION_FAILED') {
         throw error;
       }
 
@@ -44,7 +54,7 @@ export const createPrinterConnectionManager = (plugin: ThermalPrinterPlugin) => 
     try {
       await plugin.write({ data: Array.from(bytes) });
     } catch (error) {
-      if (!(error instanceof ThermalPrinterError) || error.code !== 'NOT_CONNECTED') {
+      if (errorCode(error) !== 'NOT_CONNECTED') {
         throw error;
       }
 
