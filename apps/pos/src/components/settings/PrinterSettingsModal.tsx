@@ -1,4 +1,4 @@
-import type { PrinterDevice } from '@jenix/cap-thermal-printer';
+import type { PrinterDevice } from '@jenixindia/cap-thermal-printer';
 import type { ReceiptPrinterProfile } from '@smart-pos/printer';
 import { Check, RefreshCw } from 'lucide-react';
 import { useState } from 'react';

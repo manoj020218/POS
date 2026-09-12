@@ -1,4 +1,4 @@
-import { ThermalPrinter } from '@jenix/cap-thermal-printer';
+import { ThermalPrinter } from '@jenixindia/cap-thermal-printer';
 import { createBluetoothPrinterService, createProfileAwarePrinterService, createUsbPrinterService } from '@smart-pos/printer';
 
 import { createBleTransport, createUsbTransport } from './create-plugin-transport.js';

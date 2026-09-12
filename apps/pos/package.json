@@ -14,7 +14,7 @@
     "@capacitor/android": "^7.6.9",
     "@capacitor/camera": "7.0.5",
     "@capacitor/core": "^7.6.9",
-    "@jenix/cap-thermal-printer": "file:../../../capacitor-plugins/packages/cap-thermal-printer",
+    "@jenixindia/cap-thermal-printer": "github:manoj020218/capacitor-plugins#path:packages/cap-thermal-printer",
     "@smart-pos/client-data": "workspace:*",
     "@smart-pos/printer": "workspace:*",
     "lucide-react": "^1.37.0",

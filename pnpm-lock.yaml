@@ -120,9 +120,9 @@ importers:
       '@capacitor/core':
         specifier: ^7.6.9
         version: 7.6.9
-      '@jenix/cap-thermal-printer':
-        specifier: file:../../../capacitor-plugins/packages/cap-thermal-printer
-        version: file:../capacitor-plugins/packages/cap-thermal-printer(@capacitor/core@7.6.9)
+      '@jenixindia/cap-thermal-printer':
+        specifier: github:manoj020218/capacitor-plugins#path:packages/cap-thermal-printer
+        version: https://codeload.github.com/manoj020218/capacitor-plugins/tar.gz/2a8e034b62b8fbd292ca0ea40f1b83a2c567a6c3#path:packages/cap-thermal-printer(@capacitor/core@7.6.9)
       '@smart-pos/client-data':
         specifier: workspace:*
         version: link:../../packages/client-data
@@ -833,8 +833,9 @@ packages:
     resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
     engines: {node: '>=18.0.0'}
 
-  '@jenix/cap-thermal-printer@file:../capacitor-plugins/packages/cap-thermal-printer':
-    resolution: {directory: ../capacitor-plugins/packages/cap-thermal-printer, type: directory}
+  '@jenixindia/cap-thermal-printer@https://codeload.github.com/manoj020218/capacitor-plugins/tar.gz/2a8e034b62b8fbd292ca0ea40f1b83a2c567a6c3#path:packages/cap-thermal-printer':
+    resolution: {path: packages/cap-thermal-printer, tarball: https://codeload.github.com/manoj020218/capacitor-plugins/tar.gz/2a8e034b62b8fbd292ca0ea40f1b83a2c567a6c3}
+    version: 0.1.1
     peerDependencies:
       '@capacitor/core': '>=7.0.0'
 
@@ -3517,7 +3518,7 @@ snapshots:
     dependencies:
       minipass: 7.1.3
 
-  '@jenix/cap-thermal-printer@file:../capacitor-plugins/packages/cap-thermal-printer(@capacitor/core@7.6.9)':
+  '@jenixindia/cap-thermal-printer@https://codeload.github.com/manoj020218/capacitor-plugins/tar.gz/2a8e034b62b8fbd292ca0ea40f1b83a2c567a6c3#path:packages/cap-thermal-printer(@capacitor/core@7.6.9)':
     dependencies:
       '@capacitor/core': 7.6.9
 

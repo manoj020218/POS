@@ -1,4 +1,4 @@
-import type { PrinterConnectionOptions, ThermalPrinterPlugin } from '@jenix/cap-thermal-printer';
+import type { PrinterConnectionOptions, ThermalPrinterPlugin } from '@jenixindia/cap-thermal-printer';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createPrinterConnectionManager } from '../../../src/lib/printer/connection-manager.js';

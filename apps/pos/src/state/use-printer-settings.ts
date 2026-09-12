@@ -1,4 +1,4 @@
-import { ThermalPrinter, type PrinterDevice, type PrinterTransportType } from '@jenix/cap-thermal-printer';
+import { ThermalPrinter, type PrinterDevice, type PrinterTransportType } from '@jenixindia/cap-thermal-printer';
 import type { ReceiptPrinterProfile } from '@smart-pos/printer';
 import { useState } from 'react';
 

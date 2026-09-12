@@ -1,4 +1,4 @@
-import type { PrinterConnectionOptions, PrinterErrorCode, ThermalPrinterPlugin } from '@jenix/cap-thermal-printer';
+import type { PrinterConnectionOptions, PrinterErrorCode, ThermalPrinterPlugin } from '@jenixindia/cap-thermal-printer';
 
 const connectionKey = (options: PrinterConnectionOptions) =>
   options.transport === 'ble'
@@ -6,7 +6,7 @@ const connectionKey = (options: PrinterConnectionOptions) =>
     : `usb:${options.deviceId ?? `${options.vendorId ?? ''}:${options.productId ?? ''}`}`;
 
 // The plugin's methods return the raw Capacitor native-bridge promise (see
-// @jenix/cap-thermal-printer's index.ts), which rejects with a plain
+// @jenixindia/cap-thermal-printer's index.ts), which rejects with a plain
 // CapacitorException carrying a `.code` string — never an actual
 // ThermalPrinterError instance. Match on that `.code` directly rather than
 // `instanceof ThermalPrinterError`, which never matches a real device error.
