@@ -1,5 +1,43 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — printer plugin renamed + repackaged as a git dependency (2026-09-12, later same day)
+
+Continuation of the entry immediately below. After the BLE fix merge, the user asked to make
+`@jenix/cap-thermal-printer` reusable in another project — surfaced that the `@jenix` npm scope
+belongs to a different npm account than the one maintaining `capacitor-plugins` (the plugin's
+Kotlin developer's own account, not the Smart POS project owner's), so publishing under that name
+was never actually possible for this project owner. Renamed to **`@jenixindia/cap-thermal-printer`**
+(the project owner's own npm org, confirmed via `npm org ls jenixindia`) across both repos.
+
+Attempted `npm publish --access public` and hit a **persistent, unresolved registry-side 403**
+("Two-factor authentication or granular access token with bypass 2fa enabled is required") across
+every approach tried: a fresh browser `npm login`, a manually created granular access token with
+"bypass 2FA" explicitly enabled and read/write permissions on the org, retried after a propagation
+wait, on both npm 9.5.1 and after upgrading to 10.9.9. Classic token types (which include an
+"Automation" type built exactly for bypassing 2FA in CI) are no longer offered on this account —
+npm appears to have deprecated them. This looks like an npm platform-side restriction unrelated to
+anything in this repo; not resolved, would need npm support to diagnose further.
+
+**Working fallback in place**: `apps/pos` now depends on the plugin as a **git dependency** —
+`"@jenixindia/cap-thermal-printer": "github:manoj020218/capacitor-plugins#path:packages/cap-thermal-printer"`
+— instead of the old local `file:` path. `capacitor-plugins`' plugin package gained a `"prepare":
+"npm run build"` script so `dist/` (gitignored, never committed) builds automatically on install for
+git-sourced consumers, matching what npm/pnpm already do automatically for git dependencies.
+`pnpm-workspace.yaml` needed the package added to `onlyBuiltDependencies` since pnpm blocks
+install-time build scripts from git dependencies by default (supply-chain allowlist). Verified:
+typecheck, full test suite, lint, and a full `gradlew assembleDebug` all pass against the new
+dependency. If reusing this plugin in another project, use the same git-dependency line above —
+don't assume the npm package is actually published just because a name/version exists in
+`package.json`, since it isn't live on the registry.
+
+**Security note**: during this troubleshooting the user pasted a live npm access token into chat.
+It was not used or stored beyond what `npm config set` had already saved locally, and the user was
+told to treat it as compromised and regenerate it. If a session ever picks this up and needs to
+publish again, confirm with the user that token was actually rotated before trusting anything
+currently in their `.npmrc`.
+
+---
+
 ## ⚠ READ THIS FIRST — BLE fixed and merged, critical pre-delivery audit done (2026-09-12)
 
 Continuation of the entry immediately below (still same branch, `codex/settings-printer-foundation`).
