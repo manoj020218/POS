@@ -1,5 +1,57 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — BLE fixed and merged, critical pre-delivery audit done (2026-09-12)
+
+Continuation of the entry immediately below (still same branch, `codex/settings-printer-foundation`).
+The BLE fix that entry was waiting on is **done, verified, and merged**:
+
+- `capacitor-plugins`' `main` now has the real fix (commit `ddd974d`) — `findBleWriteCharacteristic`
+  explicitly targets the Microchip/ISSC Transparent UART service's RX characteristic when present,
+  and a new `BleWritePolicy.kt` uses conservative 20-byte BLE chunks with an explicit 20ms
+  inter-chunk delay after each acknowledged write, rather than relying on acknowledged writes alone
+  (which a first attempt on a separate branch found wasn't sufficient by itself). Verified end-to-end
+  on real hardware: BLE receipt printing now works on the same PSF588/SR588 printer used all session.
+  `apps/pos`'s `file:` dependency picks this up correctly — confirmed via a full `assembleDebug`
+  after the merge. **Both USB and BLE printing are now confirmed working on real hardware.** The
+  physical Android tablet itself is still the only untested piece (all testing so far used a phone).
+- Worth knowing for next time: this refinement was done by a parallel Claude Code session that
+  crashed *after* doing the work but *before* committing it — it was found sitting uncommitted
+  directly on `capacitor-plugins`' `main` working tree, recovered via `git stash`, reconciled with
+  one real merge conflict, verified (TS tests, a new Kotlin/JUnit test, full app build), then
+  properly committed to the feature branch and merged. If this ever happens again, check file
+  mtimes against the latest relevant commit before assuming stray uncommitted changes are safe to
+  discard — newer mtimes can mean real, unsaved follow-up work.
+- **Loose end, not touched**: a separate `worktree-bt-classic-support` branch in `capacitor-plugins`
+  (pushed to origin, commit `a413a28`) adds Bluetooth Classic (SPP) transport — this was not asked
+  for as part of the BLE fix and is unreviewed scope creep. Don't merge or build on it without
+  checking with the user first.
+
+A full critical pre-delivery audit was also run this session (user asked "what's needed to deliver
+this project to the client"). Full results in memory and relayed to the user; summary:
+- **Code health is clean**: 260/260 tests passing, zero lint/typecheck errors.
+- **HIGH**: no rate limiting anywhere in `apps/api` (already flagged in TODO.md, more pressing now
+  the API is internet-facing). Production deploy checklist unchanged from the entry below (migrations
+  `0016`/`0017`, `CREDENTIALS_ENCRYPTION_KEY` on the VPS, a signed release APK — currently a manual
+  `gradlew` step, no CI).
+- **MEDIUM**: `.env.example` is missing 6 vars the code actually reads, including
+  `CREDENTIALS_ENCRYPTION_KEY` — directly related to a real bug found this session (see next entry
+  down, "product image upload" work): `PUBLIC_BASE_URL` is almost certainly unset on the VPS the same
+  way, causing every product image upload to 503. CORS is wide open (low real risk given bearer-token
+  auth, still worth an allowlist eventually). No deployment runbook exists outside HANDOFF.md prose.
+- **LOW**: four UI gaps re-confirmed from the previous session (TopBar icon overflow on phone width,
+  no persistent printer-connected indicator, "Business type" misplaced inside the per-product Add
+  Product form, Self-Service Kiosk's settings gear only reaching terminal-mode not printer settings)
+  — all real, all cosmetic/polish, none blocking.
+
+**Next**: user asked to tackle product image upload (fix `PUBLIC_BASE_URL`, compress at capture,
+cache aggressively — see design discussion in this session's conversation, not yet implemented as
+of this HANDOFF entry) and the production deployment checklist together. Also an open question from
+the user about publishing `@jenix/cap-thermal-printer` properly (npm or similar) rather than a local
+`file:` path, since they want to reuse it in another project — not yet resolved, ask them how they
+want to proceed before assuming a publishing approach.
+
+---
+
 ## ⚠ READ THIS FIRST — paused, waiting on a BLE fix from a parallel session (2026-09-11)
 
 This session (branch `codex/settings-printer-foundation`, this repo) just finished the
