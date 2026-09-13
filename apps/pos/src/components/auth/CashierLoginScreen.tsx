@@ -31,7 +31,10 @@ export const CashierLoginScreen = ({
   };
 
   return (
-    <div className="flex h-full w-full items-center justify-center bg-surface p-6">
+    <div className="relative flex h-full w-full items-center justify-center bg-surface p-6">
+      <p className="absolute bottom-2 text-center text-[10px] text-ink-faint/60">
+        Build {new Date(__BUILD_TIME__).toLocaleString()}
+      </p>
       <form
         className="flex w-full max-w-sm flex-col items-center gap-6 rounded-3xl bg-surface-raised p-8 shadow-kiosk-lg"
         onSubmit={handleSubmit}
