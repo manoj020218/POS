@@ -1,5 +1,89 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — first release APK + real-world production testing round (2026-09-13, later same day)
+
+Continuation of the entries below (same branch/day). After rate limiting shipped, built and signed
+the **first-ever release APK** and put it in the client's hands against live production
+(`https://smartpos.iotsoft.in`) for real-world testing. This surfaced a long list of real issues —
+most fixed and verified working, a few still open. Read this top-to-bottom before assuming any of
+this is done; several early fixes in this list needed a second or third attempt before they
+actually worked.
+
+**Release signing** (new, permanent): generated the app's first release keystore —
+`D:\IOT Device\Smart POS\keystores\smart-pos-release.jks` (outside both repos, never committed),
+alias `smartpos`. Wired into `apps/pos/android/app/build.gradle` via `local.properties`
+(gitignored) so the keystore path/passwords never touch git; a checkout without that
+`local.properties` entry falls back to an unsigned release build rather than failing. **This
+keystore is the app's permanent identity — if it's ever lost, no future release can update the app
+under the same signing identity again.** Password given directly to the user for backup; not
+recorded here.
+
+**Fixed and confirmed working on real hardware/production**:
+- Product image upload (see entry below for the original two bugs) — now also confirmed the
+  problem was server-side only; the fix works.
+- Printer transport-switch, BLE, QR token barcode (see entries below) — already confirmed earlier.
+- **Opening stock / track-inventory gap**: `AddEditProductModal` never exposed
+  `trackInventory`/`openingStock` even though the API already supported both at creation — every
+  new product defaulted to tracked-with-zero-stock, blocking checkout immediately. Added a
+  "Track stock" / "Don't track" toggle + opening stock field, create-only (not exposed on edit,
+  since adjusting existing stock is a different concern with no dedicated feature yet).
+- **Cart price staleness**: editing a product's price (either the quick popover or the full edit
+  form) while it was already sitting in an open cart on the same terminal didn't update the cart
+  line — confirmed as unwanted, not intentional freezing, since it's the same cashier fixing their
+  own mistake on the same device. Both save flows now report the updated record back to
+  `CatalogPane`, which patches any matching cart line via a new `cartApi.updatePrice`.
+- **Printer status icon**: replaced the plain settings gear with a proactive, glanceable
+  green-pulsing/gray icon next to the calculator (`PrinterStatusButton` +
+  `usePrinterConnectionStatus`) — the app only connects to the printer lazily on first print, so
+  this hook actively tests connectivity (a real `connect()` call, no bytes written) on mount and
+  every 20s, rather than passively reading state that would show "disconnected" almost always.
+- **Receipt was missing two things**: `printCheckoutReceipt` never passed `changeAmount` or
+  `discountAmount` into the print job at all, even though both were calculated correctly and shown
+  on-screen — every cash sale's receipt printed the full amount tendered with no change line, and
+  discounted sales never showed the discount. Both fixed; regression tests added that inspect
+  actual printed job content (via `createRecordingPrinterService`), not just that checkout
+  succeeded — the old tests' blind spot that let this hide.
+- **Oversell**: a single cart could check out past a tracked product's available stock (56 against
+  50) without being stopped clearly. Added a stock check at the point of *adding to cart* (not just
+  at final checkout) in `CatalogPane`, with the error message derived fresh from live cart/stock
+  state every render (can't go stale). Also made the checkout-time error message itself show the
+  exact shortfall (available vs. requested) instead of just naming the product.
+- **Build version confusion**: iterating on release builds this fast made it genuinely hard to tell
+  whether a test was against the latest build — added a faint build timestamp (Vite `define`, baked
+  in at compile time) to the login screen footer.
+- Small client-requested additions: a **Help & support** button (support line
+  `7240226566`), an **AI Assistant** placeholder marked "coming soon" (no real functionality, no
+  credential storage — just a visible entry point).
+
+**Still open, not resolved this session**:
+- **Navbar/status-bar overshoot**: content draws under the top status bar and bottom
+  gesture/navigation bar. **Three different native fixes all failed identically** (padding the
+  WebView directly; padding via a content-root insets listener; resizing the WebView via margin
+  instead of padding) — see the three commits around this for the reasoning behind each attempt.
+  This needs live on-device debugging (chrome://inspect on a debug build, `setWebContentsDebuggingEnabled`)
+  to see real measured values instead of continuing to guess blind — possibly a MIUI-specific insets
+  quirk given the test device. Don't attempt a fourth blind native guess without that.
+- **Product photo preview**: the *server-side* image bug (wrong URL, missing config) is fixed and
+  confirmed via server logs (uploads succeed, images fetch with 200). A separate, still-open issue:
+  the captured photo's *local* preview inside the Add Product form itself doesn't render in at
+  least one reported case — release builds don't expose WebView console logs to logcat, so this
+  also needs live remote debugging to pin down, not more blind guessing.
+- **Two feature requests, not started**: GST/tax settings (business-level tax profile management —
+  note `tax_profiles` table + `taxProfileId`/`taxRateBasisPoints` already exist server-side and on
+  products, so this is UI work, not a from-scratch build: a settings screen, a tax-profile picker in
+  Add Product, and a CGST/SGST split on the printed receipt) and an "Export Sale" settings item to
+  download/share sales data with an accountant. Both discussed with the user but deliberately
+  deferred to finish verifying the current batch of fixes first.
+- A UX report ("touch button selection feels slow" on the Add Product screen) — not yet
+  investigated; the app already sets `touch-action: manipulation` and `user-scalable=no` globally
+  (the standard fixes for mobile tap-delay), so if this is real it's something else.
+
+**Also true and unchanged from before**: physical Android tablet still untested (all testing uses a
+phone), `worktree-bt-classic-support` in `capacitor-plugins` still sitting unreviewed, CORS still
+wide open.
+
+---
+
 ## ⚠ READ THIS FIRST — rate limiting added and deployed (2026-09-13, later same day)
 
 Continuation of the entry immediately below. Added rate limiting (`apps/api/src/http/middleware/
