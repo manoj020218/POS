@@ -21,20 +21,56 @@ export const CatalogPane = ({ cartApi, catalog }: CatalogPaneProps) => {
     catalog;
   const [priceEditProduct, setPriceEditProduct] = useState<ClientProductRecord | null>(null);
   const [fullEditProduct, setFullEditProduct] = useState<ClientProductRecord | null>(null);
+  // The blocked product's id, not the message itself -- the message is
+  // derived fresh from current stock/cart state on every render, so it can
+  // never go stale (e.g. still showing after the cashier removes/reduces
+  // the line elsewhere in the cart).
+  const [blockedProductId, setBlockedProductId] = useState<string | null>(null);
 
   const cartQuantities = useMemo(
     () => new Map(cartApi.cart.lines.map((line) => [line.productId, line.quantity])),
     [cartApi.cart.lines]
   );
 
+  const blockedProduct = blockedProductId
+    ? filteredProducts.find((product) => product.id === blockedProductId)
+    : undefined;
+  const blockedAvailable = blockedProduct ? (stockByProductId.get(blockedProduct.id) ?? 0) : 0;
+  const stockLimitError =
+    blockedProduct && (cartQuantities.get(blockedProduct.id) ?? 0) + 1 > blockedAvailable
+      ? `Only ${blockedAvailable} of "${blockedProduct.name}" in stock — can't add more.`
+      : null;
+
+  // Stop at the point of adding to cart rather than only at final checkout --
+  // a cashier building a large order should find out immediately that stock
+  // is short, not after ringing up everything else too.
+  const handleAdd = (product: ClientProductRecord) => {
+    if (product.trackInventory) {
+      const available = stockByProductId.get(product.id) ?? 0;
+      const alreadyInCart = cartQuantities.get(product.id) ?? 0;
+      if (alreadyInCart + 1 > available) {
+        setBlockedProductId(product.id);
+        return;
+      }
+    }
+
+    setBlockedProductId(null);
+    cartApi.addProduct(product);
+  };
+
   return (
     <section className="flex w-full min-w-0 flex-col gap-3 p-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden">
       <SearchBar onChange={setSearchText} value={searchText} />
       <CategoryTabs categories={categories} onSelect={setCategoryCode} selected={categoryCode} />
+      {stockLimitError && (
+        <p className="rounded-xl bg-danger-50 px-4 py-3 text-sm font-semibold text-danger-600">
+          {stockLimitError}
+        </p>
+      )}
       <ProductGrid
         cartQuantities={cartQuantities}
         currencyCode={settings.currencyCode}
-        onAdd={cartApi.addProduct}
+        onAdd={handleAdd}
         onEditPrice={setPriceEditProduct}
         onEditProduct={setFullEditProduct}
         products={filteredProducts}
