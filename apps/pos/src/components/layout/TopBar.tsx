@@ -7,7 +7,7 @@ import { IconButton } from '../common/IconButton.js';
 import { KioskOrderQueueButton } from '../kiosk/KioskOrderQueueButton.js';
 import { AddProductButton } from '../settings/AddProductButton.js';
 import { PaymentGatewaysButton } from '../settings/PaymentGatewaysButton.js';
-import { PrinterSettingsButton } from '../settings/PrinterSettingsButton.js';
+import { PrinterStatusButton } from '../settings/PrinterStatusButton.js';
 import { ProductImportExportButton } from '../settings/ProductImportExportButton.js';
 import { TerminalModeSettingsButton } from '../settings/TerminalModeSettingsButton.js';
 import { LiveClock } from './LiveClock.js';
@@ -37,8 +37,8 @@ export const TopBar = ({ onProductSaved, onTerminalSettingsSaved, terminalSettin
 
       <div className="flex shrink-0 items-center gap-2 lg:gap-5">
         <CalculatorButton />
+        <PrinterStatusButton />
         <AddProductButton onProductSaved={onProductSaved} />
-        <PrinterSettingsButton />
         <ProductImportExportButton />
         <KioskOrderQueueButton />
         <PaymentGatewaysButton />
