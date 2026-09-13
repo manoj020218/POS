@@ -1,5 +1,6 @@
 import { Router, type Router as ExpressRouter } from 'express';
 
+import { authRateLimiter } from '../../http/middleware/rate-limit.js';
 import { requirePermissions } from '../../http/middleware/require-permissions.js';
 import {
   changePasswordController,
@@ -28,11 +29,11 @@ export const createAuthRouter = (
   const router = Router();
   const service = createAuthService(repository, tenantCoreRepository, config);
 
-  router.post('/login', loginController(service));
-  router.post('/refresh', refreshController(service));
+  router.post('/login', authRateLimiter, loginController(service));
+  router.post('/refresh', authRateLimiter, refreshController(service));
   router.post('/logout', logoutController(service));
-  router.post('/password/reset/request', requestPasswordResetController(service));
-  router.post('/password/reset/confirm', resetPasswordController(service));
+  router.post('/password/reset/request', authRateLimiter, requestPasswordResetController(service));
+  router.post('/password/reset/confirm', authRateLimiter, resetPasswordController(service));
   router.post('/password/change', changePasswordController(service));
   router.get('/sessions', listSessionsController(service));
   router.delete('/sessions/:sessionId', revokeSessionController(service));
