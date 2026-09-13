@@ -2,6 +2,7 @@ package com.smartpos.app;
 
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.webkit.WebView;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -22,13 +23,19 @@ public class MainActivity extends BridgeActivity {
         // window insets to the WebView), so CSS env(safe-area-inset-*) alone
         // resolves to 0 even though content is genuinely obscured.
         //
-        // Listening directly on the WebView didn't reliably receive the
-        // insets dispatch (it can sit several layers deep inside Capacitor's
-        // own view hierarchy, and an ancestor can intercept/consume the
-        // dispatch first). android.R.id.content is the direct child of the
-        // window's DecorView and reliably receives the full window insets
-        // in practice, so listen there and apply the resulting padding to
-        // the WebView explicitly.
+        // Two prior attempts didn't work: listening directly on the WebView
+        // never reliably received the insets dispatch (it sits several
+        // layers deep inside Capacitor's own view hierarchy). Listening on
+        // android.R.id.content (the DecorView's direct child, which reliably
+        // gets the dispatch) and applying the result as WebView *padding*
+        // did receive the insets, but Android's WebView has a long-standing
+        // quirk where setPadding() only clips what's drawn -- it doesn't
+        // actually shrink the viewport size the page itself sees, so
+        // height:100% content still computes against the full unpadded
+        // height and the bottom ends up needing a scroll to reach.
+        // Resizing the WebView's actual layout bounds via margin (forcing a
+        // real re-measure/re-layout at the smaller size) makes the page's
+        // own layout engine see the correct, smaller viewport instead.
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         View contentRoot = findViewById(android.R.id.content);
         ViewCompat.setOnApplyWindowInsetsListener(
@@ -36,7 +43,13 @@ public class MainActivity extends BridgeActivity {
             (view, windowInsets) -> {
                 Insets systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
                 WebView webView = getBridge().getWebView();
-                webView.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+                ViewGroup.MarginLayoutParams params =
+                    (ViewGroup.MarginLayoutParams) webView.getLayoutParams();
+                params.leftMargin = systemBars.left;
+                params.topMargin = systemBars.top;
+                params.rightMargin = systemBars.right;
+                params.bottomMargin = systemBars.bottom;
+                webView.setLayoutParams(params);
                 return windowInsets;
             }
         );
