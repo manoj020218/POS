@@ -6,6 +6,7 @@ import { CalculatorButton } from '../calculator/CalculatorButton.js';
 import { IconButton } from '../common/IconButton.js';
 import { KioskOrderQueueButton } from '../kiosk/KioskOrderQueueButton.js';
 import { AddProductButton } from '../settings/AddProductButton.js';
+import { AiAssistantButton } from '../settings/AiAssistantButton.js';
 import { HelpButton } from '../settings/HelpButton.js';
 import { PaymentGatewaysButton } from '../settings/PaymentGatewaysButton.js';
 import { PrinterStatusButton } from '../settings/PrinterStatusButton.js';
@@ -48,6 +49,7 @@ export const TopBar = ({ onProductSaved, onTerminalSettingsSaved, terminalSettin
           terminalSettings={terminalSettings}
         />
         <HelpButton />
+        <AiAssistantButton />
         <div className="flex items-center gap-2 rounded-2xl bg-surface-sunken px-4 py-2">
           <User size={18} className="text-ink-muted" />
           <span className="text-sm font-semibold text-ink">{terminalContext.cashierName}</span>
