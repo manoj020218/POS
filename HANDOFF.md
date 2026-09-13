@@ -1,5 +1,39 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — paused for the day; Play Store submission planned next (2026-09-13, end of day)
+
+Continuation of the entry immediately below (same day, same branch). After GST settings + the 3-dot
+menu were built, rebuilt and re-signed the release APK against production
+(`VITE_API_BASE_URL=https://smartpos.iotsoft.in/api/v1`) with those changes included, verified the
+signature (`jarsigner -verify`, cert `CN=Smart POS, OU=IOT Soft`, matches the release keystore — see
+below entry for its location), and delivered the APK to the user for on-device install/testing.
+Session paused here — **user has not yet tested this build on the phone/tablet**; that's the first
+thing to check when picking this back up.
+
+**User's stated plan for tomorrow (2026-09-14): submit to the Google Play Store.** Nothing has been
+done toward this yet — no Play Console developer account confirmed, no store listing assets
+prepared, no AAB (Android App Bundle, which Play requires over a raw APK) built. Useful head start
+already in place from earlier work, so tomorrow's session doesn't have to start from zero:
+- `apps/marketing/index.html` already has a Privacy/Terms/About tabbed section (`<section
+  class="legal" id="legal">`, Privacy is the default active tab) — built specifically because Play
+  Store listings require a privacy policy URL. Point the Play Console listing at
+  `https://smartpos.iotsoft.in/#legal` rather than writing a new privacy policy from scratch.
+- The release signing keystore (`D:\IOT Device\Smart POS\keystores\smart-pos-release.jks`, alias
+  `smartpos`) is exactly what Play submissions need to sign with — **do not generate a second
+  keystore**; every future release must be signed with this same one or Play will reject the update
+  as a different app.
+- Play Store wants an **AAB**, not the `.apk` built so far — `./gradlew.bat bundleRelease` (same
+  signing config already wired in `build.gradle`/`local.properties`) produces
+  `app/build/outputs/bundle/release/app-release.aab`. Untested this session; try it fresh tomorrow.
+- Still missing and will need the user directly: a Google Play Developer account (one-time $25 fee,
+  Google-side identity verification can take a few days — flag this timeline risk immediately
+  tomorrow rather than assuming submission = same-day live), app icon/feature graphic/screenshots
+  for the store listing, and answers to Play's content rating / data-safety questionnaire (the
+  app handles payment gateway credentials and customer names — likely relevant to the data-safety
+  section, worth reading Play's requirements carefully rather than guessing).
+
+---
+
 ## ⚠ READ THIS FIRST — GST settings + 3-dot settings menu shipped (2026-09-13, later same day)
 
 Built the two feature requests that the entry below this one deferred. Not yet tested on real

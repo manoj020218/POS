@@ -34,7 +34,14 @@ NOW — client wants to roll out (asked 2026-09-06); go-live checklist, roughly 
 7. Get a real Android tablet + a real BLE or USB thermal printer to run the plugin's own
    `HARDWARE_TEST_CHECKLIST.md` and confirm actual printing works —
    `apps/pos/android/app/build/outputs/apk/debug/app-debug.apk` builds successfully (2026-09-04) but
-   has NOT been run on physical hardware; nothing in this environment can verify that
+   has NOT been run on physical hardware; nothing in this environment can verify that. **Update
+   2026-09-13: BLE + USB printing confirmed working on a real phone this session (see HANDOFF.md);
+   only the physical tablet itself remains untested.**
+8. **Submit to the Google Play Store** (client's plan, stated 2026-09-13, targeting 2026-09-14) —
+   not started. See the top HANDOFF.md entry (2026-09-13, end of day) for what's already in place
+   (privacy policy page, release keystore) vs. what's still needed (Play Console developer account —
+   note Google's identity verification can take days, store listing assets, content
+   rating/data-safety questionnaire, and a `bundleRelease` AAB build, which is untested so far).
 
 NEXT — toward "full production launch" beyond the go-live checklist above (client's request,
 2026-09-04; see PROJECT_PLAN.md §66 MVP boundary for the full list). Roughly sequenced; each phase
