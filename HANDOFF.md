@@ -1,5 +1,54 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — GST settings + 3-dot settings menu shipped (2026-09-13, later same day)
+
+Built the two feature requests that the entry below this one deferred. Not yet tested on real
+hardware/production — code compiles clean (`tsc`/`vite build`/full `vitest` suite all pass) but
+needs a real device pass before calling it done.
+
+**GST settings** (`apps/pos/src/components/settings/GstSettingsModal.tsx`, reached via the new 3-dot
+menu below): a business-wide "GST Applicable: Yes/No" toggle with preset rates (5/12/18/28%) or a
+custom %. Product prices in the POS keep showing tax-included as before — turning this on doesn't
+change any price, it only changes what prints on the receipt below Total: a single "Tax" line
+becomes a "CGST X%" + "SGST X%" split (each half the total rate), matching how India GST is
+conventionally itemized. Implementation notes:
+- The server already had full `tax_profiles` CRUD (`apps/api/.../tax-profile.controller.ts`) and a
+  `defaultTaxProfileId` concept on business settings — none of it was exposed to the client. Added
+  `listTaxProfiles`/`createTaxProfile`/`updateTaxProfile` to `ClientRemoteApi`
+  (`packages/client-data/src/remote-api.ts` + `http-client-remote-api.ts`) to close that gap.
+  **Rebuild `packages/client-data` and `packages/printer` (`npm run build` in each) before the pos
+  app will pick up these types** — they're consumed via each package's `dist/`, not source.
+  Confirmed defaults: every business already auto-gets a 0%-rate `NO-TAX` profile server-side
+  the first time it's needed, so turning GST "off" here just points `defaultTaxProfileId` back at
+  that profile rather than needing a special "no tax" code path.
+- CGST/SGST split lives in `packages/printer/src/receipt-job.ts` as a new `showGstSplit` boolean on
+  `ReceiptPrintJobInput` — splits whichever `taxAmount` the sale actually computed (works fine even
+  for a mixed cart with per-product overrides) rather than assuming one flat rate. Wired on in
+  `checkout-printer.ts` whenever `settings.defaultTaxProfile.rateBasisPoints > 0`.
+- `AddEditProductModal` now shows a per-product GST-rate chip picker, but **only when GST is
+  applicable business-wide** — lets an individual product be marked "No GST" (exempt) or a different
+  slab than the business default, without exposing tax UI at all for businesses that don't collect
+  GST.
+
+**3-dot settings menu** (WhatsApp-style, explicitly requested): TopBar had grown to 7+ always-visible
+settings icons (Add Product, Import/Export, Kiosk Orders, Payment Gateways, Terminal Mode, Help, AI
+Assistant, now GST) on top of Calculator and the printer status indicator. Replaced with a shared
+registry (`apps/pos/src/components/layout/topbar-menu-entries.tsx`) — each entry is just
+`{id, label, icon, renderModal}`, reusing each feature's existing Modal component. Only Calculator
+and the printer status button stay permanently pinned (daily-use / safety-critical glanceable
+status); everything else defaults to 2 pinned (Add Product, Kiosk Orders) with the rest tucked
+behind a new `MoreMenuButton` (⋮) — tapping it lists every entry with a pin/unpin toggle
+(`apps/pos/src/state/use-pinned-topbar-entries.ts`, persisted to `localStorage`, per-device only, not
+synced). Old always-mounted button wrapper files (`AddProductButton.tsx`, `HelpButton.tsx`, etc.)
+were deleted since the registry now owns their icon+modal wiring directly; `HelpButton`/
+`AiAssistantButton`'s inline modals were extracted into standalone `HelpModal.tsx`/
+`AiAssistantModal.tsx` so they fit the same `(open, onClose)` shape as the rest.
+
+**Not yet done**: live on-device testing of both features (only build/typecheck/vitest verified so
+far); "Export Sale" settings item still not started.
+
+---
+
 ## ⚠ READ THIS FIRST — first release APK + real-world production testing round (2026-09-13, later same day)
 
 Continuation of the entries below (same branch/day). After rate limiting shipped, built and signed
@@ -68,12 +117,9 @@ recorded here.
   the captured photo's *local* preview inside the Add Product form itself doesn't render in at
   least one reported case — release builds don't expose WebView console logs to logcat, so this
   also needs live remote debugging to pin down, not more blind guessing.
-- **Two feature requests, not started**: GST/tax settings (business-level tax profile management —
-  note `tax_profiles` table + `taxProfileId`/`taxRateBasisPoints` already exist server-side and on
-  products, so this is UI work, not a from-scratch build: a settings screen, a tax-profile picker in
-  Add Product, and a CGST/SGST split on the printed receipt) and an "Export Sale" settings item to
-  download/share sales data with an accountant. Both discussed with the user but deliberately
-  deferred to finish verifying the current batch of fixes first.
+- **GST/tax settings — now built, see the new entry above this one.**
+- **"Export Sale" settings item** (download/share sales data with an accountant) — still not
+  started, deliberately deferred again in favor of GST settings first.
 - A UX report ("touch button selection feels slow" on the Add Product screen) — not yet
   investigated; the app already sets `touch-action: manipulation` and `user-scalable=no` globally
   (the standard fixes for mobile tap-delay), so if this is real it's something else.
