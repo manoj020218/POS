@@ -34,6 +34,7 @@ export const printCheckoutReceipt = async (input: {
         cashierName: input.context.cashierName,
         currencySymbol: input.settings.currencyCode,
         customerName: input.customer?.name,
+        discountAmount: input.calculated.discountAmount,
         footerLines: input.settings.receiptFooter ? [input.settings.receiptFooter] : undefined,
         invoiceNumber: input.calculated.invoiceNumber,
         items: input.calculated.items.map((item) => ({
@@ -42,7 +43,12 @@ export const printCheckoutReceipt = async (input: {
           totalAmount: item.totalAmount,
           unitPriceAmount: item.unitPrice
         })),
-        payments: [{ amount: input.calculated.tenderedAmount, label: input.paymentMethod }],
+        payments: [
+          { amount: input.calculated.tenderedAmount, label: input.paymentMethod },
+          ...(input.calculated.changeAmount > 0
+            ? [{ amount: input.calculated.changeAmount, label: 'Change' }]
+            : [])
+        ],
         printedAt: input.now(),
         profile,
         subtotalAmount: input.calculated.subtotalAmount,

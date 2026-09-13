@@ -91,6 +91,38 @@ describe('createLocalCheckoutService', () => {
     expect(stock[0]?.quantityOnHand).toBe(8);
     expect(printer.history).toHaveLength(1);
     expect(printer.history[0]?.operation).toBe('PRINT_RECEIPT');
+    // Regression: the receipt used to print the full cash tendered with no
+    // corresponding "change given" line at all.
+    expect(JSON.stringify(printer.history[0]?.job.commands)).toContain('Change');
+  });
+
+  it('prints the discount line when a sale has a discount applied', async () => {
+    const store = createInMemoryClientDataStore(() => new Date('2026-08-29T12:00:00.000Z'));
+    const printer = createRecordingPrinterService(() => new Date('2026-08-29T12:31:00.000Z'));
+    const product = createProduct();
+
+    await store.settings.saveBusinessSettings(createSettings(true));
+    await store.products.upsertProducts([product]);
+
+    const service = createLocalCheckoutService({
+      createId: createIdFactory('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'sale-created-0003'),
+      now: () => new Date('2026-08-29T12:30:00.000Z'),
+      printerService: printer,
+      store
+    });
+
+    // Regression: discountAmount was calculated correctly but never actually
+    // passed into the printed receipt job at all, so a discounted sale's
+    // printed receipt never showed the discount that was actually applied.
+    await service.completeSale({
+      context: terminalContext,
+      items: [{ discountAmount: 1000, productId: product.id, quantity: 2 }],
+      occurredAt: new Date('2026-08-29T12:29:00.000Z'),
+      payment: { method: 'CASH', tenderedAmount: 30000 }
+    });
+
+    expect(printer.history).toHaveLength(1);
+    expect(JSON.stringify(printer.history[0]?.job.commands)).toContain('Discount');
   });
 
   it('keeps the local sale and outbox event when receipt printing fails', async () => {
