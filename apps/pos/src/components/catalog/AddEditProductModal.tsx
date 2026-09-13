@@ -13,7 +13,7 @@ import { Modal } from '../common/Modal.js';
 
 type AddEditProductModalProps = {
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (saved: ClientProductRecord) => void;
   product?: ClientProductRecord;
 };
 
@@ -136,8 +136,9 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
               trackInventory
             });
 
-      await store.products.upsertProducts([toClientProductRecord(result)]);
-      onSaved();
+      const clientRecord = toClientProductRecord(result);
+      await store.products.upsertProducts([clientRecord]);
+      onSaved(clientRecord);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not save this product');
     } finally {

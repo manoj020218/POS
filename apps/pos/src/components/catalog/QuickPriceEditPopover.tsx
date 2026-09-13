@@ -10,7 +10,7 @@ import { NumericKeypad, type NumericKey } from '../common/NumericKeypad.js';
 
 type QuickPriceEditPopoverProps = {
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (updated: ClientProductRecord) => void;
   product: ClientProductRecord;
 };
 
@@ -64,8 +64,9 @@ export const QuickPriceEditPopover = ({ onClose, onSaved, product }: QuickPriceE
     setError(null);
     try {
       const updated = await remoteApi.updateProduct(product.id, { sellingPrice: newPrice });
-      await store.products.upsertProducts([toClientProductRecord(updated)]);
-      onSaved();
+      const clientRecord = toClientProductRecord(updated);
+      await store.products.upsertProducts([clientRecord]);
+      onSaved(clientRecord);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not update the price');
     } finally {

@@ -9,6 +9,7 @@ type CartAction =
   | { productId: string; type: 'INCREMENT' }
   | { productId: string; type: 'DECREMENT' }
   | { productId: string; type: 'REMOVE' }
+  | { productId: string; type: 'UPDATE_PRICE'; unitPrice: number }
   | { discountPercent: number; type: 'SET_DISCOUNT' }
   | { customerId: string | null; type: 'SET_CUSTOMER' }
   | { type: 'CLEAR' };
@@ -91,6 +92,13 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       };
     case 'REMOVE':
       return { ...state, lines: state.lines.filter((line) => line.productId !== action.productId) };
+    case 'UPDATE_PRICE':
+      return {
+        ...state,
+        lines: state.lines.map((line) =>
+          line.productId === action.productId ? { ...line, unitPrice: action.unitPrice } : line
+        )
+      };
     case 'SET_DISCOUNT':
       return { ...state, discountPercent: action.discountPercent };
     case 'SET_CUSTOMER':
@@ -114,6 +122,10 @@ export const useCart = () => {
   const increment = useCallback((productId: string) => dispatch({ productId, type: 'INCREMENT' }), []);
   const decrement = useCallback((productId: string) => dispatch({ productId, type: 'DECREMENT' }), []);
   const remove = useCallback((productId: string) => dispatch({ productId, type: 'REMOVE' }), []);
+  const updatePrice = useCallback(
+    (productId: string, unitPrice: number) => dispatch({ productId, type: 'UPDATE_PRICE', unitPrice }),
+    []
+  );
   const setDiscountPercent = useCallback(
     (discountPercent: number) => dispatch({ discountPercent, type: 'SET_DISCOUNT' }),
     []
@@ -157,7 +169,8 @@ export const useCart = () => {
     remove,
     setCustomer,
     setDiscountPercent,
-    totals
+    totals,
+    updatePrice
   };
 };
 

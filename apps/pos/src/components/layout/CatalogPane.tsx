@@ -44,8 +44,9 @@ export const CatalogPane = ({ cartApi, catalog }: CatalogPaneProps) => {
       {priceEditProduct && (
         <QuickPriceEditPopover
           onClose={() => setPriceEditProduct(null)}
-          onSaved={() => {
+          onSaved={(updated) => {
             setPriceEditProduct(null);
+            cartApi.updatePrice(updated.id, updated.sellingPrice);
             void refresh();
           }}
           product={priceEditProduct}
@@ -55,8 +56,9 @@ export const CatalogPane = ({ cartApi, catalog }: CatalogPaneProps) => {
       {fullEditProduct && (
         <AddEditProductModal
           onClose={() => setFullEditProduct(null)}
-          onSaved={() => {
+          onSaved={(saved) => {
             setFullEditProduct(null);
+            cartApi.updatePrice(saved.id, saved.sellingPrice);
             void refresh();
           }}
           product={fullEditProduct}
