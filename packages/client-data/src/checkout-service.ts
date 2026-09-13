@@ -92,7 +92,11 @@ export const createLocalCheckoutService = (dependencies: {
       trackedProducts.forEach((item) => {
         const available = balances.get(item.productId) ?? 0;
         if (available < item.quantity) {
-          throw new Error(`Insufficient local stock for product ${item.productName}`);
+          const shortBy = item.quantity - available;
+          throw new Error(
+            `Insufficient local stock for product ${item.productName}: only ${available} available, ` +
+              `${item.quantity} requested (short by ${shortBy})`
+          );
         }
       });
 
