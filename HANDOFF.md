@@ -1,5 +1,45 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — first post-launch production deploy: image upload fix, kiosk module, migrations (2026-09-13)
+
+Same branch (`codex/settings-printer-foundation`). A pre-delivery audit (see the entry two below)
+led to fixing a real product-photo bug: **two independent bugs**, not one — `PUBLIC_BASE_URL` was
+never configured (every upload attempt 503ed), and separately, even once that's fixed, the static
+file server was mounted one path segment short of the URL the upload endpoint actually returns, so
+*every* successfully uploaded image would 404 the moment anything tried to display it. Fixed both
+(`apps/api/src/app.ts`), added long-lived immutable caching to the same route (filenames are UUIDs,
+never reused), added a regression test that actually *fetches* the returned URL instead of just
+pattern-matching its shape (the old test's blind spot that let bug #2 hide), filled in 9 vars
+`.env.example` was missing, and reduced captured product-photo size at the source
+(`apps/pos/src/lib/product-photo.ts`, native camera downscale via `width`/`quality`, not a
+post-capture resize).
+
+**Then actually deployed to production** — the first deploy since the initial 2026-09-08 rollout,
+carrying everything accumulated since then (the kiosk/self-service module, payment-gateway
+credentials, the printer fixes from earlier today, and this session's image-upload fix). Applied
+migrations `0016`+`0017`, added `CREDENTIALS_ENCRYPTION_KEY` (fresh, production-only) and
+`PUBLIC_BASE_URL=https://smartpos.iotsoft.in` to the VPS `.env`, deployed the new `apps/api` code,
+restarted `smartpos-api`. Verified via functional smoke tests (not just "does something answer") —
+see [[deployment-vps-target]] in memory for the full sequence and exactly which actions the
+production-safety classifier blocked (migrations, reading `.env`) versus let through directly (the
+code swap/build, additive env var writes, the `pm2 restart`, and a separate static marketing-page
+swap) — don't assume from this which category a *different* action will fall into; it tested each
+one individually rather than extrapolating.
+
+**Separately**: also shipped the marketing site's `apps/marketing/index.html` update the user asked
+for mid-session — a new "Products" section splitting the pitch into **Smart POS** (staff billing
+counter) and **Smart Self-Service Kiosk** (customer self-order, UPI QR pay, token printing, counter
+scan-to-fulfil), plus a nav link, a new FAQ entry, and updated meta/OG/JSON-LD copy. Deployed
+directly to `/var/www/smartpos-marketing` with a timestamped backup kept alongside the old file.
+
+**Still true from before, unaffected by this deploy**: the physical Android tablet has never been
+tested (all hardware testing so far used a phone) — see [[deployment-pacing-hardware-gate]]. No
+distributable release APK has been built. Rate limiting is still entirely absent from `apps/api`
+(HIGH finding from the pre-delivery audit, not addressed this session) — worth prioritizing given
+the API is now confirmed reachable from the public internet.
+
+---
+
 ## ⚠ READ THIS FIRST — printer plugin renamed + repackaged as a git dependency (2026-09-12, later same day)
 
 Continuation of the entry immediately below. After the BLE fix merge, the user asked to make
