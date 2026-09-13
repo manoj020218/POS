@@ -1,6 +1,8 @@
 package com.smartpos.app;
 
 import android.os.Bundle;
+import android.view.View;
+import android.webkit.WebView;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -18,23 +20,26 @@ public class MainActivity extends BridgeActivity {
         // something explicitly insets it. Capacitor's bare BridgeActivity
         // doesn't do this on its own (nothing in @capacitor/android forwards
         // window insets to the WebView), so CSS env(safe-area-inset-*) alone
-        // resolves to 0 even though content is genuinely obscured. Applying
-        // the system bar insets directly as padding on the native WebView
-        // avoids depending on that CSS variable ever being populated.
+        // resolves to 0 even though content is genuinely obscured.
+        //
+        // Listening directly on the WebView didn't reliably receive the
+        // insets dispatch (it can sit several layers deep inside Capacitor's
+        // own view hierarchy, and an ancestor can intercept/consume the
+        // dispatch first). android.R.id.content is the direct child of the
+        // window's DecorView and reliably receives the full window insets
+        // in practice, so listen there and apply the resulting padding to
+        // the WebView explicitly.
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-        android.webkit.WebView webView = getBridge().getWebView();
+        View contentRoot = findViewById(android.R.id.content);
         ViewCompat.setOnApplyWindowInsetsListener(
-            webView,
+            contentRoot,
             (view, windowInsets) -> {
                 Insets systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-                view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-                return WindowInsetsCompat.CONSUMED;
+                WebView webView = getBridge().getWebView();
+                webView.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+                return windowInsets;
             }
         );
-        // The initial insets dispatch can happen before this listener attaches
-        // (Capacitor's own Bridge setup runs its own layout pass first), which
-        // would otherwise leave the WebView unpadded until some later system
-        // event happens to trigger a re-dispatch. Force one now.
-        ViewCompat.requestApplyInsets(webView);
+        ViewCompat.requestApplyInsets(contentRoot);
     }
 }
