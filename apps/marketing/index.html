@@ -4,17 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Smart POS — Free Billing Software for Shops, Stalls &amp; Restaurants</title>
-  <meta name="description" content="Smart POS is free billing software for kirana stores, general retail, food stalls, dhabas, vegetable vendors, and restaurants. Works fully offline, prints receipts on Bluetooth/USB thermal printers, tracks stock automatically, and syncs when the internet comes back. No monthly fee." />
+  <meta name="description" content="Smart POS is free billing software for kirana stores, general retail, food stalls, dhabas, vegetable vendors, and restaurants. Use it as a staff-run Smart POS billing counter, a customer-facing Smart Self-Service Kiosk with token printing and UPI QR payment, or both. Works fully offline, prints receipts on Bluetooth/USB thermal printers, tracks stock automatically, and syncs when the internet comes back. No monthly fee." />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://smartpos.iotsoft.in/" />
 
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Smart POS — Free Billing Software for Shops, Stalls &amp; Restaurants" />
-  <meta property="og:description" content="Offline-first billing, automatic stock tracking, and receipt printing on any Android tablet — for kirana stores, food stalls, dhabas, vegetable vendors, and restaurants. Free to use." />
+  <meta property="og:description" content="Run a staff billing counter with Smart POS, a customer self-order Smart Self-Service Kiosk, or both — offline-first billing, automatic stock tracking, and receipt printing on any Android tablet. Free to use." />
   <meta property="og:url" content="https://smartpos.iotsoft.in/" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Smart POS — Free Billing Software for Shops, Stalls &amp; Restaurants" />
-  <meta name="twitter:description" content="Offline-first billing, automatic stock tracking, and receipt printing on any Android tablet — for kirana stores, food stalls, dhabas, vegetable vendors, and restaurants. Free to use." />
+  <meta name="twitter:description" content="Run a staff billing counter with Smart POS, a customer self-order Smart Self-Service Kiosk, or both — offline-first billing, automatic stock tracking, and receipt printing on any Android tablet. Free to use." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -27,7 +27,7 @@
     "name": "Smart POS",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Android",
-    "description": "Free, offline-first point-of-sale and billing software for kirana stores, general retail, food stalls, dhabas, vegetable vendors, and restaurants. Prints receipts on Bluetooth/USB thermal printers, tracks inventory automatically, and syncs sales when back online.",
+    "description": "Free, offline-first point-of-sale and billing software for kirana stores, general retail, food stalls, dhabas, vegetable vendors, and restaurants. Includes a staff-run Smart POS billing counter and a customer-facing Smart Self-Service Kiosk mode with UPI QR payment and token printing. Prints receipts on Bluetooth/USB thermal printers, tracks inventory automatically, and syncs sales when back online.",
     "offers": {
       "@type": "Offer",
       "price": "0",
@@ -127,6 +127,26 @@
     .section-head p { color: var(--ink-muted); }
     .eyebrow { color: var(--brand-600); font-weight: 800; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
 
+    .segments { background: var(--surface-sunken); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .segments-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6rem; }
+    .segment-card {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 20px;
+      padding: 2rem; display: flex; flex-direction: column; box-shadow: var(--shadow);
+    }
+    .segment-card .icon {
+      width: 52px; height: 52px; border-radius: 14px; background: var(--brand-100); color: var(--brand-700);
+      display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin-bottom: 1.1rem;
+    }
+    .segment-card h3 { font-size: 1.3rem; margin: 0 0 .5rem; }
+    .segment-card .segment-tag { color: var(--brand-600); font-weight: 800; font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; }
+    .segment-card p.desc { color: var(--ink-muted); margin: .6rem 0 1.2rem; }
+    .segment-card ul { list-style: none; margin: 0 0 1.4rem; padding: 0; flex-grow: 1; }
+    .segment-card li { display: flex; gap: .55rem; margin-bottom: .6rem; font-size: .93rem; color: var(--ink); }
+    .segment-card li::before { content: '✓'; color: var(--brand-600); font-weight: 800; flex-shrink: 0; }
+    @media (max-width: 860px) {
+      .segments-grid { grid-template-columns: 1fr; }
+    }
+
     .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; }
     .feature-card { border: 1px solid var(--line); border-radius: 16px; padding: 1.6rem; background: var(--surface); }
     .feature-card .icon {
@@ -220,6 +240,7 @@
         <span class="mark">₹</span> Smart POS
       </a>
       <ul class="nav-links">
+        <li><a href="#products">Products</a></li>
         <li><a href="#features">Features</a></li>
         <li><a href="#how-it-works">How it works</a></li>
         <li><a href="#faq">FAQ</a></li>
@@ -265,6 +286,46 @@
       </div>
     </div>
   </header>
+
+  <section class="segments" id="products">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">Two ways to run your counter</span>
+        <h2>One app, built for however you sell</h2>
+        <p>Run it as a cashier-operated billing counter, a customer-facing self-order kiosk, or both on different tablets in the same shop — they share the same products, stock, and sales.</p>
+      </div>
+      <div class="segments-grid">
+        <div class="segment-card">
+          <div class="icon">🧾</div>
+          <span class="segment-tag">Smart POS</span>
+          <h3>Billing counter, run by your staff</h3>
+          <p class="desc">The classic counter experience — your cashier rings up each sale, takes payment, and prints the receipt.</p>
+          <ul>
+            <li>Fast product search and one-tap billing</li>
+            <li>Cash, card, or UPI with automatic change</li>
+            <li>Receipt printing on Bluetooth/USB thermal printers</li>
+            <li>Stock and reports update with every sale</li>
+            <li>Add more counters as you grow, all sharing one catalog</li>
+          </ul>
+          <a class="btn btn-ghost" href="#signup">Set up Smart POS</a>
+        </div>
+        <div class="segment-card">
+          <div class="icon">🙋</div>
+          <span class="segment-tag">Smart Self-Service Kiosk</span>
+          <h3>Let customers order themselves</h3>
+          <p class="desc">Put a tablet on the counter or wall and let customers browse, order, and pay on their own — no more shouting orders across a busy stall.</p>
+          <ul>
+            <li>Customer-facing menu, tap to build an order</li>
+            <li>Pay by UPI QR on the spot, or pay at the counter</li>
+            <li>Prints a numbered token with a scannable QR code</li>
+            <li>Counter staff scan the token to collect or hand over the order</li>
+            <li>Optional 1+1 dual token printing for busy counters</li>
+          </ul>
+          <a class="btn btn-ghost" href="#signup">Set up Self-Service Kiosk</a>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <section id="features">
     <div class="container">
@@ -384,6 +445,10 @@
         <details>
           <summary>Do I need to be tech-savvy to set this up?</summary>
           <p>No. Sign up, install the app, sign in with the credentials you're given, and you're ready to bill. Pairing a printer is a one-time, guided step from within the app.</p>
+        </details>
+        <details>
+          <summary>What's the difference between Smart POS and the Self-Service Kiosk?</summary>
+          <p>They're the same app, set to a different mode per tablet. Smart POS is the staff-run billing counter — your cashier searches products, takes payment, and prints the receipt. Smart Self-Service Kiosk turns a tablet into a customer-facing ordering screen: the customer builds their own order, pays by UPI QR or chooses to pay at the counter, and a printed token with a scannable QR code comes out. Your counter just scans that token to fulfil the order. You can run either mode on a tablet, or both on different tablets in the same shop.</p>
         </details>
       </div>
     </div>
