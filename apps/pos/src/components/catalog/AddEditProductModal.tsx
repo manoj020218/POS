@@ -37,6 +37,8 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
   const [units, setUnits] = useState<ClientRemoteUnitSummary[]>([]);
   const [imageUrl, setImageUrl] = useState(product?.imageUrl);
   const [imagePreview, setImagePreview] = useState(product?.imageUrl);
+  const [trackInventory, setTrackInventory] = useState(product?.trackInventory ?? true);
+  const [openingStock, setOpeningStock] = useState('');
 
   const [changingBusinessType, setChangingBusinessType] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -127,7 +129,12 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
       const result =
         isEditing && product
           ? await remoteApi.updateProduct(product.id, payload)
-          : await remoteApi.createProduct({ ...payload, businessId: terminalContext.businessId });
+          : await remoteApi.createProduct({
+              ...payload,
+              businessId: terminalContext.businessId,
+              openingStock: trackInventory ? Number(openingStock) || 0 : undefined,
+              trackInventory
+            });
 
       await store.products.upsertProducts([toClientProductRecord(result)]);
       onSaved();
@@ -233,6 +240,36 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
           placeholder="Price"
           value={price}
         />
+
+        {!isEditing && (
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <button
+                className={chipClassName(trackInventory)}
+                onClick={() => setTrackInventory(true)}
+                type="button"
+              >
+                Track stock
+              </button>
+              <button
+                className={chipClassName(!trackInventory)}
+                onClick={() => setTrackInventory(false)}
+                type="button"
+              >
+                Don't track (made-to-order / loose)
+              </button>
+            </div>
+            {trackInventory && (
+              <input
+                className={inputClassName}
+                inputMode="numeric"
+                onChange={(event) => setOpeningStock(event.target.value)}
+                placeholder="Opening stock (how many you have right now)"
+                value={openingStock}
+              />
+            )}
+          </div>
+        )}
 
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Priced by</p>
