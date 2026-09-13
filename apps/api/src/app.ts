@@ -150,7 +150,16 @@ export const createApp = (options: AppOptions): Express => {
     '/api/v1',
     createCatalogRouter(catalogRepository, settingsRepository, tenantCoreRepository, productImageUploadConfig)
   );
-  app.use('/api/uploads', express.static(productImageUploadConfig.uploadDir));
+  app.use(
+    '/api/uploads/products',
+    express.static(productImageUploadConfig.uploadDir, {
+      // Filenames are random UUIDs and never reused/overwritten, so a
+      // long-lived immutable cache is always safe and keeps repeat views
+      // (product grids, kiosk catalog) from re-fetching the same image.
+      immutable: true,
+      maxAge: '1y'
+    })
+  );
   app.use('/api/v1', createCustomerRouter(customerRepository, tenantCoreRepository));
   app.use(
     '/api/v1',

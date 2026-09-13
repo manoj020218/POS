@@ -41,6 +41,15 @@ describe('product image upload', () => {
 
     const files = await readdir(uploadDir);
     expect(files).toHaveLength(1);
+
+    // Regression: the returned URL must actually be reachable, not just
+    // shaped correctly — a prior bug had the static file server mounted one
+    // path segment short of what this URL points at, so every uploaded image
+    // 404ed the moment anything tried to actually display it.
+    const imagePath = new URL(response.body.data.url).pathname;
+    const imageResponse = await request(app).get(imagePath);
+    expect(imageResponse.status).toBe(200);
+    expect(imageResponse.headers['cache-control']).toBe('public, max-age=31536000, immutable');
   });
 
   it('rejects an unsupported file type', async () => {
