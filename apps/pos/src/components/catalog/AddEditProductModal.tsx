@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Camera as CameraIcon, Image as ImageIcon, ScanLine } from 'lucide-react';
-import type { ClientProductRecord, ClientRemoteUnitSummary } from '@smart-pos/client-data';
+import type { ClientProductRecord, ClientRemoteTaxProfileView, ClientRemoteUnitSummary } from '@smart-pos/client-data';
 
 import { scanBarcode } from '../../lib/barcode-scanner.js';
 import { businessTypeOptions, suggestedUnitsFor, type BusinessType } from '../../lib/business-type-units.js';
@@ -35,6 +35,9 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
   const [businessType, setBusinessType] = useState(settings.businessType as BusinessType);
   const [unitCode, setUnitCode] = useState(product?.unitCode ?? suggestedUnitsFor(settings.businessType)[0]?.code ?? 'PCS');
   const [units, setUnits] = useState<ClientRemoteUnitSummary[]>([]);
+  const gstApplicable = (settings.defaultTaxProfile?.rateBasisPoints ?? 0) > 0;
+  const [taxProfileId, setTaxProfileId] = useState(product?.taxProfileId ?? settings.defaultTaxProfileId ?? '');
+  const [taxProfiles, setTaxProfiles] = useState<ClientRemoteTaxProfileView[]>([]);
   const [imageUrl, setImageUrl] = useState(product?.imageUrl);
   const [imagePreview, setImagePreview] = useState(product?.imageUrl);
   const [trackInventory, setTrackInventory] = useState(product?.trackInventory ?? true);
@@ -49,6 +52,13 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
   useEffect(() => {
     void remoteApi.listUnits({ businessId: terminalContext.businessId }).then(setUnits);
   }, [remoteApi, terminalContext.businessId]);
+
+  useEffect(() => {
+    if (!gstApplicable) {
+      return;
+    }
+    void remoteApi.listTaxProfiles({ businessId: terminalContext.businessId }).then(setTaxProfiles);
+  }, [gstApplicable, remoteApi, terminalContext.businessId]);
 
   const handleBusinessTypeSelect = async (nextType: BusinessType) => {
     if (nextType === businessType || changingBusinessType) {
@@ -123,6 +133,7 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
         imageUrl,
         name: name.trim(),
         sellingPrice: Number(price) || 0,
+        taxProfileId: gstApplicable ? taxProfileId || undefined : undefined,
         unitId
       };
 
@@ -287,6 +298,24 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
             ))}
           </div>
         </div>
+
+        {gstApplicable && taxProfiles.length > 0 && (
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">GST on this product</p>
+            <div className="flex flex-wrap gap-2">
+              {taxProfiles.map((profile) => (
+                <button
+                  className={chipClassName(profile.id === taxProfileId)}
+                  key={profile.id}
+                  onClick={() => setTaxProfileId(profile.id)}
+                  type="button"
+                >
+                  {profile.rateBasisPoints > 0 ? `${profile.rateBasisPoints / 100}%` : 'No GST'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {error && (
           <p className="rounded-xl bg-danger-50 px-4 py-3 text-center text-sm font-semibold text-danger-600">

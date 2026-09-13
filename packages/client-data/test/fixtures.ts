@@ -21,6 +21,7 @@ const unused = () => {
 export const createUnusedRemoteApi = (): ClientRemoteApi => ({
   createKioskOrder: unused,
   createProduct: unused,
+  createTaxProfile: unused,
   fulfillKioskOrder: unused,
   getBusinessSettings: unused,
   getKioskOrder: unused,
@@ -30,6 +31,7 @@ export const createUnusedRemoteApi = (): ClientRemoteApi => ({
   listKioskOrders: unused,
   listPaymentGatewayCards: unused,
   listProducts: unused,
+  listTaxProfiles: unused,
   listTerminals: unused,
   listUnits: unused,
   pullChanges: unused,
@@ -37,6 +39,7 @@ export const createUnusedRemoteApi = (): ClientRemoteApi => ({
   updateBusinessSettings: unused,
   updatePaymentGatewayCredentials: unused,
   updateProduct: unused,
+  updateTaxProfile: unused,
   updateTerminalSettings: unused,
   uploadProductImage: unused
 });

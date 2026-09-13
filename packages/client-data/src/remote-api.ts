@@ -148,6 +148,7 @@ export type ClientRemoteProductCreateInput = {
   purchasePrice?: number;
   sellingPrice: number;
   sku?: string;
+  taxProfileId?: string;
   trackInventory?: boolean;
   unitId?: string;
 };
@@ -168,6 +169,24 @@ export type ClientRemoteUnitSummary = {
   precision: number;
   symbol?: string;
 };
+
+export type ClientRemoteTaxProfileView = {
+  code: string;
+  id: string;
+  isActive: boolean;
+  name: string;
+  rateBasisPoints: number;
+};
+
+export type ClientRemoteTaxProfileCreateInput = {
+  businessId?: string;
+  code?: string;
+  isActive?: boolean;
+  name: string;
+  rateBasisPoints?: number;
+};
+
+export type ClientRemoteTaxProfileUpdateInput = Partial<Omit<ClientRemoteTaxProfileCreateInput, 'businessId'>>;
 
 export type ClientProductListMeta = {
   hasNextPage: boolean;
@@ -261,6 +280,7 @@ export type ClientUpdateBusinessSettingsInput = {
 export interface ClientRemoteApi {
   createKioskOrder(input: ClientCreateKioskOrderInput): Promise<ClientKioskOrderCreatedView>;
   createProduct(input: ClientRemoteProductCreateInput): Promise<ClientRemoteProductView>;
+  createTaxProfile(input: ClientRemoteTaxProfileCreateInput): Promise<ClientRemoteTaxProfileView>;
   fulfillKioskOrder(orderId: string, saleId: string): Promise<ClientKioskOrderView>;
   getBusinessSettings(input?: { businessId?: string }): Promise<ClientBusinessSettings>;
   getKioskOrder(orderId: string): Promise<ClientKioskOrderView>;
@@ -274,6 +294,7 @@ export interface ClientRemoteApi {
     pageSize?: number;
   }): Promise<{ items: ClientRemoteProductView[]; meta: ClientProductListMeta }>;
   listPaymentGatewayCards(businessId?: string): Promise<ClientPaymentGatewayCard[]>;
+  listTaxProfiles(input?: { businessId?: string }): Promise<ClientRemoteTaxProfileView[]>;
   listTerminals(input?: { branchId?: string }): Promise<ClientRemoteTerminalSummary[]>;
   listUnits(input?: { businessId?: string }): Promise<ClientRemoteUnitSummary[]>;
   pullChanges(query: ClientRemoteSyncPullQuery): Promise<ClientRemoteSyncPullResult>;
@@ -289,6 +310,10 @@ export interface ClientRemoteApi {
     gatewayCode: ClientPaymentGatewayCode,
     input: ClientUpdatePaymentGatewayCredentialsInput
   ): Promise<ClientPaymentGatewayCard>;
+  updateTaxProfile(
+    taxProfileId: string,
+    input: ClientRemoteTaxProfileUpdateInput
+  ): Promise<ClientRemoteTaxProfileView>;
   updateTerminalSettings(
     terminalId: string,
     input: ClientUpdateTerminalSettingsInput

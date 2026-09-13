@@ -36,6 +36,10 @@ export type ReceiptPrintJobInput = {
   payments?: ReceiptPaymentLine[];
   printedAt?: Date;
   profile: ReceiptPrinterProfile;
+  // When true, taxAmount is split evenly into CGST + SGST lines instead of a
+  // single "Tax" line -- how India GST is conventionally itemized on a
+  // retail receipt (CGST and SGST each collect half the total GST rate).
+  showGstSplit?: boolean;
   subtotalAmount?: number;
   taxAmount?: number;
   terminalName?: string;
@@ -132,7 +136,14 @@ export const createReceiptPrintJob = (input: ReceiptPrintJobInput): EscPosPrintJ
   }
 
   if ((input.taxAmount ?? 0) > 0) {
-    appendLines(commands, formatColumns('Tax', formatMoney(input.taxAmount!, currencySymbol), width));
+    if (input.showGstSplit) {
+      const cgstAmount = Math.round((input.taxAmount! / 2) * 100) / 100;
+      const sgstAmount = Math.round((input.taxAmount! - cgstAmount) * 100) / 100;
+      appendLines(commands, formatColumns('CGST', formatMoney(cgstAmount, currencySymbol), width));
+      appendLines(commands, formatColumns('SGST', formatMoney(sgstAmount, currencySymbol), width));
+    } else {
+      appendLines(commands, formatColumns('Tax', formatMoney(input.taxAmount!, currencySymbol), width));
+    }
   }
 
   appendLines(

@@ -51,6 +51,7 @@ export const printCheckoutReceipt = async (input: {
         ],
         printedAt: input.now(),
         profile,
+        showGstSplit: (input.settings.defaultTaxProfile?.rateBasisPoints ?? 0) > 0,
         subtotalAmount: input.calculated.subtotalAmount,
         taxAmount: input.calculated.taxAmount,
         terminalName: input.context.terminalName,

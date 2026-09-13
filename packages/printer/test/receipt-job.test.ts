@@ -60,6 +60,44 @@ describe('createReceiptPrintJob', () => {
     expect(job.commands[job.commands.length - 1]).toEqual({ mode: 'FULL', type: 'CUT' });
   });
 
+  it('splits tax into CGST/SGST lines when showGstSplit is set', () => {
+    const job = createReceiptPrintJob({
+      businessName: 'Smart POS Foods',
+      currencySymbol: 'INR',
+      invoiceNumber: 'INV-MAIN-01-000126',
+      items: [{ name: 'Masala Dosa', quantity: 1, totalAmount: 236, unitPriceAmount: 236 }],
+      profile,
+      showGstSplit: true,
+      subtotalAmount: 200,
+      taxAmount: 36,
+      totalAmount: 236
+    });
+
+    const textValues = job.commands.filter((command) => command.type === 'TEXT').map((command) => command.value);
+
+    expect(textValues).not.toContain('Tax                          INR 36.00');
+    expect(textValues.some((value) => value.startsWith('CGST') && value.endsWith('INR 18.00'))).toBe(true);
+    expect(textValues.some((value) => value.startsWith('SGST') && value.endsWith('INR 18.00'))).toBe(true);
+  });
+
+  it('prints a single Tax line when showGstSplit is not set', () => {
+    const job = createReceiptPrintJob({
+      businessName: 'Smart POS Foods',
+      currencySymbol: 'INR',
+      invoiceNumber: 'INV-MAIN-01-000127',
+      items: [{ name: 'Masala Dosa', quantity: 1, totalAmount: 236, unitPriceAmount: 236 }],
+      profile,
+      subtotalAmount: 200,
+      taxAmount: 36,
+      totalAmount: 236
+    });
+
+    const textValues = job.commands.filter((command) => command.type === 'TEXT').map((command) => command.value);
+
+    expect(textValues.some((value) => value.startsWith('Tax') && value.endsWith('INR 36.00'))).toBe(true);
+    expect(textValues.some((value) => value.startsWith('CGST'))).toBe(false);
+  });
+
   it('rejects empty receipts', () => {
     expect(() =>
       createReceiptPrintJob({

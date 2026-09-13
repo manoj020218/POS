@@ -21,6 +21,9 @@ import type {
   ClientRemoteSyncPullQuery,
   ClientRemoteSyncPullResult,
   ClientRemoteSyncPushResult,
+  ClientRemoteTaxProfileCreateInput,
+  ClientRemoteTaxProfileUpdateInput,
+  ClientRemoteTaxProfileView,
   ClientRemoteUnitSummary,
   ClientTerminalSettings,
   ClientUpdateBusinessSettingsInput,
@@ -105,6 +108,11 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
         body: JSON.stringify(input),
         method: 'POST'
       }),
+    createTaxProfile: (input: ClientRemoteTaxProfileCreateInput) =>
+      requestWithAuth<ClientRemoteTaxProfileView>(buildApiUrl(options.baseUrl, '/tax-profiles'), {
+        body: JSON.stringify(input),
+        method: 'POST'
+      }),
     fulfillKioskOrder: (orderId: string, saleId: string) =>
       requestWithAuth<ClientKioskOrderView>(buildApiUrl(options.baseUrl, `/kiosk/orders/${orderId}/fulfill`), {
         body: JSON.stringify({ saleId }),
@@ -144,6 +152,10 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
 
       return { items: data, meta };
     },
+    listTaxProfiles: (input) =>
+      requestWithAuth<ClientRemoteTaxProfileView[]>(
+        buildApiUrl(options.baseUrl, '/tax-profiles', { businessId: input?.businessId })
+      ),
     listTerminals: (input) =>
       requestWithAuth(buildApiUrl(options.baseUrl, '/terminals', { branchId: input?.branchId })),
     listUnits: (input) =>
@@ -178,6 +190,11 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
       ),
     updateProduct: (productId: string, input: ClientRemoteProductUpdateInput) =>
       requestWithAuth<ClientRemoteProductView>(buildApiUrl(options.baseUrl, `/products/${productId}`), {
+        body: JSON.stringify(input),
+        method: 'PATCH'
+      }),
+    updateTaxProfile: (taxProfileId: string, input: ClientRemoteTaxProfileUpdateInput) =>
+      requestWithAuth<ClientRemoteTaxProfileView>(buildApiUrl(options.baseUrl, `/tax-profiles/${taxProfileId}`), {
         body: JSON.stringify(input),
         method: 'PATCH'
       }),
