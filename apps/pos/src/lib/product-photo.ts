@@ -11,9 +11,13 @@ export type CapturedPhoto = { blob: Blob; webPath: string };
  */
 export const capturePhoto = async (source: 'camera' | 'gallery'): Promise<CapturedPhoto | null> => {
   const photo = await Camera.getPhoto({
-    quality: 80,
+    // Product photos are shown as small thumbnails/cards, never full-screen —
+    // the native picker downscales before the image ever reaches JS, which is
+    // far cheaper than capturing full camera resolution and resizing after.
+    quality: 65,
     resultType: CameraResultType.Uri,
-    source: source === 'camera' ? CameraSource.Camera : CameraSource.Photos
+    source: source === 'camera' ? CameraSource.Camera : CameraSource.Photos,
+    width: 640
   });
 
   if (!photo.webPath) {
