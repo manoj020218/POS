@@ -7,13 +7,13 @@ if (localPropertiesFile.exists()) {
 }
 
 android {
-    namespace "com.smartpos.app"
+    namespace "in.iotsoft.smartpos"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.smartpos.app"
+        applicationId "in.iotsoft.smartpos"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        versionCode 4
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
@@ -42,6 +42,9 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             if (localProperties.getProperty('RELEASE_STORE_FILE')) {
                 signingConfig signingConfigs.release
+            }
+            ndk {
+                debugSymbolLevel 'FULL'
             }
         }
     }

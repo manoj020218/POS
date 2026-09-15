@@ -1,4 +1,4 @@
-package com.smartpos.app;
+package in.iotsoft.smartpos;
 
 import android.os.Bundle;
 import android.view.View;
@@ -13,6 +13,7 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(BluetoothStatusPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Android 15 (targetSdk 35, see variables.gradle) makes edge-to-edge
