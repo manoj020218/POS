@@ -10,7 +10,7 @@ const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=in.iotsoft
 // release; no app redeploy needed for the check itself to start firing.
 posAppVersionRouter.get('/api/v1/pos/version', (_request, response) => {
   response.status(200).json({
-    latestVersionCode: Number(process.env.POS_LATEST_VERSION_CODE ?? 5),
+    latestVersionCode: Number(process.env.POS_LATEST_VERSION_CODE ?? 6),
     latestVersionName: process.env.POS_LATEST_VERSION_NAME ?? '1.0',
     playStoreUrl: PLAY_STORE_URL
   });

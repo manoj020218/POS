@@ -1,5 +1,37 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — versionCode 6 built and pushed; a small API deploy is still owed (2026-09-15, later)
+
+Continuation of the entry immediately below (same day). Since that entry: the 4 bug fixes were
+built into **versionCode 5** and uploaded to closed testing (client confirmed testing done), then a
+new feature went into **versionCode 6** (already built at
+`apps/pos/android/app/build/outputs/bundle/release/app-release.aab`, committed and pushed —
+`git log` for the full trail; not yet uploaded to Play Console):
+
+- **Update-available banner + version display**, per client request. `apps/pos/src/lib/app-version.ts`
+  reads the installed version via the new `@capacitor/app` plugin (`App.getInfo()`) and fetches a new
+  public, unauthenticated `GET /api/v1/pos/version` endpoint (`apps/api/src/http/routes/pos-app-version.ts`,
+  mounted before the rate limiter/auth context, same as `/health`). `use-app-update-status.ts` compares
+  the two once per app session; `UpdateAvailableBanner.tsx` shows a dismissible bar above whichever
+  shell is active (wired into `AppShell.tsx`) with an "Update now" button linking to the Play Store
+  listing. `MoreMenuButton.tsx`'s dropdown footer now also shows the installed version name/code so
+  support calls can confirm which build a cashier is running. The version-check fails silently (no
+  banner, no error) if the endpoint is unreachable, so this was safe to ship before the backend half
+  existed anywhere.
+- **The API half of this (`pos-app-version.ts`) is not deployed to production yet.** No SSH access to
+  the VPS from this session — someone needs to ship the updated `apps/api` to `smartpos.iotsoft.in`
+  (however deploys normally happen there) before the banner can ever actually fire. Until then it's
+  fully inert (the fetch just fails and nothing shows), not broken, just dormant. The endpoint's
+  `latestVersionCode`/`latestVersionName` come from `POS_LATEST_VERSION_CODE`/`POS_LATEST_VERSION_NAME`
+  env vars (default 5/"1.0" in code, now stale against versionCode 6 -- **set
+  `POS_LATEST_VERSION_CODE=6` on the VPS as part of that deploy**, and bump it again after every future
+  Play release without needing another API redeploy for that part).
+- Also hit, and worth remembering for next time: a round of Gradle/Kotlin daemon processes from the
+  day's repeated `bundleRelease` runs accumulated to 3GB+ RAM and got this build OOM-killed once.
+  `./gradlew.bat --stop` didn't clean them (version-registry mismatch across two different Gradle
+  versions on this machine, 8.2.1 vs 8.14.3) -- had to `taskkill` the `java.exe`/kotlin-daemon PIDs
+  directly, then rebuild with `--no-daemon` to avoid leaving another one behind.
+
 ## ⚠ READ THIS FIRST — Play Store submission live in closed testing; 4 real-device bugs fixed, not yet built (2026-09-15)
 
 Continuation of the Play Store submission work below. The app (renamed **Smart POS KIOSK by
