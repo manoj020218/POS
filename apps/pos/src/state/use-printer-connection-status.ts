@@ -1,11 +1,12 @@
 import { ThermalPrinter } from '@jenixindia/cap-thermal-printer';
 import { useEffect, useRef, useState } from 'react';
 
+import { isBluetoothEnabled } from '../lib/bluetooth-status.js';
 import { usePrinterSettings } from './use-printer-settings.js';
 
 const CHECK_INTERVAL_MS = 20_000;
 
-export type PrinterConnectionStatus = 'unpaired' | 'checking' | 'connected' | 'unreachable';
+export type PrinterConnectionStatus = 'unpaired' | 'checking' | 'connected' | 'unreachable' | 'bluetooth-off';
 
 /**
  * Proactively tests whether the paired printer is actually reachable right
@@ -18,9 +19,12 @@ export type PrinterConnectionStatus = 'unpaired' | 'checking' | 'connected' | 'u
  */
 export const usePrinterConnectionStatus = (): PrinterConnectionStatus => {
   const { currentProfile } = usePrinterSettings();
-  const [checkedStatus, setCheckedStatus] = useState<'checking' | 'connected' | 'unreachable'>('checking');
+  const [checkedStatus, setCheckedStatus] = useState<'checking' | 'connected' | 'unreachable' | 'bluetooth-off'>(
+    'checking'
+  );
   const checkingRef = useRef(false);
   const target = currentProfile?.target;
+  const isBluetoothProfile = currentProfile?.connectionType === 'BLUETOOTH';
 
   useEffect(() => {
     if (!target) {
@@ -36,10 +40,15 @@ export const usePrinterConnectionStatus = (): PrinterConnectionStatus => {
       checkingRef.current = true;
 
       try {
+        if (isBluetoothProfile && !(await isBluetoothEnabled())) {
+          if (!cancelled) {
+            setCheckedStatus('bluetooth-off');
+          }
+          return;
+        }
+
         await ThermalPrinter.connect(
-          currentProfile?.connectionType === 'BLUETOOTH'
-            ? { deviceId: target, transport: 'ble' }
-            : { deviceId: target, transport: 'usb' }
+          isBluetoothProfile ? { deviceId: target, transport: 'ble' } : { deviceId: target, transport: 'usb' }
         );
         if (!cancelled) {
           setCheckedStatus('connected');
@@ -60,7 +69,7 @@ export const usePrinterConnectionStatus = (): PrinterConnectionStatus => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [currentProfile?.connectionType, target]);
+  }, [isBluetoothProfile, target]);
 
   return target ? checkedStatus : 'unpaired';
 };

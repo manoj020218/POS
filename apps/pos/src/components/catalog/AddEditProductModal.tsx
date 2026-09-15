@@ -40,7 +40,7 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
   const [taxProfiles, setTaxProfiles] = useState<ClientRemoteTaxProfileView[]>([]);
   const [imageUrl, setImageUrl] = useState(product?.imageUrl);
   const [imagePreview, setImagePreview] = useState(product?.imageUrl);
-  const [trackInventory, setTrackInventory] = useState(product?.trackInventory ?? true);
+  const [trackInventory, setTrackInventory] = useState(product?.trackInventory ?? false);
   const [openingStock, setOpeningStock] = useState('');
 
   const [changingBusinessType, setChangingBusinessType] = useState(false);

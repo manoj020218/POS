@@ -5,8 +5,11 @@ const STORAGE_KEY = 'smartpos.topbar.pinnedEntryIds.v1';
 // Settings-style entries are used rarely; kept out of the default pinned
 // set so the bar stays uncluttered until the cashier chooses to pin one
 // via the 3-dot menu. Add product / kiosk orders are the two used often
-// enough during a shift to earn a default spot.
-const DEFAULT_PINNED_IDS = ['add-product', 'kiosk-orders'];
+// enough during a shift to earn a default spot. Terminal mode is also
+// pinned by default since it's the only way to switch a terminal into
+// Self-Service Kiosk view -- burying that behind the 3-dot menu made
+// kiosk mode effectively undiscoverable.
+const DEFAULT_PINNED_IDS = ['add-product', 'kiosk-orders', 'terminal-mode'];
 
 const readStoredPinnedIds = (): string[] => {
   try {
