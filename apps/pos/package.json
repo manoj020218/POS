@@ -12,6 +12,7 @@
   "dependencies": {
     "@capacitor-mlkit/barcode-scanning": "7.5.0",
     "@capacitor/android": "^7.6.9",
+    "@capacitor/app": "^7.1.2",
     "@capacitor/camera": "7.0.5",
     "@capacitor/core": "^7.6.9",
     "@jenixindia/cap-thermal-printer": "github:manoj020218/capacitor-plugins#path:packages/cap-thermal-printer",

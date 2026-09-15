@@ -1,7 +1,8 @@
 import { MoreVertical, Pin, PinOff } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { getInstalledAppVersion } from '../../lib/app-version.js';
 import { IconButton } from '../common/IconButton.js';
 import type { TopBarMenuEntry } from './topbar-menu-entries.js';
 
@@ -18,7 +19,12 @@ type MoreMenuButtonProps = {
 export const MoreMenuButton = ({ entries, isPinned, onOpenEntry, togglePinned }: MoreMenuButtonProps) => {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<{ right: number; top: number } | null>(null);
+  const [installedVersion, setInstalledVersion] = useState<{ versionCode: number; versionName: string } | null>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    void getInstalledAppVersion().then(setInstalledVersion);
+  }, []);
 
   const openMenu = () => {
     const rect = triggerRef.current?.getBoundingClientRect();
@@ -86,6 +92,9 @@ export const MoreMenuButton = ({ entries, isPinned, onOpenEntry, togglePinned }:
                   );
                 })}
               </div>
+              <p className="border-t border-line px-4 py-2 text-center text-xs text-ink-faint">
+                Smart POS {installedVersion ? `v${installedVersion.versionName} (${installedVersion.versionCode})` : ''}
+              </p>
             </div>
           </>,
           document.body

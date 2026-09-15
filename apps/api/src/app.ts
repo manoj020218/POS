@@ -7,6 +7,7 @@ import { errorHandler } from './http/middleware/error-handler.js';
 import { notFoundHandler } from './http/middleware/not-found.js';
 import { apiRateLimiter } from './http/middleware/rate-limit.js';
 import { healthRouter } from './http/routes/health.js';
+import { posAppVersionRouter } from './http/routes/pos-app-version.js';
 import { createRequestLogger, type AppLogger } from './lib/logger.js';
 import { createAccessTokenAccessContextResolver } from './modules/auth/access-context.js';
 import { createAuthRouter } from './modules/auth/auth.routes.js';
@@ -145,6 +146,7 @@ export const createApp = (options: AppOptions): Express => {
   );
   app.use(createRequestLogger(options.logger));
   app.use(healthRouter);
+  app.use(posAppVersionRouter);
   app.use(apiRateLimiter);
   app.use(attachAccessContext(accessContextResolver));
   app.use('/api/v1/auth', createAuthRouter(authRepository, tenantCoreRepository, authConfig));
