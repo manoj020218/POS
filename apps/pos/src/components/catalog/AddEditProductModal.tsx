@@ -1,10 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Camera as CameraIcon, Image as ImageIcon, ScanLine } from 'lucide-react';
 import type { ClientProductRecord, ClientRemoteTaxProfileView, ClientRemoteUnitSummary } from '@smart-pos/client-data';
 
 import { scanBarcode } from '../../lib/barcode-scanner.js';
 import { businessTypeOptions, suggestedUnitsFor, type BusinessType } from '../../lib/business-type-units.js';
-import { capturePhoto } from '../../lib/product-photo.js';
+import { capturePhoto, productPhotoFilename } from '../../lib/product-photo.js';
 import { toClientProductRecord } from '../../lib/product-view-mapping.js';
 import { usePosContext } from '../../state/use-pos-context.js';
 import { Button } from '../common/Button.js';
@@ -48,6 +48,16 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const localPreviewUrlRef = useRef<string | null>(null);
+
+  useEffect(
+    () => () => {
+      if (localPreviewUrlRef.current) {
+        URL.revokeObjectURL(localPreviewUrlRef.current);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     void remoteApi.listUnits({ businessId: terminalContext.businessId }).then(setUnits);
@@ -86,17 +96,37 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
 
   const handleCapturePhoto = async (source: 'camera' | 'gallery') => {
     setError(null);
+    setUploadingPhoto(true);
+    const previousImageUrl = imageUrl;
+    let nextPreviewUrl: string | null = null;
+
     try {
       const captured = await capturePhoto(source);
       if (!captured) {
         return;
       }
 
-      setImagePreview(captured.webPath);
-      setUploadingPhoto(true);
-      const uploaded = await remoteApi.uploadProductImage(captured.blob, `product-${Date.now()}.jpg`);
+      nextPreviewUrl = captured.previewUrl;
+      if (localPreviewUrlRef.current) {
+        URL.revokeObjectURL(localPreviewUrlRef.current);
+      }
+      localPreviewUrlRef.current = nextPreviewUrl;
+      setImagePreview(nextPreviewUrl);
+
+      const uploaded = await remoteApi.uploadProductImage(captured.blob, productPhotoFilename(captured.blob));
       setImageUrl(uploaded.url);
     } catch (cause) {
+      // Do not leave a temporary preview suggesting an image was saved when
+      // conversion or upload failed. Restore the persisted/no-image state.
+      if (nextPreviewUrl) {
+        URL.revokeObjectURL(nextPreviewUrl);
+        if (localPreviewUrlRef.current === nextPreviewUrl) {
+          localPreviewUrlRef.current = null;
+        }
+        setImagePreview(previousImageUrl);
+        setImageUrl(previousImageUrl);
+      }
+
       const message = cause instanceof Error ? cause.message : '';
       if (!/cancel/i.test(message)) {
         setError(message || 'Could not capture a photo');
