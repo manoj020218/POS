@@ -1,5 +1,65 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — Play Store submission live in closed testing; 4 real-device bugs fixed, not yet built (2026-09-15)
+
+Continuation of the Play Store submission work below. The app (renamed **Smart POS KIOSK by
+jenix**, package `in.iotsoft.smartpos` — see the entry below for why it's no longer
+`com.smartpos.app`) is now uploaded to the **closed testing** track and installed from the Play
+Store on the client's device. That first real-device pass surfaced 4 bugs, listed below. **Code is
+fixed and typecheck/lint/vitest all pass, but no new AAB/APK has been built yet** — the user
+explicitly asked to hold off on building so a second developer could work the image-upload issue
+(separate, untouched by this session) in parallel without the two of you racing to rebuild. Build a
+fresh release (`versionCode` must go to **5** — 1-4 are already burned against this package name in
+Play's per-package version tracking, even the ones that were removed from a draft before publishing)
+once both sets of fixes are ready to ship together.
+
+**1. 3-dot top-bar menu didn't open on the real device** — root-caused, not just patched around.
+`TopBar.tsx`'s `<header>` has `overflow-x-auto` for narrow-screen horizontal scrolling, which is a
+known CSS trap: setting only `overflow-x` forces the browser to compute `overflow-y` as `auto` too
+(you cannot have x-scroll with y-visible on the same element). That silently clipped
+`MoreMenuButton`'s absolutely-positioned dropdown to invisible — the menu *was* opening, just
+clipped to nothing. Fixed by rendering the dropdown through a `createPortal(..., document.body)` in
+`MoreMenuButton.tsx`, positioned via `getBoundingClientRect()` on open instead of CSS `absolute`, so
+it can no longer be clipped by any ancestor's overflow.
+
+**2. Self-Service Kiosk mode looked like it had disappeared** — it hadn't; the only way to switch a
+terminal into kiosk view is the "Terminal mode" entry in `topbar-menu-entries.tsx`, which defaulted
+to *unpinned* (hidden behind the 3-dot menu) — compounded by bug #1 making the menu unreachable
+entirely. Added `'terminal-mode'` to `DEFAULT_PINNED_IDS` in `use-pinned-topbar-entries.ts` so it's
+back on the bar by default. Per-device localStorage pin preferences from earlier test installs won't
+retroactively change; only fresh installs / cleared storage pick up the new default.
+
+**3. New products defaulted to "Track stock"** — changed `AddEditProductModal.tsx`'s initial
+`trackInventory` state from `?? true` to `?? false` per explicit client request, so **Add Product**
+now starts on "Don't track" (existing products' saved value is unaffected either way, since this
+only feeds the create-time default).
+
+**4. No indication when the printer's Bluetooth radio itself is off** (as opposed to "no printer
+paired" or "printer unreachable", which the topbar icon already covered). Since the printer plugin
+(`@jenixindia/cap-thermal-printer`, external git-dependency repo — see below entry) doesn't expose
+adapter power state, added a small **first-party** native plugin instead of touching that external
+repo: `apps/pos/android/app/src/main/java/in/iotsoft/smartpos/BluetoothStatusPlugin.java`
+(`isEnabled`/`openSettings`, registered in `MainActivity.java` before `super.onCreate`), wrapped by
+`apps/pos/src/lib/bluetooth-status.ts` (fails open — returns "enabled" — on any platform without the
+plugin, i.e. web/dev builds, or on a `SecurityException` if the runtime permission isn't granted
+yet, rather than showing a false alarm). `use-printer-connection-status.ts` gained a `'bluetooth-off'`
+status (checked before attempting `ThermalPrinter.connect()` when the paired profile is Bluetooth),
+and `PrinterStatusButton.tsx` shows a small red `animate-ping` dot over the printer icon in that
+state; tapping it opens a `Modal` with a "Turn on Bluetooth" button that calls
+`BluetoothStatus.openSettings()` (`Settings.ACTION_BLUETOOTH_SETTINGS`) rather than jumping straight
+to system settings unprompted. **Not yet verified on a real device with Bluetooth actually toggled
+off** — the logic is sound (isEnabled() doesn't need a runtime permission on the API levels this app
+supports, wrapped in try/catch regardless) but this whole native-plugin path only proves itself in a
+real Gradle build on a device, which didn't happen this session per the user's "don't build" ask.
+
+**Also unresolved, deliberately not touched this session**: a `google/certificates.zip`
+(`deployment_cert.der`, `hybrid_classical_cert.der`, `hybrid_pqc_cert.der` — Google's newer hybrid
+classical+post-quantum Android Developer Verification key-registration bundle) that the user
+mentioned fixes a "login error," and a separate "Image not showing" bug explicitly assigned to
+another developer. Neither has enough detail yet to act on — see two entries below for the
+package-rename saga this session also went through and why `.der` certs alone (no private key) can't
+sign anything by themselves.
+
 ## ⚠ READ THIS FIRST — paused for the day; Play Store submission planned next (2026-09-13, end of day)
 
 Continuation of the entry immediately below (same day, same branch). After GST settings + the 3-dot
