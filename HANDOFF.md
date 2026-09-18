@@ -1,5 +1,50 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — versionCode 7 in closed testing review; waiting on tester feedback before next work (2026-09-18)
+
+Two fixes shipped this session, both on `codex/settings-printer-foundation` (not yet merged to
+`main`):
+
+**1. Product photos missing in POS/kiosk — API-only, already deployed and live.** Helmet defaults
+every response to `Cross-Origin-Resource-Policy: same-origin`; the installed Capacitor app's WebView
+is a different origin than the API, so Android silently discarded the (HTTP 200) image response.
+Fixed in `apps/api/src/app.ts` — the `/api/uploads/products` static route now sets
+`Cross-Origin-Resource-Policy: cross-origin` explicitly (product images are public, unguessable
+UUID filenames, so this is safe; every other API response keeps the stricter default). Deployed to
+VPS 2's `smartpos-api` and verified (`curl -I` on a real product image shows the header, `/health`
+returns 200). **No app rebuild needed for this one** — existing installs pick it up automatically.
+
+**2. Auto-logout on a network blip — app-side, versionCode 7.** `apps/pos/src/state/use-auth.ts`'s
+background access-token refresh (runs every 15 min off the 30-day refresh token) caught *any*
+failure — a network blip, timeout, the API being briefly restarted — and treated it identically to
+"refresh token rejected," force-logging the user out and wiping the stored session. This is almost
+certainly what the client meant by "auto logout" / "no way to stay signed in": the app already
+persists sessions and auto-refreshes silently, so this bug was undoing that on ordinary store
+connectivity hiccups. Fixed to only log out on an actual `401` from `/auth/refresh`; any other
+failure now just skips that refresh attempt and leaves the session alone for the next retry.
+Bumped `versionCode` to 7, built and signed (`./gradlew.bat bundleRelease`, same
+`smart-pos-release.jks` keystore, `jarsigner -verify` → "jar verified"). Note: the "no way to set a
+new password" part of the same complaint looks like it's just undiscovered — `CashierLoginScreen`
+already has a working "Forgot password?" → email + SMTP reset-code flow
+(`ForgotPasswordScreen.tsx`, SMTP already configured on VPS 2) — didn't change anything there; flag
+to the client and see if it's actually broken for them or just not noticed.
+
+**Release status**: uploaded to Internal testing first (published immediately, no review needed),
+then promoted the same build to **Closed testing - Alpha** (where the client/real testers actually
+are) and submitted it via Publishing overview → "Send changes for review". As of this session it's
+sitting in Google's review queue (their own estimate: typically within 7 days, often much faster for
+an update to an already-approved app). **Nothing to do until either (a) Google approves it, at which
+point it auto-rolls out to closed testers since managed publishing is off, or (b) the client reports
+back with feedback on the fix.** Check Play Console → Publishing overview → Submission activity for
+review status before starting new app-side work.
+
+**Still true from the versionCode-6 entry below and not yet acted on**: the `/api/v1/pos/version`
+update-banner endpoint is still not deployed to VPS 2 (confirmed again this session — transferring
+just `app.ts` to the server failed to build because `./http/routes/pos-app-version.js` doesn't exist
+there yet). It's dormant/harmless until then, not broken. Whenever `apps/api` next gets a real full
+redeploy (not just a one-file patch like today's CORP fix), remember to also set
+`POS_LATEST_VERSION_CODE=7` on the VPS at the same time (still `6` from the last note, now stale).
+
 ## ⚠ READ THIS FIRST — versionCode 6 built and pushed; a small API deploy is still owed (2026-09-15, later)
 
 Continuation of the entry immediately below (same day). Since that entry: the 4 bug fixes were
