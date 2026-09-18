@@ -50,6 +50,10 @@ describe('product image upload', () => {
     const imageResponse = await request(app).get(imagePath);
     expect(imageResponse.status).toBe(200);
     expect(imageResponse.headers['cache-control']).toBe('public, max-age=31536000, immutable');
+    // Capacitor renders the POS from a local WebView origin. Helmet's default
+    // `same-origin` policy would make Android discard this 200 response when
+    // the POS/kiosk product card embeds it from the API host.
+    expect(imageResponse.headers['cross-origin-resource-policy']).toBe('cross-origin');
   });
 
   it('rejects an unsupported file type', async () => {

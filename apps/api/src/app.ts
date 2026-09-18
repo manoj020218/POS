@@ -161,7 +161,16 @@ export const createApp = (options: AppOptions): Express => {
       // long-lived immutable cache is always safe and keeps repeat views
       // (product grids, kiosk catalog) from re-fetching the same image.
       immutable: true,
-      maxAge: '1y'
+      maxAge: '1y',
+      // Helmet defaults every response to Cross-Origin-Resource-Policy:
+      // same-origin. The installed Capacitor app has its own local WebView
+      // origin, so Android blocks these otherwise-successful image responses
+      // when product cards load them from the API host. Product images are
+      // intentionally public, unguessable static assets; allow only this
+      // route to be embedded cross-origin while API responses stay protected.
+      setHeaders: (response) => {
+        response.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      }
     })
   );
   app.use('/api/v1', createCustomerRouter(customerRepository, tenantCoreRepository));
