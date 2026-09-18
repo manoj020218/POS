@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { createHttpAuthClient, type ClientAuthResult } from '@smart-pos/client-data';
+import { createHttpAuthClient, HttpRequestError, type ClientAuthResult } from '@smart-pos/client-data';
 
 import { apiBaseUrl, deviceName } from '../lib/api-config.js';
 
@@ -93,8 +93,15 @@ export const useAuth = () => {
         const result = await authClient.refresh(current.refreshToken);
         applySession(result);
         return result.accessToken;
-      } catch {
-        logout();
+      } catch (cause) {
+        // Only a genuine auth rejection (refresh token expired/invalid/revoked)
+        // means the session is actually over. A network blip, timeout, or the
+        // API being briefly unreachable throws a plain error here too — treating
+        // that the same as "log out" was wiping a perfectly good 30-day session
+        // (and the stored local data with it) on every transient connectivity hiccup.
+        if (cause instanceof HttpRequestError && cause.status === 401) {
+          logout();
+        }
         return null;
       }
     })().finally(() => {
