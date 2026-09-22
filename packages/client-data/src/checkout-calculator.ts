@@ -10,6 +10,8 @@ type CheckoutCalculatorItemInput = {
   taxRateBasisPoints: number;
   trackInventory: boolean;
   unitPrice: number;
+  variantId?: string;
+  variantName?: string;
 };
 
 export type CalculatedCheckoutSale = {

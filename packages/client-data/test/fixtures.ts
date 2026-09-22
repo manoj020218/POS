@@ -109,6 +109,7 @@ export const createProduct = (overrides: Partial<ClientProductRecord> = {}): Cli
   unitPrecision: 0,
   unitSymbol: 'pcs',
   updatedAt: new Date('2026-08-29T10:00:00.000Z'),
+  variants: [],
   ...overrides
 });
 

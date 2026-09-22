@@ -15,7 +15,8 @@ export const buildCheckoutSyncPayload = (
     productId: item.productId,
     quantity: item.quantity,
     taxAmount: item.taxAmount,
-    unitPrice: item.unitPrice
+    unitPrice: item.unitPrice,
+    variantId: item.variantId
   })),
   payment: {
     method: input.payment.method,

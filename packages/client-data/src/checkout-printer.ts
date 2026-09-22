@@ -38,7 +38,7 @@ export const printCheckoutReceipt = async (input: {
         footerLines: input.settings.receiptFooter ? [input.settings.receiptFooter] : undefined,
         invoiceNumber: input.calculated.invoiceNumber,
         items: input.calculated.items.map((item) => ({
-          name: item.productName,
+          name: item.variantName ? `${item.productName} (${item.variantName})` : item.productName,
           quantity: item.quantity,
           totalAmount: item.totalAmount,
           unitPriceAmount: item.unitPrice

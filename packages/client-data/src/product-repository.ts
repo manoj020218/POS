@@ -1,3 +1,9 @@
+export type ClientProductVariant = {
+  id: string;
+  name: string;
+  sellingPrice: number;
+};
+
 export type ClientProductRecord = {
   barcode?: string;
   brand?: string;
@@ -30,6 +36,7 @@ export type ClientProductRecord = {
   unitPrecision: number;
   unitSymbol?: string;
   updatedAt: Date;
+  variants: ClientProductVariant[];
 };
 
 export type ProductSearchInput = {

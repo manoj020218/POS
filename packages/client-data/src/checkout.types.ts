@@ -9,6 +9,7 @@ export type CreateLocalSaleItemInput = {
   quantity: number;
   taxAmount?: number;
   unitPrice?: number;
+  variantId?: string;
 };
 
 export type CreateLocalSaleRequest = {

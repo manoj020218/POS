@@ -155,6 +155,53 @@ describe('createLocalCheckoutService', () => {
     expect(event?.state).toBe('PENDING');
   });
 
+  it('resolves a variant to its own price and name, and snapshots them on the sale, sync payload, and receipt', async () => {
+    const store = createInMemoryClientDataStore(() => new Date('2026-08-29T12:00:00.000Z'));
+    const printer = createRecordingPrinterService(() => new Date('2026-08-29T12:31:00.000Z'));
+    const product = createProduct({
+      openingStock: 0,
+      sellingPrice: 25000,
+      trackInventory: false,
+      variants: [
+        { id: 'variant-half', name: 'Half', sellingPrice: 25000 },
+        { id: 'variant-full', name: 'Full', sellingPrice: 30000 }
+      ]
+    });
+
+    await store.settings.saveBusinessSettings(createSettings(true));
+    await store.products.upsertProducts([product]);
+
+    const service = createLocalCheckoutService({
+      createId: createIdFactory('dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'sale-created-0004'),
+      now: () => new Date('2026-08-29T12:30:00.000Z'),
+      printerService: printer,
+      store
+    });
+
+    const result = await service.completeSale({
+      context: terminalContext,
+      items: [
+        { productId: product.id, quantity: 1, variantId: 'variant-half' },
+        { productId: product.id, quantity: 1, variantId: 'variant-full' }
+      ],
+      payment: { method: 'CASH', tenderedAmount: 60000 }
+    });
+    const sale = await store.sales.findSaleById(result.saleId);
+    const event = await store.sync.findEventById(result.syncEvent.eventId);
+
+    expect(sale?.items).toEqual([
+      expect.objectContaining({ unitPrice: 25000, variantId: 'variant-half', variantName: 'Half' }),
+      expect.objectContaining({ unitPrice: 30000, variantId: 'variant-full', variantName: 'Full' })
+    ]);
+    expect((event?.payload as { items: { variantId?: string }[] }).items).toEqual([
+      expect.objectContaining({ variantId: 'variant-half' }),
+      expect.objectContaining({ variantId: 'variant-full' })
+    ]);
+    const receiptCommands = JSON.stringify(printer.history[0]?.job.commands);
+    expect(receiptCommands).toContain('Masala Dosa (Half)');
+    expect(receiptCommands).toContain('Masala Dosa (Full)');
+  });
+
   it('rejects checkout when tracked inventory is insufficient', async () => {
     const store = createInMemoryClientDataStore();
     const product = createProduct({ openingStock: 1 });

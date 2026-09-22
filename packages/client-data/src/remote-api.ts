@@ -1,7 +1,7 @@
 import type { ReceiptPrinterProfile } from '@smart-pos/printer';
 
 import type { ClientCustomerRecord } from './customer-repository.js';
-import type { ClientProductRecord } from './product-repository.js';
+import type { ClientProductRecord, ClientProductVariant } from './product-repository.js';
 import type { ClientBusinessSettings } from './settings-repository.js';
 
 export type ClientRemoteSyncEventInput = {
@@ -133,6 +133,7 @@ export type ClientRemoteProductView = {
   unitName: string;
   unitPrecision: number;
   unitSymbol?: string;
+  variants: ClientProductVariant[];
 };
 
 export type ClientRemoteProductCreateInput = {
@@ -153,6 +154,7 @@ export type ClientRemoteProductCreateInput = {
   taxProfileId?: string;
   trackInventory?: boolean;
   unitId?: string;
+  variants?: { name: string; sellingPrice: number }[];
 };
 
 export type ClientRemoteProductUpdateInput = Partial<ClientRemoteProductCreateInput>;

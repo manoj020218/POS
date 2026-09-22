@@ -15,6 +15,8 @@ export type ClientSaleItemRecord = {
   totalAmount: number;
   trackInventory: boolean;
   unitPrice: number;
+  variantId?: string;
+  variantName?: string;
 };
 
 export type ClientSaleRecord = {

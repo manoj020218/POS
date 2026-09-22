@@ -28,7 +28,10 @@ export const createLocalCheckoutService = (dependencies: {
         throw new Error('Local checkout requires at least one line item');
       }
 
-      ensureUniqueProducts(input.items.map((item) => item.productId));
+      // A product can legitimately appear more than once now (e.g. a Half
+      // portion and a Full portion of the same Daal) -- uniqueness is keyed
+      // on product+variant, not product alone.
+      ensureUniqueProducts(input.items.map((item) => `${item.productId}::${item.variantId ?? ''}`));
 
       const settings = resolveClientBusinessSettings(
         await dependencies.store.settings.findBusinessSettings(input.context.businessId),
@@ -55,6 +58,17 @@ export const createLocalCheckoutService = (dependencies: {
             throw new Error(`Product ${product.name} is inactive`);
           }
 
+          let variantName: string | undefined;
+          let resolvedUnitPrice = item.unitPrice ?? product.sellingPrice;
+          if (item.variantId) {
+            const variant = product.variants?.find((candidate) => candidate.id === item.variantId);
+            if (!variant) {
+              throw new Error(`Variant ${item.variantId} is not available for product ${product.name}`);
+            }
+            variantName = variant.name;
+            resolvedUnitPrice = item.unitPrice ?? variant.sellingPrice;
+          }
+
           return {
             discountAmount: item.discountAmount ?? 0,
             productId: product.id,
@@ -64,7 +78,9 @@ export const createLocalCheckoutService = (dependencies: {
             taxAmount: item.taxAmount,
             taxRateBasisPoints: product.taxRateBasisPoints,
             trackInventory: product.trackInventory,
-            unitPrice: item.unitPrice ?? product.sellingPrice
+            unitPrice: resolvedUnitPrice,
+            variantId: item.variantId,
+            variantName
           };
         }),
         payment: input.payment
@@ -119,7 +135,9 @@ export const createLocalCheckoutService = (dependencies: {
           taxAmount: item.taxAmount,
           totalAmount: item.totalAmount,
           trackInventory: item.trackInventory,
-          unitPrice: item.unitPrice
+          unitPrice: item.unitPrice,
+          variantId: item.variantId,
+          variantName: item.variantName
         })),
         sale: {
           branchCode: input.context.branchCode,
