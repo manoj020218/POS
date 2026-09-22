@@ -15,6 +15,8 @@
     "@capacitor/app": "^7.1.2",
     "@capacitor/camera": "7.0.5",
     "@capacitor/core": "^7.6.9",
+    "@capacitor/filesystem": "^7.1.8",
+    "@capacitor/share": "^7.0.4",
     "@jenixindia/cap-thermal-printer": "github:manoj020218/capacitor-plugins#path:packages/cap-thermal-printer",
     "@smart-pos/client-data": "workspace:*",
     "@smart-pos/printer": "workspace:*",

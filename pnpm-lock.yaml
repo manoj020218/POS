@@ -126,6 +126,12 @@ importers:
       '@capacitor/core':
         specifier: ^7.6.9
         version: 7.6.9
+      '@capacitor/filesystem':
+        specifier: ^7.1.8
+        version: 7.1.8(@capacitor/core@7.6.9)
+      '@capacitor/share':
+        specifier: ^7.0.4
+        version: 7.0.4(@capacitor/core@7.6.9)
       '@jenixindia/cap-thermal-printer':
         specifier: github:manoj020218/capacitor-plugins#path:packages/cap-thermal-printer
         version: https://codeload.github.com/manoj020218/capacitor-plugins/tar.gz/2a8e034b62b8fbd292ca0ea40f1b83a2c567a6c3#path:packages/cap-thermal-printer(@capacitor/core@7.6.9)
@@ -291,6 +297,19 @@ packages:
 
   '@capacitor/core@7.6.9':
     resolution: {integrity: sha512-4DOh/xySC9S5ryhUIqpOppasIyi2WiTdF0JuZ/2DEs+vf5eunRzHDdNYBp1snA3faHciTw/3SVGXfR+WkYxsMA==}
+
+  '@capacitor/filesystem@7.1.8':
+    resolution: {integrity: sha512-Qpw/2SE4/CzqAUvGgSM9hw/uXQ5qoOaF4wxbToXwpAaKPS+tzletS1h5ti3jjLmGcqizTs2sEXMtcsARW/Ceew==}
+    peerDependencies:
+      '@capacitor/core': '>=7.0.0'
+
+  '@capacitor/share@7.0.4':
+    resolution: {integrity: sha512-wNXxmXUcChrtbZ5jQv8scFIbIGKo3rk6B7qpWySxfUhYJP5NANgAqQ9Z69m0k/zYsucdh66SBU7XW1ykd9aUug==}
+    peerDependencies:
+      '@capacitor/core': '>=7.0.0'
+
+  '@capacitor/synapse@1.0.4':
+    resolution: {integrity: sha512-/C1FUo8/OkKuAT4nCIu/34ny9siNHr9qtFezu4kxm6GY1wNFxrCFWjfYx5C1tUhVGz3fxBABegupkpjXvjCHrw==}
 
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
@@ -3164,6 +3183,17 @@ snapshots:
   '@capacitor/core@7.6.9':
     dependencies:
       tslib: 2.8.1
+
+  '@capacitor/filesystem@7.1.8(@capacitor/core@7.6.9)':
+    dependencies:
+      '@capacitor/core': 7.6.9
+      '@capacitor/synapse': 1.0.4
+
+  '@capacitor/share@7.0.4(@capacitor/core@7.6.9)':
+    dependencies:
+      '@capacitor/core': 7.6.9
+
+  '@capacitor/synapse@1.0.4': {}
 
   '@drizzle-team/brocli@0.10.2': {}
 

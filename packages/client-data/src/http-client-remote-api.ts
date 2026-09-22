@@ -13,6 +13,7 @@ import type {
   ClientPaymentGatewayCard,
   ClientPaymentGatewayCode,
   ClientProductListMeta,
+  ClientPaymentMethodSummaryRow,
   ClientRemoteApi,
   ClientRemoteProductCreateInput,
   ClientRemoteProductPriceChange,
@@ -25,7 +26,10 @@ import type {
   ClientRemoteTaxProfileUpdateInput,
   ClientRemoteTaxProfileView,
   ClientRemoteUnitSummary,
+  ClientSalesBreakdownView,
+  ClientSalesSummaryView,
   ClientTerminalSettings,
+  ClientTopProductsView,
   ClientUpdateBusinessSettingsInput,
   ClientUpdatePaymentGatewayCredentialsInput,
   ClientUpdateTerminalSettingsInput
@@ -128,6 +132,14 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
       requestWithAuth<ClientRemoteProductPriceChange[]>(
         buildApiUrl(options.baseUrl, `/products/${productId}/price-history`)
       ),
+    getSalesSummary: (query) =>
+      requestWithAuth<ClientSalesSummaryView>(
+        buildApiUrl(options.baseUrl, '/reports/sales/summary', {
+          businessId: query?.businessId,
+          dateFrom: query?.dateFrom,
+          dateTo: query?.dateTo
+        })
+      ),
     getTerminalSettings: (terminalId: string) =>
       requestWithAuth<ClientTerminalSettings>(
         buildApiUrl(options.baseUrl, `/terminals/${terminalId}/kiosk-settings`)
@@ -152,12 +164,29 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
 
       return { items: data, meta };
     },
+    listSalesByPaymentMethod: (query) =>
+      requestWithAuth<ClientSalesBreakdownView<ClientPaymentMethodSummaryRow>>(
+        buildApiUrl(options.baseUrl, '/reports/sales/by-payment-method', {
+          businessId: query?.businessId,
+          dateFrom: query?.dateFrom,
+          dateTo: query?.dateTo
+        })
+      ),
     listTaxProfiles: (input) =>
       requestWithAuth<ClientRemoteTaxProfileView[]>(
         buildApiUrl(options.baseUrl, '/tax-profiles', { businessId: input?.businessId })
       ),
     listTerminals: (input) =>
       requestWithAuth(buildApiUrl(options.baseUrl, '/terminals', { branchId: input?.branchId })),
+    listTopProducts: (query) =>
+      requestWithAuth<ClientTopProductsView>(
+        buildApiUrl(options.baseUrl, '/reports/sales/top-products', {
+          businessId: query?.businessId,
+          dateFrom: query?.dateFrom,
+          dateTo: query?.dateTo,
+          limit: query?.limit
+        })
+      ),
     listUnits: (input) =>
       requestWithAuth<ClientRemoteUnitSummary[]>(
         buildApiUrl(options.baseUrl, '/units', { businessId: input?.businessId })

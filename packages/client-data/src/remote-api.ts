@@ -1,5 +1,6 @@
 import type { ReceiptPrinterProfile } from '@smart-pos/printer';
 
+import type { PaymentMethod } from './client-context.js';
 import type { ClientCustomerRecord } from './customer-repository.js';
 import type { ClientProductRecord, ClientProductVariant } from './product-repository.js';
 import type { ClientBusinessSettings } from './settings-repository.js';
@@ -283,6 +284,60 @@ export type ClientUpdateBusinessSettingsInput = {
   timezone?: string;
 };
 
+export type ClientSalesReportQuery = {
+  businessId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+};
+
+export type ClientSalesAggregate = {
+  averageSaleAmount: number;
+  discountAmount: number;
+  saleCount: number;
+  subtotalAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+  totalQuantity: number;
+};
+
+export type ClientSalesReportMeta = {
+  businessCount: number;
+  businessId?: string;
+  dateFrom: string;
+  dateTo: string;
+  reportType: 'DATE_RANGE' | 'TODAY';
+  timezone: string;
+};
+
+export type ClientSalesSummaryView = ClientSalesAggregate & ClientSalesReportMeta;
+
+export type ClientPaymentMethodSummaryRow = ClientSalesAggregate & {
+  paymentMethod: PaymentMethod;
+};
+
+export type ClientSalesBreakdownView<TRow> = ClientSalesReportMeta & {
+  rows: TRow[];
+};
+
+export type ClientTopProductSummaryRow = {
+  averageUnitPrice: number;
+  discountAmount: number;
+  productId: string;
+  productName: string;
+  productSku: string;
+  rank: number;
+  saleCount: number;
+  subtotalAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+  totalQuantity: number;
+};
+
+export type ClientTopProductsView = ClientSalesReportMeta & {
+  limit: number;
+  rows: ClientTopProductSummaryRow[];
+};
+
 export interface ClientRemoteApi {
   createKioskOrder(input: ClientCreateKioskOrderInput): Promise<ClientKioskOrderCreatedView>;
   createProduct(input: ClientRemoteProductCreateInput): Promise<ClientRemoteProductView>;
@@ -291,6 +346,7 @@ export interface ClientRemoteApi {
   getBusinessSettings(input?: { businessId?: string }): Promise<ClientBusinessSettings>;
   getKioskOrder(orderId: string): Promise<ClientKioskOrderView>;
   getProductPriceHistory(productId: string): Promise<ClientRemoteProductPriceChange[]>;
+  getSalesSummary(query?: ClientSalesReportQuery): Promise<ClientSalesSummaryView>;
   getTerminalSettings(terminalId: string): Promise<ClientTerminalSettings>;
   listBranches(): Promise<ClientRemoteBranchSummary[]>;
   listKioskOrders(businessId?: string): Promise<ClientKioskOrderView[]>;
@@ -300,7 +356,11 @@ export interface ClientRemoteApi {
     pageSize?: number;
   }): Promise<{ items: ClientRemoteProductView[]; meta: ClientProductListMeta }>;
   listPaymentGatewayCards(businessId?: string): Promise<ClientPaymentGatewayCard[]>;
+  listSalesByPaymentMethod(
+    query?: ClientSalesReportQuery
+  ): Promise<ClientSalesBreakdownView<ClientPaymentMethodSummaryRow>>;
   listTaxProfiles(input?: { businessId?: string }): Promise<ClientRemoteTaxProfileView[]>;
+  listTopProducts(query?: ClientSalesReportQuery & { limit?: number }): Promise<ClientTopProductsView>;
   listTerminals(input?: { branchId?: string }): Promise<ClientRemoteTerminalSummary[]>;
   listUnits(input?: { businessId?: string }): Promise<ClientRemoteUnitSummary[]>;
   pullChanges(query: ClientRemoteSyncPullQuery): Promise<ClientRemoteSyncPullResult>;
