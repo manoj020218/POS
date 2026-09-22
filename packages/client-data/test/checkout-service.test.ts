@@ -202,6 +202,31 @@ describe('createLocalCheckoutService', () => {
     expect(receiptCommands).toContain('Masala Dosa (Full)');
   });
 
+  it('prints a payment-due demand bill without recording a sale, even when auto-print is off', async () => {
+    const store = createInMemoryClientDataStore(() => new Date('2026-08-29T12:00:00.000Z'));
+    const printer = createRecordingPrinterService(() => new Date('2026-08-29T12:31:00.000Z'));
+    const product = createProduct({ openingStock: 5 });
+
+    // autoPrintReceipt is OFF -- a demand bill is an explicit cashier action,
+    // not an auto-print after a sale, so it must print regardless.
+    await store.settings.saveBusinessSettings(createSettings(false));
+    await store.products.upsertProducts([product]);
+
+    const service = createLocalCheckoutService({ printerService: printer, store });
+
+    const outcome = await service.printDemandBill({
+      context: terminalContext,
+      items: [{ productId: product.id, quantity: 2 }]
+    });
+
+    expect(outcome.status).toBe('PRINTED');
+    const receiptCommands = JSON.stringify(printer.history[0]?.job.commands);
+    expect(receiptCommands).toContain('PAYMENT DUE');
+
+    const stock = await store.stock.getBalances(terminalContext.businessId, [product.id]);
+    expect(stock[0]?.quantityOnHand).toBe(5);
+  });
+
   it('rejects checkout when tracked inventory is insufficient', async () => {
     const store = createInMemoryClientDataStore();
     const product = createProduct({ openingStock: 1 });

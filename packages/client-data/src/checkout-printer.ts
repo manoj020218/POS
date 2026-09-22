@@ -69,3 +69,62 @@ export const printCheckoutReceipt = async (input: {
     return { message: toErrorMessage(error), status: 'FAILED' };
   }
 };
+
+// Explicit, cashier-triggered print of the pre-payment "PAYMENT DUE" bill --
+// unlike printCheckoutReceipt this ignores the autoPrintReceipt toggle
+// (that toggle governs printing after a sale is recorded, not this
+// on-demand action) and only needs a configured printer.
+export const printDemandBillReceipt = async (input: {
+  calculated: CalculatedCheckoutSale;
+  context: ClientTerminalContext;
+  customer?: ClientCustomerRecord | null;
+  now: () => Date;
+  printerService?: PrinterService;
+  settings: ClientBusinessSettings;
+}): Promise<CheckoutPrintOutcome> => {
+  const profile = input.settings.branches.find(
+    (branch) => branch.branchId === input.context.branchId
+  )?.receiptPrinterProfile;
+
+  if (!profile || !input.printerService) {
+    return { status: 'SKIPPED' };
+  }
+
+  try {
+    const result = await input.printerService.printReceipt({
+      job: createReceiptPrintJob({
+        branchAddress: input.settings.branches.find(
+          (branch) => branch.branchId === input.context.branchId
+        )?.address,
+        branchName: input.context.branchName,
+        businessName: input.settings.businessName,
+        cashierName: input.context.cashierName,
+        currencySymbol: input.settings.currencyCode,
+        customerName: input.customer?.name,
+        discountAmount: input.calculated.discountAmount,
+        documentLabel: 'PAYMENT DUE',
+        gstin: input.settings.gstin,
+        invoiceNumber: 'PENDING',
+        items: input.calculated.items.map((item) => ({
+          name: item.variantName ? `${item.productName} (${item.variantName})` : item.productName,
+          quantity: item.quantity,
+          totalAmount: item.totalAmount,
+          unitPriceAmount: item.unitPrice
+        })),
+        note: 'Not a tax invoice -- pay at the counter to receive your invoice.',
+        printedAt: input.now(),
+        profile,
+        showGstSplit: (input.settings.defaultTaxProfile?.rateBasisPoints ?? 0) > 0,
+        subtotalAmount: input.calculated.subtotalAmount,
+        taxAmount: input.calculated.taxAmount,
+        terminalName: input.context.terminalName,
+        totalAmount: input.calculated.totalAmount
+      }),
+      profile
+    });
+
+    return { result, status: 'PRINTED' };
+  } catch (error) {
+    return { message: toErrorMessage(error), status: 'FAILED' };
+  }
+};

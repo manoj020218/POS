@@ -2,16 +2,68 @@ import type { PrinterService } from '@smart-pos/printer';
 
 import type { ClientDataStore } from './client-data-store.js';
 import { calculateCheckoutSaleTotals } from './checkout-calculator.js';
-import { printCheckoutReceipt } from './checkout-printer.js';
+import { printCheckoutReceipt, printDemandBillReceipt } from './checkout-printer.js';
 import { buildCheckoutSyncPayload } from './checkout-sync-payload.js';
 import { resolveClientBusinessSettings } from './settings-repository.js';
-import type { CreateLocalSaleRequest, LocalCheckoutResult } from './checkout.types.js';
+import type {
+  CreateLocalSaleItemInput,
+  CreateLocalSaleRequest,
+  LocalCheckoutResult,
+  PrintDemandBillRequest
+} from './checkout.types.js';
+import type { ClientProductRecord } from './product-repository.js';
+import type { PaymentMethod } from './client-context.js';
+import type { CheckoutPrintOutcome } from './checkout.types.js';
 
 const ensureUniqueProducts = (productIds: string[]) => {
   if (new Set(productIds).size !== productIds.length) {
     throw new Error('Each product may appear only once in a sale payload');
   }
 };
+
+const resolveCalculatedItems = (
+  items: CreateLocalSaleItemInput[],
+  productMap: Map<string, ClientProductRecord>,
+  businessId: string,
+  payment: { method: PaymentMethod; tenderedAmount?: number }
+) =>
+  calculateCheckoutSaleTotals({
+    items: items.map((item) => {
+      const product = productMap.get(item.productId);
+      if (!product || product.businessId !== businessId) {
+        throw new Error(`Product ${item.productId} is not available in the local store`);
+      }
+      if (!product.isActive) {
+        throw new Error(`Product ${product.name} is inactive`);
+      }
+
+      let variantName: string | undefined;
+      let resolvedUnitPrice = item.unitPrice ?? product.sellingPrice;
+      if (item.variantId) {
+        const variant = product.variants?.find((candidate) => candidate.id === item.variantId);
+        if (!variant) {
+          throw new Error(`Variant ${item.variantId} is not available for product ${product.name}`);
+        }
+        variantName = variant.name;
+        resolvedUnitPrice = item.unitPrice ?? variant.sellingPrice;
+      }
+
+      return {
+        discountAmount: item.discountAmount ?? 0,
+        productId: product.id,
+        productName: product.name,
+        productSku: product.sku,
+        quantity: item.quantity,
+        taxAmount: item.taxAmount,
+        taxRateBasisPoints: product.taxRateBasisPoints,
+        trackInventory: product.trackInventory,
+        unitPrice: resolvedUnitPrice,
+        variantId: item.variantId,
+        variantName
+      };
+    }),
+    payment
+  });
 
 export const createLocalCheckoutService = (dependencies: {
   createId?: () => string;
@@ -48,43 +100,12 @@ export const createLocalCheckoutService = (dependencies: {
         ? await dependencies.store.customers.findById(input.customerId)
         : null;
       const occurredAt = input.occurredAt ?? now();
-      const calculated = calculateCheckoutSaleTotals({
-        items: input.items.map((item) => {
-          const product = productMap.get(item.productId);
-          if (!product || product.businessId !== input.context.businessId) {
-            throw new Error(`Product ${item.productId} is not available in the local store`);
-          }
-          if (!product.isActive) {
-            throw new Error(`Product ${product.name} is inactive`);
-          }
-
-          let variantName: string | undefined;
-          let resolvedUnitPrice = item.unitPrice ?? product.sellingPrice;
-          if (item.variantId) {
-            const variant = product.variants?.find((candidate) => candidate.id === item.variantId);
-            if (!variant) {
-              throw new Error(`Variant ${item.variantId} is not available for product ${product.name}`);
-            }
-            variantName = variant.name;
-            resolvedUnitPrice = item.unitPrice ?? variant.sellingPrice;
-          }
-
-          return {
-            discountAmount: item.discountAmount ?? 0,
-            productId: product.id,
-            productName: product.name,
-            productSku: product.sku,
-            quantity: item.quantity,
-            taxAmount: item.taxAmount,
-            taxRateBasisPoints: product.taxRateBasisPoints,
-            trackInventory: product.trackInventory,
-            unitPrice: resolvedUnitPrice,
-            variantId: item.variantId,
-            variantName
-          };
-        }),
-        payment: input.payment
-      });
+      const calculated = resolveCalculatedItems(
+        input.items,
+        productMap,
+        input.context.businessId,
+        input.payment
+      );
 
       if (input.customerId) {
         if (!customer || customer.businessId !== input.context.businessId) {
@@ -199,6 +220,46 @@ export const createLocalCheckoutService = (dependencies: {
         saleId,
         syncEvent
       };
+    },
+
+    printDemandBill: async (input: PrintDemandBillRequest): Promise<CheckoutPrintOutcome> => {
+      if (input.items.length === 0) {
+        throw new Error('Local checkout requires at least one line item');
+      }
+
+      ensureUniqueProducts(input.items.map((item) => `${item.productId}::${item.variantId ?? ''}`));
+
+      const settings = resolveClientBusinessSettings(
+        await dependencies.store.settings.findBusinessSettings(input.context.businessId),
+        {
+          businessId: input.context.businessId,
+          businessName: input.context.businessName
+        }
+      );
+      const products = await dependencies.store.products.listByIds(
+        input.items.map((item) => item.productId)
+      );
+      const productMap = new Map(products.map((product) => [product.id, product]));
+      const customer = input.customerId
+        ? await dependencies.store.customers.findById(input.customerId)
+        : null;
+
+      if (input.customerId && (!customer || customer.businessId !== input.context.businessId)) {
+        throw new Error('Customer is not available in the local store');
+      }
+
+      const calculated = resolveCalculatedItems(input.items, productMap, input.context.businessId, {
+        method: 'OTHER'
+      });
+
+      return printDemandBillReceipt({
+        calculated,
+        context: input.context,
+        customer,
+        now,
+        printerService: dependencies.printerService,
+        settings
+      });
     }
   };
 };

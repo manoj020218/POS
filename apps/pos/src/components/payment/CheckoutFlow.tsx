@@ -4,6 +4,7 @@ import type { PaymentMethod } from '@smart-pos/client-data';
 import { useCheckout } from '../../state/use-checkout.js';
 import type { CartState } from '../../state/cart-types.js';
 import { ReceiptResultModal } from '../receipt/ReceiptResultModal.js';
+import { DemandBillResultModal } from './DemandBillResultModal.js';
 import { PaymentBar } from './PaymentBar.js';
 import { PaymentModal } from './PaymentModal.js';
 
@@ -18,7 +19,8 @@ type CheckoutFlowProps = {
 
 export const CheckoutFlow = ({ cart, currencyCode, onSaleCompleted, onSaleRecorded, totalAmount }: CheckoutFlowProps) => {
   const [activeMethod, setActiveMethod] = useState<PaymentMethod | null>(null);
-  const { error, reset, result, saleDetail, status, submit } = useCheckout();
+  const { billOutcome, billStatus, error, printDemandBill, reset, resetBill, result, saleDetail, status, submit } =
+    useCheckout();
 
   const handleConfirm = async (tenderedAmount?: number) => {
     if (!activeMethod) {
@@ -38,7 +40,20 @@ export const CheckoutFlow = ({ cart, currencyCode, onSaleCompleted, onSaleRecord
 
   return (
     <>
-      <PaymentBar disabled={cart.lines.length === 0} onSelect={setActiveMethod} />
+      <PaymentBar
+        disabled={cart.lines.length === 0}
+        onPrintBill={() => void printDemandBill(cart)}
+        onSelect={setActiveMethod}
+        printingBill={billStatus === 'printing'}
+      />
+
+      <DemandBillResultModal
+        currencyCode={currencyCode}
+        onClose={resetBill}
+        open={billStatus === 'done'}
+        outcome={billOutcome}
+        totalAmount={totalAmount}
+      />
 
       <PaymentModal
         currencyCode={currencyCode}
