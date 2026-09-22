@@ -16,7 +16,10 @@ type CartLineItemProps = {
 export const CartLineItem = ({ currencyCode, line, onDecrement, onIncrement, onRemove }: CartLineItemProps) => (
   <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface-raised p-3">
     <div className="min-w-0 flex-1">
-      <p className="truncate text-sm font-semibold text-ink">{line.name}</p>
+      <p className="truncate text-sm font-semibold text-ink">
+        {line.name}
+        {line.variantName && <span className="font-normal text-ink-faint"> · {line.variantName}</span>}
+      </p>
       <p className="text-xs text-ink-faint">
         {formatMoney(line.unitPrice, currencyCode)} × {line.quantity}
       </p>

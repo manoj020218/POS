@@ -26,7 +26,8 @@ export const useCheckout = () => {
       const items: CreateLocalSaleItemInput[] = input.cart.lines.map((line) => ({
         discountAmount: Math.round((line.quantity * line.unitPrice * input.cart.discountPercent) / 100),
         productId: line.productId,
-        quantity: line.quantity
+        quantity: line.quantity,
+        variantId: line.variantId
       }));
 
       try {

@@ -123,7 +123,8 @@ describe('productsToExportRows', () => {
       unitCode: 'PCS',
       unitId: 'unit-1',
       unitName: 'Pieces',
-      unitPrecision: 0
+      unitPrecision: 0,
+      variants: []
     };
 
     const rows = productsToExportRows([product]);

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Camera as CameraIcon, Image as ImageIcon, ScanLine } from 'lucide-react';
+import { Camera as CameraIcon, Image as ImageIcon, Plus, ScanLine, Trash2 } from 'lucide-react';
 import type { ClientProductRecord, ClientRemoteTaxProfileView, ClientRemoteUnitSummary } from '@smart-pos/client-data';
 
 import { scanBarcode } from '../../lib/barcode-scanner.js';
@@ -39,6 +39,9 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
   const [taxProfileId, setTaxProfileId] = useState(product?.taxProfileId ?? settings.defaultTaxProfileId ?? '');
   const [taxProfiles, setTaxProfiles] = useState<ClientRemoteTaxProfileView[]>([]);
   const [foodType, setFoodType] = useState<'non_veg' | 'veg' | undefined>(product?.foodType);
+  const [variants, setVariants] = useState<{ name: string; sellingPrice: string }[]>(
+    product?.variants.map((variant) => ({ name: variant.name, sellingPrice: String(variant.sellingPrice) })) ?? []
+  );
   const [imageUrl, setImageUrl] = useState(product?.imageUrl);
   const [imagePreview, setImagePreview] = useState(product?.imageUrl);
   const [trackInventory, setTrackInventory] = useState(product?.trackInventory ?? false);
@@ -137,6 +140,12 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
     }
   };
 
+  const addVariantRow = () => setVariants((previous) => [...previous, { name: '', sellingPrice: '' }]);
+  const updateVariantRow = (index: number, patch: Partial<{ name: string; sellingPrice: string }>) =>
+    setVariants((previous) => previous.map((variant, i) => (i === index ? { ...variant, ...patch } : variant)));
+  const removeVariantRow = (index: number) =>
+    setVariants((previous) => previous.filter((_, i) => i !== index));
+
   const handleScanBarcode = async () => {
     setError(null);
     setScanning(true);
@@ -159,6 +168,9 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
 
     try {
       const unitId = units.find((unit) => unit.code === unitCode)?.id;
+      const cleanedVariants = variants
+        .filter((variant) => variant.name.trim().length > 0 && Number(variant.sellingPrice) > 0)
+        .map((variant) => ({ name: variant.name.trim(), sellingPrice: Number(variant.sellingPrice) }));
       const payload = {
         barcode: barcode.trim() || undefined,
         foodType,
@@ -166,7 +178,8 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
         name: name.trim(),
         sellingPrice: Number(price) || 0,
         taxProfileId: gstApplicable ? taxProfileId || undefined : undefined,
-        unitId
+        unitId,
+        variants: cleanedVariants
       };
 
       const result =
@@ -284,6 +297,42 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
           placeholder="Price"
           value={price}
         />
+
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+            Variants (optional) — e.g. Half / Full portions
+          </p>
+          <div className="space-y-2">
+            {variants.map((variant, index) => (
+              <div className="flex gap-2" key={index}>
+                <input
+                  className={inputClassName}
+                  onChange={(event) => updateVariantRow(index, { name: event.target.value })}
+                  placeholder="Name (e.g. Half)"
+                  value={variant.name}
+                />
+                <input
+                  className={inputClassName}
+                  inputMode="decimal"
+                  onChange={(event) => updateVariantRow(index, { sellingPrice: event.target.value })}
+                  placeholder="Price"
+                  value={variant.sellingPrice}
+                />
+                <IconButton
+                  label="Remove variant"
+                  onClick={() => removeVariantRow(index)}
+                  tone="danger"
+                  type="button"
+                >
+                  <Trash2 size={18} />
+                </IconButton>
+              </div>
+            ))}
+            <Button icon={<Plus size={16} />} onClick={addVariantRow} size="sm" type="button" variant="outline">
+              Add variant
+            </Button>
+          </div>
+        </div>
 
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Food type (optional)</p>

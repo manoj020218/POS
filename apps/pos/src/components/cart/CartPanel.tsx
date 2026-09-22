@@ -45,11 +45,11 @@ export const CartPanel = ({ cartApi }: { cartApi: CartApi }) => {
           cart.lines.map((line) => (
             <CartLineItem
               currencyCode={settings.currencyCode}
-              key={line.productId}
+              key={`${line.productId}:${line.variantId ?? ''}`}
               line={line}
-              onDecrement={() => decrement(line.productId)}
-              onIncrement={() => increment(line.productId)}
-              onRemove={() => remove(line.productId)}
+              onDecrement={() => decrement(line.productId, line.variantId)}
+              onIncrement={() => increment(line.productId, line.variantId)}
+              onRemove={() => remove(line.productId, line.variantId)}
             />
           ))
         )}

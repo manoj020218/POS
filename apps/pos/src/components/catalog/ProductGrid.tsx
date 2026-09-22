@@ -1,12 +1,12 @@
 import { PackageSearch } from 'lucide-react';
-import type { ClientProductRecord } from '@smart-pos/client-data';
+import type { ClientProductRecord, ClientProductVariant } from '@smart-pos/client-data';
 
 import { ProductCard } from './ProductCard.js';
 
 type ProductGridProps = {
   cartQuantities: Map<string, number>;
   currencyCode: string;
-  onAdd: (product: ClientProductRecord) => void;
+  onAdd: (product: ClientProductRecord, variant?: ClientProductVariant) => void;
   onEditPrice: (product: ClientProductRecord) => void;
   onEditProduct: (product: ClientProductRecord) => void;
   products: ClientProductRecord[];
@@ -37,7 +37,7 @@ export const ProductGrid = ({
         <ProductCard
           currencyCode={currencyCode}
           key={product.id}
-          onAdd={() => onAdd(product)}
+          onAdd={(variant) => onAdd(product, variant)}
           onEditPrice={() => onEditPrice(product)}
           onEditProduct={() => onEditProduct(product)}
           product={product}

@@ -7,6 +7,8 @@ export type CartLine = {
   trackInventory: boolean;
   unitPrice: number;
   unitSymbol?: string;
+  variantId?: string;
+  variantName?: string;
 };
 
 export type CartState = {

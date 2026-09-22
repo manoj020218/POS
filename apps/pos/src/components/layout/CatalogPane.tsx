@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { ClientProductRecord } from '@smart-pos/client-data';
+import type { ClientProductRecord, ClientProductVariant } from '@smart-pos/client-data';
 
 import type { CartApi } from '../../state/use-cart.js';
 import type { useProductCatalog } from '../../state/use-product-catalog.js';
@@ -55,7 +55,7 @@ export const CatalogPane = ({ cartApi, catalog }: CatalogPaneProps) => {
   // Stop at the point of adding to cart rather than only at final checkout --
   // a cashier building a large order should find out immediately that stock
   // is short, not after ringing up everything else too.
-  const handleAdd = (product: ClientProductRecord) => {
+  const handleAdd = (product: ClientProductRecord, variant?: ClientProductVariant) => {
     if (product.trackInventory) {
       const available = stockByProductId.get(product.id) ?? 0;
       const alreadyInCart = cartQuantities.get(product.id) ?? 0;
@@ -66,7 +66,7 @@ export const CatalogPane = ({ cartApi, catalog }: CatalogPaneProps) => {
     }
 
     setBlockedProductId(null);
-    cartApi.addProduct(product);
+    cartApi.addProduct(product, variant);
   };
 
   return (

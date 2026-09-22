@@ -1,4 +1,4 @@
-import type { ClientProductRecord } from '@smart-pos/client-data';
+import type { ClientProductRecord, ClientProductVariant } from '@smart-pos/client-data';
 
 import { formatMoneyCompact } from '../../lib/currency.js';
 import { useLongPress } from '../../lib/use-long-press.js';
@@ -17,7 +17,7 @@ const paletteFor = (seed: string) => {
 
 type ProductCardProps = {
   currencyCode: string;
-  onAdd: () => void;
+  onAdd: (variant?: ClientProductVariant) => void;
   onEditPrice: () => void;
   onEditProduct: () => void;
   product: ClientProductRecord;
@@ -34,11 +34,14 @@ export const ProductCard = ({
   quantityInCart,
   quantityOnHand
 }: ProductCardProps) => {
+  const hasVariants = product.variants.length > 0;
   const lowStock =
     product.trackInventory && quantityOnHand !== undefined && quantityOnHand <= product.lowStockLevel;
   // Plain tap adds to cart (unchanged checkout behavior); long-press opens the
-  // full edit form.
-  const longPress = useLongPress(onAdd, onEditProduct);
+  // full edit form. When the product has variants there's no single default
+  // price to add at, so a tap on the card itself (outside a variant button)
+  // does nothing -- the cashier picks Half/Full explicitly below.
+  const longPress = useLongPress(hasVariants ? () => undefined : () => onAdd(), onEditProduct);
   // Price is a separate nested long-press target (a quick tap here does
   // nothing) so a fast cashier brushing past the price during normal
   // checkout use never accidentally opens the price-change screen.
@@ -98,29 +101,53 @@ export const ProductCard = ({
         )}
       </div>
 
-      <div className="relative z-10 mt-auto flex items-end justify-between gap-2 bg-white/90 px-2 py-1.5 backdrop-blur-sm">
-        <div className="min-w-0">
-          <p className="truncate text-xs font-semibold leading-tight text-ink">{product.name}</p>
-          <p className="truncate text-[10px] text-ink-faint">
-            {product.sku} · {product.unitSymbol ?? product.unitName}
-          </p>
-        </div>
-        <button
-          className="shrink-0 text-sm font-extrabold text-ink underline decoration-dotted decoration-2 underline-offset-2"
-          onPointerCancel={priceLongPress.onPointerCancel}
-          onPointerDown={(event) => {
-            event.stopPropagation();
-            priceLongPress.onPointerDown(event);
-          }}
-          onPointerLeave={priceLongPress.onPointerLeave}
-          onPointerUp={(event) => {
-            event.stopPropagation();
-            priceLongPress.onPointerUp(event);
-          }}
-          type="button"
-        >
-          {formatMoneyCompact(product.sellingPrice, currencyCode)}
-        </button>
+      <div className="relative z-10 mt-auto bg-white/90 px-2 py-1.5 backdrop-blur-sm">
+        {hasVariants ? (
+          <div className="flex flex-col gap-1">
+            <p className="truncate text-xs font-semibold leading-tight text-ink">{product.name}</p>
+            <div className="flex flex-wrap gap-1">
+              {product.variants.map((variant) => (
+                <button
+                  className="rounded-lg bg-brand-50 px-2 py-1 text-[11px] font-bold text-brand-600 active:bg-brand-100"
+                  key={variant.id}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onAdd(variant);
+                  }}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  type="button"
+                >
+                  {variant.name} {formatMoneyCompact(variant.sellingPrice, currencyCode)}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-end justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold leading-tight text-ink">{product.name}</p>
+              <p className="truncate text-[10px] text-ink-faint">
+                {product.sku} · {product.unitSymbol ?? product.unitName}
+              </p>
+            </div>
+            <button
+              className="shrink-0 text-sm font-extrabold text-ink underline decoration-dotted decoration-2 underline-offset-2"
+              onPointerCancel={priceLongPress.onPointerCancel}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                priceLongPress.onPointerDown(event);
+              }}
+              onPointerLeave={priceLongPress.onPointerLeave}
+              onPointerUp={(event) => {
+                event.stopPropagation();
+                priceLongPress.onPointerUp(event);
+              }}
+              type="button"
+            >
+              {formatMoneyCompact(product.sellingPrice, currencyCode)}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
