@@ -9,12 +9,22 @@ type ForgotPasswordScreenProps = {
   onReset: (email: string, newPassword: string) => void;
 };
 
+type IdentifierType = 'email' | 'mobile';
+
 const inputClassName =
   'h-14 w-full rounded-2xl border border-line bg-surface px-4 text-base font-medium text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-brand-500';
 
+const toggleButtonClassName = (active: boolean) =>
+  `h-11 flex-1 rounded-xl text-sm font-semibold transition-colors ${
+    active ? 'bg-brand-500 text-white' : 'bg-surface-sunken text-ink-muted'
+  }`;
+
 export const ForgotPasswordScreen = ({ onBack, onReset }: ForgotPasswordScreenProps) => {
   const [step, setStep] = useState<'request' | 'confirm'>('request');
+  const [identifierType, setIdentifierType] = useState<IdentifierType>('email');
   const [email, setEmail] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [maskedEmail, setMaskedEmail] = useState<string | null>(null);
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -27,12 +37,17 @@ export const ForgotPasswordScreen = ({ onBack, onReset }: ForgotPasswordScreenPr
     setError(null);
 
     try {
-      await fetch(`${apiBaseUrl}/auth/password/reset/request`, {
-        body: JSON.stringify({ email: email.trim() }),
+      const response = await fetch(`${apiBaseUrl}/auth/password/reset/request`, {
+        body: JSON.stringify(
+          identifierType === 'email' ? { email: email.trim() } : { mobile: mobile.trim() }
+        ),
         headers: { 'Content-Type': 'application/json' },
         method: 'POST'
       });
-      // Always advance: the API never discloses whether the email exists.
+      const body = (await response.json().catch(() => null)) as { data?: { maskedEmail?: string } } | null;
+      // Always advance: the API never discloses whether the account exists,
+      // beyond this optional masked-email hint when a mobile lookup succeeds.
+      setMaskedEmail(body?.data?.maskedEmail ?? null);
       setStep('confirm');
     } catch {
       setError('Could not reach the server. Check your internet connection and try again.');
@@ -65,7 +80,9 @@ export const ForgotPasswordScreen = ({ onBack, onReset }: ForgotPasswordScreenPr
         return;
       }
 
-      onReset(email.trim(), newPassword);
+      // Only pre-fill sign-in with a real, typeable email -- maskedEmail
+      // (e.g. "ow***@example.com") came from a mobile lookup and isn't one.
+      onReset(identifierType === 'email' ? email.trim() : '', newPassword);
     } catch {
       setError('Could not reach the server. Check your internet connection and try again.');
     } finally {
@@ -95,21 +112,53 @@ export const ForgotPasswordScreen = ({ onBack, onReset }: ForgotPasswordScreenPr
           <p className="text-xl font-bold text-ink">Reset your password</p>
           <p className="text-center text-sm text-ink-faint">
             {step === 'request'
-              ? "Enter your account email and we'll send you a reset code."
-              : 'Enter the code we emailed you and choose a new password.'}
+              ? "Enter your account email or mobile number and we'll send a reset code to your email."
+              : maskedEmail
+                ? `Enter the code we emailed to ${maskedEmail} and choose a new password.`
+                : 'Enter the code we emailed you and choose a new password.'}
           </p>
         </div>
 
         {step === 'request' ? (
-          <input
-            autoComplete="email"
-            className={inputClassName}
-            inputMode="email"
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="Email"
-            type="email"
-            value={email}
-          />
+          <div className="flex w-full flex-col gap-3">
+            <div className="flex gap-2 rounded-xl bg-surface-sunken p-1">
+              <button
+                className={toggleButtonClassName(identifierType === 'email')}
+                onClick={() => setIdentifierType('email')}
+                type="button"
+              >
+                Email
+              </button>
+              <button
+                className={toggleButtonClassName(identifierType === 'mobile')}
+                onClick={() => setIdentifierType('mobile')}
+                type="button"
+              >
+                Mobile number
+              </button>
+            </div>
+            {identifierType === 'email' ? (
+              <input
+                autoComplete="email"
+                className={inputClassName}
+                inputMode="email"
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="Email"
+                type="email"
+                value={email}
+              />
+            ) : (
+              <input
+                autoComplete="tel"
+                className={inputClassName}
+                inputMode="tel"
+                onChange={(event) => setMobile(event.target.value)}
+                placeholder="Mobile number"
+                type="tel"
+                value={mobile}
+              />
+            )}
+          </div>
         ) : (
           <div className="w-full space-y-3">
             <input
@@ -147,7 +196,9 @@ export const ForgotPasswordScreen = ({ onBack, onReset }: ForgotPasswordScreenPr
           disabled={
             submitting ||
             (step === 'request'
-              ? email.trim().length === 0
+              ? identifierType === 'email'
+                ? email.trim().length === 0
+                : mobile.trim().length === 0
               : resetToken.trim().length === 0 || newPassword.length === 0 || confirmPassword.length === 0)
           }
           fullWidth
