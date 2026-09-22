@@ -49,7 +49,7 @@ export const ProductCard = ({
 
   return (
     <div
-      className="relative flex h-28 flex-col overflow-hidden rounded-2xl border border-line bg-surface-sunken text-left shadow-kiosk transition-transform active:scale-[0.97]"
+      className="relative mx-auto flex h-28 w-[90%] flex-col overflow-hidden rounded-2xl border border-line bg-surface-sunken text-left shadow-kiosk transition-transform active:scale-[0.97]"
       onPointerCancel={longPress.onPointerCancel}
       onPointerDown={longPress.onPointerDown}
       onPointerLeave={longPress.onPointerLeave}
@@ -101,14 +101,14 @@ export const ProductCard = ({
         )}
       </div>
 
-      <div className="relative z-10 mt-auto bg-white/90 px-2 py-1.5 backdrop-blur-sm">
+      <div className="relative z-10 mt-auto bg-white/35 px-2 py-1.5 backdrop-blur-md">
         {hasVariants ? (
           <div className="flex flex-col gap-1">
             <p className="truncate text-xs font-semibold leading-tight text-ink">{product.name}</p>
             <div className="flex flex-wrap gap-1">
               {product.variants.map((variant) => (
                 <button
-                  className="rounded-lg bg-brand-50 px-2 py-1 text-[11px] font-bold text-brand-600 active:bg-brand-100"
+                  className="rounded-lg border border-brand-500/30 bg-brand-500/20 px-2 py-1 text-[11px] font-bold text-brand-700 backdrop-blur-sm active:bg-brand-500/30"
                   key={variant.id}
                   onClick={(event) => {
                     event.stopPropagation();

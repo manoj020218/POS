@@ -161,6 +161,17 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
     }
   };
 
+  // Once variants exist, each one carries its own price -- a separate base
+  // price would just be a second, easily-inconsistent place the same number
+  // lives. The backend still requires *a* sellingPrice on the product
+  // itself (used e.g. if this item is ever added without picking a
+  // variant), so the first variant's price is reused for that rather than
+  // asking the user to enter it twice.
+  const hasVariants = variants.length > 0;
+  const cleanedVariants = variants
+    .filter((variant) => variant.name.trim().length > 0 && Number(variant.sellingPrice) > 0)
+    .map((variant) => ({ name: variant.name.trim(), sellingPrice: Number(variant.sellingPrice) }));
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setSaving(true);
@@ -168,15 +179,12 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
 
     try {
       const unitId = units.find((unit) => unit.code === unitCode)?.id;
-      const cleanedVariants = variants
-        .filter((variant) => variant.name.trim().length > 0 && Number(variant.sellingPrice) > 0)
-        .map((variant) => ({ name: variant.name.trim(), sellingPrice: Number(variant.sellingPrice) }));
       const payload = {
         barcode: barcode.trim() || undefined,
         foodType,
         imageUrl,
         name: name.trim(),
-        sellingPrice: Number(price) || 0,
+        sellingPrice: hasVariants ? (cleanedVariants[0]?.sellingPrice ?? 0) : Number(price) || 0,
         taxProfileId: gstApplicable ? taxProfileId || undefined : undefined,
         unitId,
         variants: cleanedVariants
@@ -204,7 +212,7 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
 
   const canSubmit =
     name.trim().length > 0 &&
-    Number(price) > 0 &&
+    (hasVariants ? cleanedVariants.length > 0 : Number(price) > 0) &&
     !saving &&
     !uploadingPhoto &&
     !scanning &&
@@ -290,18 +298,23 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
           </IconButton>
         </div>
 
-        <input
-          className={inputClassName}
-          inputMode="decimal"
-          onChange={(event) => setPrice(event.target.value)}
-          placeholder="Price"
-          value={price}
-        />
+        {!hasVariants && (
+          <input
+            className={inputClassName}
+            inputMode="decimal"
+            onChange={(event) => setPrice(event.target.value)}
+            placeholder="Price"
+            value={price}
+          />
+        )}
 
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
             Variants (optional) — e.g. Half / Full portions
           </p>
+          {hasVariants && (
+            <p className="mb-2 text-xs text-ink-faint">Priced per variant below, instead of one product price.</p>
+          )}
           <div className="space-y-2">
             {variants.map((variant, index) => (
               <div className="flex gap-2" key={index}>
