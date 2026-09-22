@@ -8,6 +8,7 @@ export type ClientProductRecord = {
   categoryId: string;
   categoryName: string;
   description?: string;
+  foodType?: 'non_veg' | 'veg';
   hsnSac?: string;
   id: string;
   imageUrl?: string;

@@ -56,6 +56,7 @@ export const toProductView = (
   categoryId: category.id,
   categoryName: category.name,
   description: product.description,
+  foodType: product.foodType,
   hsnSac: product.hsnSac,
   id: product.id,
   imageUrl: product.imageUrl,

@@ -134,6 +134,13 @@
       "when": 1790061917263,
       "tag": "0018_mighty_surge",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790066593478,
+      "tag": "0019_skinny_wolf_cub",
+      "breakpoints": true
     }
   ]
 }

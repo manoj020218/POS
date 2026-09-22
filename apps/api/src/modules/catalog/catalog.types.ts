@@ -41,6 +41,7 @@ export type ProductRecord = {
   categoryId: string;
   createdAt: Date;
   description?: string;
+  foodType?: 'non_veg' | 'veg';
   hsnSac?: string;
   id: string;
   imageUrl?: string;
@@ -108,6 +109,7 @@ export type UpdateProductInput = Partial<
     | 'brand'
     | 'categoryId'
     | 'description'
+    | 'foodType'
     | 'hsnSac'
     | 'imageUrl'
     | 'isActive'
@@ -202,6 +204,7 @@ export type ProductView = {
   categoryId: string;
   categoryName: string;
   description?: string;
+  foodType?: 'non_veg' | 'veg';
   hsnSac?: string;
   id: string;
   imageUrl?: string;

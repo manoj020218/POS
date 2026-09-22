@@ -40,6 +40,7 @@ export const products = pgTable(
     description: varchar('description', { length: 500 }),
     hsnSac: varchar('hsn_sac', { length: 32 }),
     imageUrl: varchar('image_url', { length: 500 }),
+    foodType: varchar('food_type', { length: 16 }),
     sellingPrice: integer('selling_price').notNull(),
     purchasePrice: integer('purchase_price'),
     openingStock: integer('opening_stock').notNull().default(0),

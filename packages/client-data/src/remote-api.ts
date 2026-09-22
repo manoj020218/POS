@@ -112,6 +112,7 @@ export type ClientRemoteProductView = {
   categoryId: string;
   categoryName: string;
   description?: string;
+  foodType?: 'non_veg' | 'veg';
   hsnSac?: string;
   id: string;
   imageUrl?: string;
@@ -140,6 +141,7 @@ export type ClientRemoteProductCreateInput = {
   businessId?: string;
   categoryId?: string;
   description?: string;
+  foodType?: 'non_veg' | 'veg';
   hsnSac?: string;
   imageUrl?: string;
   lowStockLevel?: number;

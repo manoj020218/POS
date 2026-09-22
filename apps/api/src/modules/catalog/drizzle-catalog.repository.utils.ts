@@ -54,6 +54,7 @@ export const normalizeProduct = (record: typeof products.$inferSelect): ProductR
   categoryId: record.categoryId,
   createdAt: record.createdAt,
   description: record.description ?? undefined,
+  foodType: (record.foodType ?? undefined) as 'non_veg' | 'veg' | undefined,
   hsnSac: record.hsnSac ?? undefined,
   id: record.id,
   imageUrl: record.imageUrl ?? undefined,
