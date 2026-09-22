@@ -74,6 +74,7 @@ export const createBridgeProvisionService = (
     await bootstrapOwnerUser(authRepository, auditLogger, {
       displayName: input.ownerName,
       email: input.email,
+      mobile: input.mobile,
       password: tempPassword,
       role: 'BUSINESS_OWNER',
       tenantId: tenant.id

@@ -122,6 +122,18 @@ export class InMemoryAuthRepository implements AuthRepository {
     return this.users.get(userId) ?? null;
   }
 
+  async findUserByMobile(mobile: string): Promise<AuthUserRecord | null> {
+    const normalized = mobile.trim();
+
+    for (const user of this.users.values()) {
+      if (user.mobile === normalized) {
+        return user;
+      }
+    }
+
+    return null;
+  }
+
   async replaceBranchAccessForUser(
     userId: string,
     tenantId: string,

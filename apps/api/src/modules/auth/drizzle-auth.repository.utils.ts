@@ -48,6 +48,7 @@ export const normalizeAuthUser = (user: typeof authUsers.$inferSelect): AuthUser
   email: user.email,
   id: user.id,
   isActive: user.isActive,
+  mobile: user.mobile ?? undefined,
   passwordHash: user.passwordHash,
   permissions: user.permissions as AppPermission[],
   role: user.role as AppRole,

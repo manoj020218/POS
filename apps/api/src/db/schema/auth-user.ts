@@ -19,6 +19,7 @@ export const authUsers = pgTable(
       .notNull()
       .references(() => tenants.id),
     email: varchar('email', { length: 120 }).notNull(),
+    mobile: varchar('mobile', { length: 20 }),
     displayName: varchar('display_name', { length: 120 }).notNull(),
     passwordHash: varchar('password_hash', { length: 255 }).notNull(),
     role: varchar('role', { length: 32 }).notNull(),
@@ -28,6 +29,7 @@ export const authUsers = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
   },
   (table) => ({
-    emailIndex: uniqueIndex('auth_users_email_idx').on(table.email)
+    emailIndex: uniqueIndex('auth_users_email_idx').on(table.email),
+    mobileIndex: uniqueIndex('auth_users_mobile_idx').on(table.mobile)
   })
 );

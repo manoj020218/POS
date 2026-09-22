@@ -84,6 +84,10 @@ export type AppOptions = {
 
 export const createApp = (options: AppOptions): Express => {
   const app = express();
+  // Behind nginx (see deployment notes), so req.ip/X-Forwarded-For must be
+  // trusted from exactly one hop back, or express-rate-limit can't safely
+  // key by client IP and logs a ValidationError on every request.
+  app.set('trust proxy', 1);
   const authConfig = options.authConfig ?? {
     jwtSecret: 'test-jwt-secret-0123456789-abcdefgh',
     refreshSecret: 'test-refresh-secret-0123456789-ab'

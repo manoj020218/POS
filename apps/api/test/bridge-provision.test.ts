@@ -63,6 +63,15 @@ describe('POST /api/bridge/provision', () => {
 
     expect(loginResponse.status).toBe(200);
     expect(loginResponse.body.data.user.role).toBe('BUSINESS_OWNER');
+
+    // The bridge payload's mobile number must actually be persisted -- it's
+    // what makes "recover by mobile" work later (see auth-password-reset.test.ts).
+    const resetRequest = await request(app)
+      .post('/api/v1/auth/password/reset/request')
+      .send({ mobile: validPayload.mobile });
+
+    expect(resetRequest.status).toBe(202);
+    expect(resetRequest.body.data.maskedEmail).toBe('ow***@example.com');
   });
 
   it('rejects a request missing a required field', async () => {

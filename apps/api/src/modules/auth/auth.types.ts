@@ -5,6 +5,7 @@ export type AuthUserRecord = {
   email: string;
   id: string;
   isActive: boolean;
+  mobile?: string;
   passwordHash: string;
   permissions: AppPermission[];
   role: AppRole;
@@ -69,7 +70,12 @@ export type ChangePasswordInput = {
 };
 
 export type RequestPasswordResetInput = {
-  email: string;
+  email?: string;
+  mobile?: string;
+};
+
+export type RequestPasswordResetResult = {
+  maskedEmail?: string;
 };
 
 export type ResetPasswordInput = {

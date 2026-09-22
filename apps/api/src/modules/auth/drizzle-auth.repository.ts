@@ -112,6 +112,15 @@ export class DrizzleAuthRepository implements AuthRepository {
     return user ? normalizeAuthUser(user) : null;
   }
 
+  async findUserByMobile(mobile: string): Promise<AuthUserRecord | null> {
+    const [user] = await this.db
+      .select()
+      .from(authUsers)
+      .where(eq(authUsers.mobile, mobile.trim()))
+      .limit(1);
+    return user ? normalizeAuthUser(user) : null;
+  }
+
   async replaceBranchAccessForUser(userId: string, tenantId: string, branchIds: string[]): Promise<AuthUserBranchAccessRecord[]> {
     await this.ensureUser(userId, tenantId);
     return this.branchAccessStore.replaceForUser(userId, tenantId, branchIds);
@@ -172,14 +181,16 @@ export class DrizzleAuthRepository implements AuthRepository {
 
   async upsertUser(input: AuthUserRecord): Promise<AuthUserRecord> {
     await this.ensureTenant(input.tenantId);
+    const mobile = input.mobile?.trim() || null;
     const [user] = await this.db
       .insert(authUsers)
-      .values({ ...input, email: normalizeEmail(input.email) })
+      .values({ ...input, email: normalizeEmail(input.email), mobile })
       .onConflictDoUpdate({
         set: {
           displayName: input.displayName,
           email: normalizeEmail(input.email),
           isActive: input.isActive,
+          mobile,
           passwordHash: input.passwordHash,
           permissions: input.permissions,
           role: input.role,

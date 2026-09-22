@@ -64,8 +64,8 @@ export const createUserController = (service: AuthService): RequestHandler =>
 
 export const requestPasswordResetController = (service: AuthService): RequestHandler =>
   asyncHandler(async (request, response: Response) => {
-    await service.requestPasswordReset(parseSchema(passwordResetRequestSchema, request.body));
-    response.status(202).send();
+    const result = await service.requestPasswordReset(parseSchema(passwordResetRequestSchema, request.body));
+    response.status(202).json({ data: result });
   });
 
 export const resetPasswordController = (service: AuthService): RequestHandler =>

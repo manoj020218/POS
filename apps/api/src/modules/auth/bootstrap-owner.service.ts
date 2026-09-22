@@ -12,6 +12,7 @@ export type BootstrapOwnerRole = (typeof bootstrapOwnerRoles)[number];
 export type BootstrapOwnerInput = {
   displayName: string;
   email: string;
+  mobile?: string;
   password: string;
   role: BootstrapOwnerRole;
   tenantId: string;
@@ -64,6 +65,7 @@ export const bootstrapOwnerUser = async (
       email,
       id: input.userId ?? randomUUID(),
       isActive: true,
+      mobile: input.mobile,
       passwordHash: await hashPassword(input.password),
       permissions: [],
       role: input.role,

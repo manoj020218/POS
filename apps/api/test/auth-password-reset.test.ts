@@ -30,6 +30,7 @@ describe('auth password reset', () => {
           email: 'owner@example.com',
           id: '11111111-1111-4111-8111-111111111111',
           isActive: true,
+          mobile: '9812345670',
           passwordHash: await hashPassword('Password123'),
           permissions: [],
           role: 'BUSINESS_OWNER',
@@ -71,7 +72,7 @@ describe('auth password reset', () => {
     });
 
     expect(requested.status).toBe(202);
-    expect(requested.body).toEqual({});
+    expect(requested.body.data.maskedEmail).toBe('ow***@example.com');
     expect(deliveredToken).toBeTruthy();
     expect(confirmed.status).toBe(204);
     expect(refreshAfterReset.status).toBe(401);
@@ -88,7 +89,26 @@ describe('auth password reset', () => {
     });
 
     expect(missing.status).toBe(202);
+    expect(missing.body.data.maskedEmail).toBeUndefined();
     expect(disabled.status).toBe(202);
+    expect(disabled.body.data.maskedEmail).toBeUndefined();
+  });
+
+  it('recovers the account by mobile number and reveals only a masked email', async () => {
+    const requested = await request(app).post('/api/v1/auth/password/reset/request').send({
+      mobile: '9812345670'
+    });
+
+    expect(requested.status).toBe(202);
+    expect(requested.body.data.maskedEmail).toBe('ow***@example.com');
+    expect(deliveredToken).toBeTruthy();
+
+    const confirmed = await request(app).post('/api/v1/auth/password/reset/confirm').send({
+      newPassword: 'Password456',
+      resetToken: deliveredToken
+    });
+
+    expect(confirmed.status).toBe(204);
   });
 
   it('rejects an expired password reset token', async () => {

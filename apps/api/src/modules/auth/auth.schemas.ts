@@ -8,6 +8,7 @@ const passwordSchema = z.string().min(8).max(128);
 const optionalDeviceIdSchema = z.string().trim().min(4).max(120).optional();
 const optionalDeviceNameSchema = z.string().trim().min(2).max(120).optional();
 const tokenSchema = z.string().trim().min(32);
+const passwordResetTokenSchema = z.string().trim().regex(/^\d{8}$/, 'Enter the 8-digit code from your email');
 const tokenBaseSchema = z.object({
   exp: z.number().int().positive(),
   iat: z.number().int().positive(),
@@ -37,13 +38,23 @@ export const changePasswordSchema = z.object({
   newPassword: passwordSchema
 });
 
-export const passwordResetRequestSchema = z.object({
-  email: emailSchema
-});
+const resetMobileSchema = z
+  .string()
+  .trim()
+  .regex(/^\+?[0-9]{7,15}$/, 'Mobile must be 7-15 digits, optionally prefixed with +');
+
+export const passwordResetRequestSchema = z
+  .object({
+    email: emailSchema.optional(),
+    mobile: resetMobileSchema.optional()
+  })
+  .refine((value) => Boolean(value.email) || Boolean(value.mobile), {
+    message: 'Provide an email or mobile number'
+  });
 
 export const passwordResetConfirmSchema = z.object({
   newPassword: passwordSchema,
-  resetToken: tokenSchema
+  resetToken: passwordResetTokenSchema
 });
 
 export const sessionIdParamsSchema = z.object({

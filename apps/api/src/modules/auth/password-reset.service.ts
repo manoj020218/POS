@@ -1,11 +1,23 @@
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 
 import { createHttpError } from '../../lib/http-error.js';
 import type { AuthRepository } from './auth.repository.js';
 import type { createAuthAuditLogger } from './auth-audit.service.js';
 import { hashOpaqueToken } from './opaque-token.js';
 import { hashPassword } from './password.js';
-import type { RequestPasswordResetInput, ResetPasswordInput } from './auth.types.js';
+import type {
+  RequestPasswordResetInput,
+  RequestPasswordResetResult,
+  ResetPasswordInput
+} from './auth.types.js';
+
+// Deliberately vague about exact length (fixed star count) so the response
+// doesn't leak how long the real address is.
+const maskEmail = (email: string): string => {
+  const [local, domain] = email.split('@');
+  if (!local || !domain) return email;
+  return `${local.slice(0, Math.min(2, local.length))}***@${domain}`;
+};
 
 export type PasswordResetTokenSink = (input: {
   email: string;
@@ -22,15 +34,23 @@ export const createPasswordResetHandlers = (
   config: { passwordResetTokenSink?: PasswordResetTokenSink; passwordResetTokenTtlSeconds?: number },
   auditLogger: ReturnType<typeof createAuthAuditLogger>
 ) => ({
-  requestPasswordReset: async (input: RequestPasswordResetInput): Promise<void> => {
-    const user = await repository.findUserByEmail(input.email);
-    if (!user || !user.isActive) return;
+  requestPasswordReset: async (input: RequestPasswordResetInput): Promise<RequestPasswordResetResult> => {
+    const user = input.mobile
+      ? await repository.findUserByMobile(input.mobile)
+      : input.email
+        ? await repository.findUserByEmail(input.email)
+        : null;
+    if (!user || !user.isActive) return {};
 
     const now = new Date();
     const expiresAt = new Date(
       now.getTime() + (config.passwordResetTokenTtlSeconds ?? defaultPasswordResetTokenTtlSeconds) * 1000
     );
-    const token = randomBytes(32).toString('base64url');
+    // Short enough to type by hand from an email; safe against brute force
+    // because authRateLimiter caps attempts at 20 per 15 minutes per IP,
+    // and the token itself expires in that same 15-minute window (100M
+    // possibilities, 20 guesses reachable — infeasible to exhaust in time).
+    const token = randomInt(0, 100_000_000).toString().padStart(8, '0');
 
     await repository.revokePasswordResetTokensForUser(user.id, user.tenantId, now);
     await repository.createPasswordResetToken({
@@ -54,6 +74,8 @@ export const createPasswordResetHandlers = (
       tenantId: user.tenantId,
       userId: user.id
     });
+
+    return { maskedEmail: maskEmail(user.email) };
   },
   resetPassword: async (input: ResetPasswordInput): Promise<void> => {
     const now = new Date();

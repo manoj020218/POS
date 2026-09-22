@@ -47,6 +47,7 @@ export interface AuthRepository {
   listSessionsForUser(userId: string, tenantId: string): Promise<AuthSessionRecord[]>;
   findUserByEmail(email: string): Promise<AuthUserRecord | null>;
   findUserById(userId: string): Promise<AuthUserRecord | null>;
+  findUserByMobile(mobile: string): Promise<AuthUserRecord | null>;
   replaceBranchAccessForUser(
     userId: string,
     tenantId: string,
