@@ -271,11 +271,13 @@ export type ClientUpdateBusinessSettingsInput = {
   }>;
   businessId?: string;
   businessLogoUrl?: string | null;
+  businessName?: string;
   businessType?: string;
   currencyCode?: string;
   defaultTaxProfileId?: string | null;
   defaultTrackInventory?: boolean;
   defaultUnitId?: string | null;
+  gstin?: string | null;
   invoicePrefix?: string;
   receiptFooter?: string | null;
   timezone?: string;

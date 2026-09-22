@@ -29,6 +29,7 @@ export const toBusinessSettingsView = (input: {
   defaultTrackInventory: boolean;
   defaultUnit?: SettingsUnitSummary;
   defaultUnitId?: string;
+  gstin?: string;
   invoicePrefix: string;
   receiptFooter?: string;
   timezone: string;
@@ -45,6 +46,7 @@ export const toBusinessSettingsView = (input: {
   defaultTrackInventory: input.defaultTrackInventory,
   defaultUnit: input.defaultUnit,
   defaultUnitId: input.defaultUnitId,
+  gstin: input.gstin,
   invoicePrefix: input.invoicePrefix,
   receiptFooter: input.receiptFooter,
   timezone: input.timezone

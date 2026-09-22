@@ -11,6 +11,7 @@ export type BusinessSettingsRecord = {
   defaultTaxProfileId?: string;
   defaultTrackInventory: boolean;
   defaultUnitId?: string;
+  gstin?: string;
   invoicePrefix: string;
   receiptFooter?: string;
   tenantId: string;
@@ -26,6 +27,7 @@ export type SaveBusinessSettingsInput = {
   defaultTaxProfileId: string | null;
   defaultTrackInventory: boolean;
   defaultUnitId: string | null;
+  gstin: string | null;
   invoicePrefix: string;
   receiptFooter: string | null;
   tenantId: string;
@@ -60,11 +62,13 @@ export type UpdateBusinessSettingsInput = {
   branches?: BranchSettingsPatchInput[];
   businessId?: string;
   businessLogoUrl?: string | null;
+  businessName?: string;
   businessType?: string;
   currencyCode?: string;
   defaultTaxProfileId?: string | null;
   defaultTrackInventory?: boolean;
   defaultUnitId?: string | null;
+  gstin?: string | null;
   invoicePrefix?: string;
   receiptFooter?: string | null;
   timezone?: string;
@@ -106,6 +110,7 @@ export type BusinessSettingsView = {
   defaultTrackInventory: boolean;
   defaultUnit?: SettingsUnitSummary;
   defaultUnitId?: string;
+  gstin?: string;
   invoicePrefix: string;
   receiptFooter?: string;
   timezone: string;

@@ -64,6 +64,7 @@ describe('DrizzleSettingsRepository', () => {
       defaultTaxProfileId: taxProfile.id,
       defaultTrackInventory: false,
       defaultUnitId: unit.id,
+      gstin: '29ABCDE1234F1Z5',
       invoicePrefix: 'BILL',
       receiptFooter: 'Visit again',
       tenantId,

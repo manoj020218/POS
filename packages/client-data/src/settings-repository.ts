@@ -36,6 +36,7 @@ export type ClientBusinessSettings = {
   defaultTrackInventory: boolean;
   defaultUnit?: ClientSettingsUnitSummary;
   defaultUnitId?: string;
+  gstin?: string;
   invoicePrefix: string;
   receiptFooter?: string;
   timezone: string;
@@ -71,6 +72,7 @@ export const resolveClientBusinessSettings = (
     settings?.defaultTrackInventory ?? defaultClientBusinessSettings.defaultTrackInventory,
   defaultUnit: settings?.defaultUnit,
   defaultUnitId: settings?.defaultUnitId,
+  gstin: settings?.gstin,
   invoicePrefix: settings?.invoicePrefix ?? defaultClientBusinessSettings.invoicePrefix,
   receiptFooter: settings?.receiptFooter,
   timezone: settings?.timezone ?? defaultClientBusinessSettings.timezone

@@ -15,6 +15,7 @@ export const hasBusinessSettingsChanges = (input: UpdateBusinessSettingsInput) =
   input.defaultTaxProfileId !== undefined ||
   input.defaultTrackInventory !== undefined ||
   input.defaultUnitId !== undefined ||
+  input.gstin !== undefined ||
   input.invoicePrefix !== undefined ||
   input.receiptFooter !== undefined ||
   input.timezone !== undefined;

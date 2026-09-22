@@ -39,6 +39,7 @@ export const resolveEffectiveBusinessSettings = (
   defaultTrackInventory:
     settings?.defaultTrackInventory ?? defaultBusinessSettings.defaultTrackInventory,
   defaultUnitId: settings?.defaultUnitId,
+  gstin: settings?.gstin,
   invoicePrefix: settings?.invoicePrefix ?? defaultBusinessSettings.invoicePrefix,
   receiptFooter: settings?.receiptFooter,
   timezone: settings?.timezone ?? defaultBusinessSettings.timezone

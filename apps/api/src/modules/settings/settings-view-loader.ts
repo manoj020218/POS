@@ -48,6 +48,7 @@ export const loadBusinessSettingsView = async (
     defaultTrackInventory: effective.defaultTrackInventory,
     defaultUnit,
     defaultUnitId: effective.defaultUnitId,
+    gstin: effective.gstin,
     invoicePrefix: effective.invoicePrefix,
     receiptFooter: effective.receiptFooter,
     timezone: effective.timezone

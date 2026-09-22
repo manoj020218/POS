@@ -40,8 +40,14 @@ export const createSettingsService = (
     context: AccessContext,
     input: UpdateBusinessSettingsInput
   ): Promise<BusinessSettingsView> => {
-    const business = await resolveWriteBusiness(context, tenantCoreRepository, input.businessId);
+    let business = await resolveWriteBusiness(context, tenantCoreRepository, input.businessId);
     const current = await repository.findBusinessSettingsByBusinessId(context.tenantId, business.id);
+
+    if (input.businessName !== undefined) {
+      business = await tenantCoreRepository.updateBusiness(context.tenantId, business.id, {
+        name: input.businessName
+      });
+    }
 
     if (hasBusinessSettingsChanges(input)) {
       await validateConfiguredDefaults(catalogRepository, business.id, input);
@@ -59,6 +65,7 @@ export const createSettingsService = (
           current?.defaultTrackInventory ??
           defaultBusinessSettings.defaultTrackInventory,
         defaultUnitId: resolveNullableUpdate(current?.defaultUnitId, input.defaultUnitId),
+        gstin: resolveNullableUpdate(current?.gstin, input.gstin),
         invoicePrefix:
           input.invoicePrefix ?? current?.invoicePrefix ?? defaultBusinessSettings.invoicePrefix,
         receiptFooter: resolveNullableUpdate(current?.receiptFooter, input.receiptFooter),

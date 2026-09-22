@@ -29,6 +29,9 @@ export const printCheckoutReceipt = async (input: {
   try {
     const result = await input.printerService.printReceipt({
       job: createReceiptPrintJob({
+        branchAddress: input.settings.branches.find(
+          (branch) => branch.branchId === input.context.branchId
+        )?.address,
         branchName: input.context.branchName,
         businessName: input.settings.businessName,
         cashierName: input.context.cashierName,
@@ -36,6 +39,7 @@ export const printCheckoutReceipt = async (input: {
         customerName: input.customer?.name,
         discountAmount: input.calculated.discountAmount,
         footerLines: input.settings.receiptFooter ? [input.settings.receiptFooter] : undefined,
+        gstin: input.settings.gstin,
         invoiceNumber: input.calculated.invoiceNumber,
         items: input.calculated.items.map((item) => ({
           name: item.variantName ? `${item.productName} (${item.variantName})` : item.productName,

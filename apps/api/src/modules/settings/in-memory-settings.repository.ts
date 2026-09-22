@@ -61,6 +61,7 @@ export class InMemorySettingsRepository implements SettingsRepository {
       defaultTaxProfileId: input.defaultTaxProfileId ?? undefined,
       defaultTrackInventory: input.defaultTrackInventory,
       defaultUnitId: input.defaultUnitId ?? undefined,
+      gstin: input.gstin ?? undefined,
       invoicePrefix: input.invoicePrefix,
       receiptFooter: input.receiptFooter ?? undefined,
       tenantId: input.tenantId,

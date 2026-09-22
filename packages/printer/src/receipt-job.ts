@@ -23,13 +23,19 @@ export type ReceiptPaymentLine = {
 };
 
 export type ReceiptPrintJobInput = {
+  branchAddress?: string;
   branchName?: string;
   businessName: string;
   cashierName?: string;
   currencySymbol?: string;
   customerName?: string;
   discountAmount?: number;
+  // Overrides the "SALES RECEIPT" header label -- e.g. "PAYMENT DUE" for a
+  // pre-payment demand bill printed before the customer pays, vs. the
+  // default for the final invoice printed after payment is confirmed.
+  documentLabel?: string;
   footerLines?: string[];
+  gstin?: string;
   invoiceNumber: string;
   items: ReceiptLineItem[];
   note?: string;
@@ -79,12 +85,23 @@ export const createReceiptPrintJob = (input: ReceiptPrintJobInput): EscPosPrintJ
   const printedAt = (input.printedAt ?? new Date()).toISOString();
   const commands: EscPosCommand[] = [
     { type: 'INITIALIZE' },
-    createTextCommand(input.businessName, 'CENTER', true),
-    createTextCommand('SALES RECEIPT', 'CENTER', true),
+    createTextCommand(input.businessName, 'CENTER', true)
+  ];
+
+  if (input.branchAddress) {
+    appendLines(commands, wrapText(input.branchAddress, width), 'CENTER');
+  }
+
+  if (input.gstin) {
+    commands.push(createTextCommand(`GSTIN: ${input.gstin}`, 'CENTER'));
+  }
+
+  commands.push(
+    createTextCommand(input.documentLabel ?? 'SALES RECEIPT', 'CENTER', true),
     createFeedCommand(),
     createTextCommand(`Invoice: ${input.invoiceNumber}`),
     createTextCommand(`Printed: ${printedAt}`)
-  ];
+  );
 
   if (input.branchName) {
     commands.push(createTextCommand(`Branch: ${input.branchName}`));

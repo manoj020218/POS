@@ -31,6 +31,7 @@ export const businessSettings = pgTable(
     defaultTrackInventory: boolean('default_track_inventory').notNull().default(true),
     receiptFooter: varchar('receipt_footer', { length: 500 }),
     businessLogoUrl: varchar('business_logo_url', { length: 500 }),
+    gstin: varchar('gstin', { length: 15 }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
   },

@@ -6,6 +6,7 @@ import { usePosContext } from '../../state/use-pos-context.js';
 import { usePinnedTopBarEntries } from '../../state/use-pinned-topbar-entries.js';
 import { CalculatorButton } from '../calculator/CalculatorButton.js';
 import { IconButton } from '../common/IconButton.js';
+import { BusinessDetailsModal } from '../settings/BusinessDetailsModal.js';
 import { PrinterStatusButton } from '../settings/PrinterStatusButton.js';
 import { LiveClock } from './LiveClock.js';
 import { MoreMenuButton } from './MoreMenuButton.js';
@@ -20,6 +21,7 @@ type TopBarProps = {
 export const TopBar = ({ onProductSaved, onTerminalSettingsSaved, terminalSettings }: TopBarProps) => {
   const { logout, settings, terminalContext } = usePosContext();
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const entries = useTopBarMenuEntries({ onProductSaved, onTerminalSettingsSaved, terminalSettings });
   const { isPinned, pinnedIds, togglePinned } = usePinnedTopBarEntries(entries.map((entry) => entry.id));
@@ -27,7 +29,11 @@ export const TopBar = ({ onProductSaved, onTerminalSettingsSaved, terminalSettin
 
   return (
     <header className="flex h-20 shrink-0 items-center justify-between gap-3 overflow-x-auto border-b border-line bg-surface-raised px-3 lg:px-6">
-      <div className="flex min-w-0 shrink-0 items-center gap-3">
+      <button
+        className="flex min-w-0 shrink-0 items-center gap-3 rounded-2xl text-left transition-opacity active:opacity-70"
+        onClick={() => setProfileOpen(true)}
+        type="button"
+      >
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-500 text-white">
           <Store size={22} />
         </div>
@@ -37,7 +43,8 @@ export const TopBar = ({ onProductSaved, onTerminalSettingsSaved, terminalSettin
             {terminalContext.branchName} · {terminalContext.terminalName ?? terminalContext.terminalCode}
           </p>
         </div>
-      </div>
+      </button>
+      <BusinessDetailsModal onClose={() => setProfileOpen(false)} open={profileOpen} />
 
       <div className="flex shrink-0 items-center gap-2 lg:gap-5">
         <CalculatorButton />

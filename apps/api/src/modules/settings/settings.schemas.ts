@@ -41,6 +41,18 @@ const currencyCodeSchema = z
   .regex(/^[A-Za-z]{3}$/)
   .transform((value) => value.toUpperCase());
 
+const businessNameSchema = z.string().trim().min(2).max(120);
+
+// GSTIN format isn't strictly validated (checksum digit, state-code table)
+// since this is entered by non-technical shop owners -- reject only obvious
+// garbage, not real GSTINs with unusual-but-valid characters.
+const gstinSchema = z
+  .union([z.string().trim().max(15).regex(/^[0-9A-Za-z]*$/), z.null()])
+  .transform((value) => {
+    const upper = value?.toUpperCase() ?? '';
+    return upper.length > 0 ? upper : null;
+  });
+
 const receiptPrinterProfileSchema = z.object({
   autoPrintReceipt: z.boolean().optional(),
   connectionType: z.enum(['BLUETOOTH', 'SYSTEM', 'TCP', 'USB']),
@@ -76,11 +88,13 @@ export const updateBusinessSettingsSchema = z
       .union([z.string().trim().url().max(500), z.null()])
       .transform((value) => value ?? null)
       .optional(),
+    businessName: businessNameSchema.optional(),
     businessType: businessTypeSchema.optional(),
     currencyCode: currencyCodeSchema.optional(),
     defaultTaxProfileId: uuidSchema.nullable().optional(),
     defaultTrackInventory: z.boolean().optional(),
     defaultUnitId: uuidSchema.nullable().optional(),
+    gstin: gstinSchema.optional(),
     invoicePrefix: invoicePrefixSchema.optional(),
     receiptFooter: nullableTrimmedString(500).optional(),
     timezone: timezoneSchema.optional()
@@ -89,11 +103,13 @@ export const updateBusinessSettingsSchema = z
     (value) =>
       value.branches !== undefined ||
       value.businessLogoUrl !== undefined ||
+      value.businessName !== undefined ||
       value.businessType !== undefined ||
       value.currencyCode !== undefined ||
       value.defaultTaxProfileId !== undefined ||
       value.defaultTrackInventory !== undefined ||
       value.defaultUnitId !== undefined ||
+      value.gstin !== undefined ||
       value.invoicePrefix !== undefined ||
       value.receiptFooter !== undefined ||
       value.timezone !== undefined,
