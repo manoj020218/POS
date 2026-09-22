@@ -10,7 +10,7 @@ export const CategoryTabs = ({ categories, onSelect, selected }: CategoryTabsPro
   const tabs = [{ code: allCategoryFilter, name: 'All items' }, ...categories];
 
   return (
-    <div className="flex shrink-0 gap-2 overflow-x-auto pb-1">
+    <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
       {tabs.map((tab) => {
         const active = tab.code === selected;
         return (

@@ -6,6 +6,7 @@ import type { useProductCatalog } from '../../state/use-product-catalog.js';
 import { usePosContext } from '../../state/use-pos-context.js';
 import { AddEditProductModal } from '../catalog/AddEditProductModal.js';
 import { CategoryTabs } from '../catalog/CategoryTabs.js';
+import { FoodTypeFilter } from '../catalog/FoodTypeFilter.js';
 import { ProductGrid } from '../catalog/ProductGrid.js';
 import { QuickPriceEditPopover } from '../catalog/QuickPriceEditPopover.js';
 import { SearchBar } from '../catalog/SearchBar.js';
@@ -17,8 +18,18 @@ type CatalogPaneProps = {
 
 export const CatalogPane = ({ cartApi, catalog }: CatalogPaneProps) => {
   const { settings } = usePosContext();
-  const { categories, categoryCode, filteredProducts, refresh, searchText, setCategoryCode, setSearchText, stockByProductId } =
-    catalog;
+  const {
+    categories,
+    categoryCode,
+    filteredProducts,
+    foodTypeFilter,
+    refresh,
+    searchText,
+    setCategoryCode,
+    setSearchText,
+    stockByProductId,
+    toggleFoodType
+  } = catalog;
   const [priceEditProduct, setPriceEditProduct] = useState<ClientProductRecord | null>(null);
   const [fullEditProduct, setFullEditProduct] = useState<ClientProductRecord | null>(null);
   // The blocked product's id, not the message itself -- the message is
@@ -61,7 +72,10 @@ export const CatalogPane = ({ cartApi, catalog }: CatalogPaneProps) => {
   return (
     <section className="flex w-full min-w-0 flex-col gap-3 p-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden">
       <SearchBar onChange={setSearchText} value={searchText} />
-      <CategoryTabs categories={categories} onSelect={setCategoryCode} selected={categoryCode} />
+      <div className="flex shrink-0 items-center gap-2">
+        <CategoryTabs categories={categories} onSelect={setCategoryCode} selected={categoryCode} />
+        <FoodTypeFilter active={foodTypeFilter} onToggle={toggleFoodType} />
+      </div>
       {stockLimitError && (
         <p className="rounded-xl bg-danger-50 px-4 py-3 text-sm font-semibold text-danger-600">
           {stockLimitError}

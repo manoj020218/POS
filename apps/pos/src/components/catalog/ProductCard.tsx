@@ -37,14 +37,16 @@ export const ProductCard = ({
   const lowStock =
     product.trackInventory && quantityOnHand !== undefined && quantityOnHand <= product.lowStockLevel;
   // Plain tap adds to cart (unchanged checkout behavior); long-press opens the
-  // full edit form. The price itself is a separate nested tap target (below)
-  // for the fast price-only edit, stopping propagation so it never also
-  // triggers add-to-cart or the long-press timer.
+  // full edit form.
   const longPress = useLongPress(onAdd, onEditProduct);
+  // Price is a separate nested long-press target (a quick tap here does
+  // nothing) so a fast cashier brushing past the price during normal
+  // checkout use never accidentally opens the price-change screen.
+  const priceLongPress = useLongPress(() => undefined, onEditPrice);
 
   return (
     <div
-      className="relative flex h-40 flex-col justify-between rounded-2xl border border-line bg-surface-raised p-4 text-left shadow-kiosk transition-transform active:scale-[0.97] active:bg-surface-sunken"
+      className="relative flex h-28 flex-col overflow-hidden rounded-2xl border border-line bg-surface-sunken text-left shadow-kiosk transition-transform active:scale-[0.97]"
       onPointerCancel={longPress.onPointerCancel}
       onPointerDown={longPress.onPointerDown}
       onPointerLeave={longPress.onPointerLeave}
@@ -52,52 +54,74 @@ export const ProductCard = ({
       role="button"
       tabIndex={0}
     >
-      {quantityInCart > 0 && (
-        <span className="absolute -right-2 -top-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-brand-500 px-1.5 text-xs font-bold text-white shadow-kiosk">
-          {quantityInCart}
-        </span>
-      )}
-
-      <div className="flex items-start justify-between">
+      <div className="absolute inset-0">
         {product.imageUrl ? (
           <img
             alt=""
-            className="h-10 w-10 rounded-xl object-cover"
+            className="h-full w-full object-cover"
             onPointerDown={(event) => event.stopPropagation()}
             src={product.imageUrl}
           />
         ) : (
           <div
-            className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold ${paletteFor(product.categoryCode)}`}
+            className={`flex h-full w-full items-center justify-center text-2xl font-bold ${paletteFor(product.categoryCode)}`}
           >
             {product.name.slice(0, 1).toUpperCase()}
           </div>
         )}
+      </div>
+
+      {quantityInCart > 0 && (
+        <span className="absolute -right-2 -top-2 z-10 flex h-7 min-w-7 items-center justify-center rounded-full bg-brand-500 px-1.5 text-xs font-bold text-white shadow-kiosk">
+          {quantityInCart}
+        </span>
+      )}
+
+      <div className="absolute left-2 top-2 z-10 flex flex-col items-start gap-1">
+        {product.foodType && (
+          <span
+            className={`flex h-4 w-4 items-center justify-center rounded-sm border-2 bg-white shadow-kiosk ${
+              product.foodType === 'veg' ? 'border-success-500' : 'border-danger-500'
+            }`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                product.foodType === 'veg' ? 'bg-success-500' : 'bg-danger-500'
+              }`}
+            />
+          </span>
+        )}
         {lowStock && (
-          <span className="rounded-full bg-warn-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-warn-600">
-            Low stock
+          <span className="rounded-full bg-warn-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-warn-600 shadow-kiosk">
+            Low
           </span>
         )}
       </div>
 
-      <div>
-        <p className="line-clamp-2 text-sm font-semibold leading-snug text-ink">{product.name}</p>
-        <p className="mt-0.5 text-xs text-ink-faint">
-          {product.sku} · {product.unitSymbol ?? product.unitName}
-        </p>
+      <div className="relative z-10 mt-auto flex items-end justify-between gap-2 bg-white/90 px-2 py-1.5 backdrop-blur-sm">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold leading-tight text-ink">{product.name}</p>
+          <p className="truncate text-[10px] text-ink-faint">
+            {product.sku} · {product.unitSymbol ?? product.unitName}
+          </p>
+        </div>
+        <button
+          className="shrink-0 text-sm font-extrabold text-ink underline decoration-dotted decoration-2 underline-offset-2"
+          onPointerCancel={priceLongPress.onPointerCancel}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+            priceLongPress.onPointerDown(event);
+          }}
+          onPointerLeave={priceLongPress.onPointerLeave}
+          onPointerUp={(event) => {
+            event.stopPropagation();
+            priceLongPress.onPointerUp(event);
+          }}
+          type="button"
+        >
+          {formatMoneyCompact(product.sellingPrice, currencyCode)}
+        </button>
       </div>
-
-      <button
-        className="w-fit text-lg font-extrabold text-ink underline decoration-dotted decoration-2 underline-offset-4"
-        onClick={(event) => {
-          event.stopPropagation();
-          onEditPrice();
-        }}
-        onPointerDown={(event) => event.stopPropagation()}
-        type="button"
-      >
-        {formatMoneyCompact(product.sellingPrice, currencyCode)}
-      </button>
     </div>
   );
 };

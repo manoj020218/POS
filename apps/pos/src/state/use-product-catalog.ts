@@ -5,12 +5,30 @@ import { usePosContext } from './use-pos-context.js';
 
 export const allCategoryFilter = 'ALL';
 
+export type FoodType = 'non_veg' | 'veg';
+
 export const useProductCatalog = () => {
   const { store, terminalContext } = usePosContext();
   const [products, setProducts] = useState<ClientProductRecord[]>([]);
   const [stockByProductId, setStockByProductId] = useState<Map<string, number>>(new Map());
   const [searchText, setSearchText] = useState('');
   const [categoryCode, setCategoryCode] = useState(allCategoryFilter);
+  // Empty set means no food-type filter is applied (show everything). Both
+  // Veg and Non-veg can be active together -- each is an independent toggle,
+  // not a 3-way switch.
+  const [foodTypeFilter, setFoodTypeFilter] = useState<Set<FoodType>>(new Set());
+
+  const toggleFoodType = useCallback((foodType: FoodType) => {
+    setFoodTypeFilter((previous) => {
+      const next = new Set(previous);
+      if (next.has(foodType)) {
+        next.delete(foodType);
+      } else {
+        next.add(foodType);
+      }
+      return next;
+    });
+  }, []);
 
   // Exposed so callers (e.g. after adding/editing a product) can force a
   // re-read from the local store without waiting for the next sync cycle.
@@ -66,6 +84,7 @@ export const useProductCatalog = () => {
 
     return products
       .filter((product) => categoryCode === allCategoryFilter || product.categoryCode === categoryCode)
+      .filter((product) => foodTypeFilter.size === 0 || (product.foodType && foodTypeFilter.has(product.foodType)))
       .filter(
         (product) =>
           query.length === 0 ||
@@ -73,16 +92,18 @@ export const useProductCatalog = () => {
           product.sku.toLowerCase().includes(query) ||
           product.barcode?.toLowerCase().includes(query)
       );
-  }, [products, searchText, categoryCode]);
+  }, [products, searchText, categoryCode, foodTypeFilter]);
 
   return {
     categories,
     categoryCode,
     filteredProducts,
+    foodTypeFilter,
     refresh,
     searchText,
     setCategoryCode,
     setSearchText,
-    stockByProductId
+    stockByProductId,
+    toggleFoodType
   };
 };

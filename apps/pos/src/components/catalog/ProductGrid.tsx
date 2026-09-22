@@ -32,7 +32,7 @@ export const ProductGrid = ({
   }
 
   return (
-    <div className="grid auto-rows-min grid-cols-2 gap-3 p-2 pt-3 sm:grid-cols-3 xl:grid-cols-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+    <div className="grid auto-rows-min grid-cols-3 gap-3 p-2 pt-3 sm:grid-cols-4 xl:grid-cols-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
       {products.map((product) => (
         <ProductCard
           currencyCode={currencyCode}

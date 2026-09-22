@@ -38,6 +38,7 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
   const gstApplicable = (settings.defaultTaxProfile?.rateBasisPoints ?? 0) > 0;
   const [taxProfileId, setTaxProfileId] = useState(product?.taxProfileId ?? settings.defaultTaxProfileId ?? '');
   const [taxProfiles, setTaxProfiles] = useState<ClientRemoteTaxProfileView[]>([]);
+  const [foodType, setFoodType] = useState<'non_veg' | 'veg' | undefined>(product?.foodType);
   const [imageUrl, setImageUrl] = useState(product?.imageUrl);
   const [imagePreview, setImagePreview] = useState(product?.imageUrl);
   const [trackInventory, setTrackInventory] = useState(product?.trackInventory ?? false);
@@ -160,6 +161,7 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
       const unitId = units.find((unit) => unit.code === unitCode)?.id;
       const payload = {
         barcode: barcode.trim() || undefined,
+        foodType,
         imageUrl,
         name: name.trim(),
         sellingPrice: Number(price) || 0,
@@ -282,6 +284,27 @@ export const AddEditProductModal = ({ onClose, onSaved, product }: AddEditProduc
           placeholder="Price"
           value={price}
         />
+
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Food type (optional)</p>
+          <div className="flex flex-wrap gap-2">
+            <button className={chipClassName(foodType === undefined)} onClick={() => setFoodType(undefined)} type="button">
+              Not set
+            </button>
+            <button className={chipClassName(foodType === 'veg')} onClick={() => setFoodType('veg')} type="button">
+              <span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full bg-success-500" />
+              Veg
+            </button>
+            <button
+              className={chipClassName(foodType === 'non_veg')}
+              onClick={() => setFoodType('non_veg')}
+              type="button"
+            >
+              <span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full bg-danger-500" />
+              Non-veg
+            </button>
+          </div>
+        </div>
 
         {!isEditing && (
           <div className="space-y-2">
