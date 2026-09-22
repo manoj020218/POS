@@ -2,6 +2,10 @@ ext {
     minSdkVersion = 23
     compileSdkVersion = 36
     targetSdkVersion = 36
+    // Overrides the mlkit barcode-scanning plugin's default 1.1.0, which
+    // bundles a libimage_processing_util_jni.so not aligned to 16KB memory
+    // pages -- flagged by Play Console's pre-launch report. 1.4.0+ is aligned.
+    androidxCameraCoreVersion = '1.4.0'
     androidxActivityVersion = '1.9.2'
     androidxAppCompatVersion = '1.7.0'
     androidxCoordinatorLayoutVersion = '1.2.0'

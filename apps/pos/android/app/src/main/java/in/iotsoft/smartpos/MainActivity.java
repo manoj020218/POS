@@ -10,10 +10,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import com.getcapacitor.BridgeActivity;
 import java.util.regex.Matcher;
@@ -32,6 +32,14 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Must run before super.onCreate() (which triggers setContentView
+        // internally via BridgeActivity). Supersedes the old manual
+        // WindowCompat.setDecorFitsSystemWindows(false) call below -- Play
+        // Console's pre-launch report flags that pattern as using deprecated
+        // edge-to-edge parameters; this AndroidX helper is the current
+        // recommended API and additionally handles status/nav bar icon
+        // contrast across OS versions that the manual call didn't.
+        EdgeToEdge.enable(this);
         registerPlugin(BluetoothStatusPlugin.class);
         super.onCreate(savedInstanceState);
 
@@ -56,7 +64,6 @@ public class MainActivity extends BridgeActivity {
         // Resizing the WebView's actual layout bounds via margin (forcing a
         // real re-measure/re-layout at the smaller size) makes the page's
         // own layout engine see the correct, smaller viewport instead.
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         View contentRoot = findViewById(android.R.id.content);
         ViewCompat.setOnApplyWindowInsetsListener(
             contentRoot,
