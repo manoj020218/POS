@@ -1,4 +1,4 @@
-import { CreditCard, HelpCircle, LayoutGrid, PackagePlus, Percent, Sheet, Sparkles, Ticket } from 'lucide-react';
+import { CreditCard, HelpCircle, LayoutGrid, PackagePlus, Percent, Receipt, Sheet, Sparkles, Ticket } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { ClientTerminalSettings } from '@smart-pos/client-data';
 
@@ -9,6 +9,7 @@ import { GstSettingsModal } from '../settings/GstSettingsModal.js';
 import { HelpModal } from '../settings/HelpModal.js';
 import { PaymentGatewaysModal } from '../settings/PaymentGatewaysModal.js';
 import { ProductImportExportModal } from '../settings/ProductImportExportModal.js';
+import { ReceiptMessageSettingsModal } from '../settings/ReceiptMessageSettingsModal.js';
 import { TerminalModeSettingsModal } from '../settings/TerminalModeSettingsModal.js';
 
 export type TopBarMenuEntry = {
@@ -71,6 +72,12 @@ export const useTopBarMenuEntries = ({
     id: 'payment-gateways',
     label: 'Payment gateways',
     renderModal: (open, onClose) => <PaymentGatewaysModal onClose={onClose} open={open} />
+  },
+  {
+    icon: <Receipt size={20} />,
+    id: 'receipt-message',
+    label: 'Receipt message',
+    renderModal: (open, onClose) => <ReceiptMessageSettingsModal onClose={onClose} open={open} />
   },
   {
     icon: <LayoutGrid size={20} />,
