@@ -3,13 +3,14 @@ import { randomUUID } from 'node:crypto';
 import { and, asc, desc, eq, gt, ilike, inArray, or, sql } from 'drizzle-orm';
 
 import type { AppDatabase } from '../../db/client.js';
-import { productPriceChanges, products } from '../../db/schema/index.js';
+import { productPriceChanges, productVariants, products } from '../../db/schema/index.js';
 import { createHttpError } from '../../lib/http-error.js';
 import { buildPaginationMeta } from './catalog-pagination.js';
 import {
   isDuplicateKeyError,
   normalizeProduct,
-  normalizeProductPriceChange
+  normalizeProductPriceChange,
+  normalizeProductVariant
 } from './drizzle-catalog.repository.utils.js';
 import { rankProductsForSearch } from './product-search-ranking.js';
 import type {
@@ -18,6 +19,7 @@ import type {
   PaginatedResult,
   PaginationInput,
   ProductRecord,
+  ProductVariantInput,
   RecordProductPriceChangeInput,
   UpdateProductInput
 } from './catalog.types.js';
@@ -240,6 +242,47 @@ export const createDrizzleCatalogProductStore = (db: AppDatabase) => ({
       throwIdentifierConflict(error);
       throw error;
     }
+  },
+
+  async listVariantsForProducts(tenantId: string, productIds: string[]) {
+    if (productIds.length === 0) return [];
+    const rows = await db
+      .select()
+      .from(productVariants)
+      .where(and(eq(productVariants.tenantId, tenantId), inArray(productVariants.productId, productIds)))
+      .orderBy(asc(productVariants.sortOrder), asc(productVariants.createdAt));
+    return rows.map(normalizeProductVariant);
+  },
+
+  async replaceProductVariants(
+    tenantId: string,
+    businessId: string,
+    productId: string,
+    variants: ProductVariantInput[]
+  ) {
+    return db.transaction(async (tx) => {
+      await tx
+        .delete(productVariants)
+        .where(and(eq(productVariants.tenantId, tenantId), eq(productVariants.productId, productId)));
+
+      if (variants.length === 0) return [];
+
+      const rows = await tx
+        .insert(productVariants)
+        .values(
+          variants.map((variant, index) => ({
+            businessId,
+            id: randomUUID(),
+            name: variant.name,
+            productId,
+            sellingPrice: variant.sellingPrice,
+            sortOrder: index,
+            tenantId
+          }))
+        )
+        .returning();
+      return rows.map(normalizeProductVariant);
+    });
   }
 });
 

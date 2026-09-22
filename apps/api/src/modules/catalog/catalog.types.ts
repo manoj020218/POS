@@ -59,6 +59,31 @@ export type ProductRecord = {
   updatedAt: Date;
 };
 
+export type ProductVariantRecord = {
+  businessId: string;
+  createdAt: Date;
+  id: string;
+  isActive: boolean;
+  name: string;
+  productId: string;
+  sellingPrice: number;
+  sortOrder: number;
+  tenantId: string;
+  updatedAt: Date;
+};
+
+export type CreateProductVariantInput = Pick<
+  ProductVariantRecord,
+  'businessId' | 'name' | 'productId' | 'sellingPrice' | 'sortOrder' | 'tenantId'
+>;
+
+// What a create/update-product caller supplies per variant -- everything
+// else (id, ids, sortOrder from array position) is resolved server-side.
+export type ProductVariantInput = {
+  name: string;
+  sellingPrice: number;
+};
+
 export type ProductPriceChangeRecord = {
   businessId: string;
   changedAt: Date;
@@ -225,6 +250,14 @@ export type ProductView = {
   unitName: string;
   unitPrecision: number;
   unitSymbol?: string;
+  variants: ProductVariantView[];
+};
+
+export type ProductVariantView = {
+  id: string;
+  name: string;
+  sellingPrice: number;
+  sortOrder: number;
 };
 
 export type ProductSearchView = {

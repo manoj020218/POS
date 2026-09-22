@@ -13,6 +13,8 @@ export const saleItems = pgTable('sale_items', {
     .references(() => products.id),
   productName: varchar('product_name', { length: 160 }).notNull(),
   productSku: varchar('product_sku', { length: 64 }).notNull(),
+  variantId: uuid('variant_id'),
+  variantName: varchar('variant_name', { length: 60 }),
   quantity: integer('quantity').notNull(),
   saleId: uuid('sale_id')
     .notNull()

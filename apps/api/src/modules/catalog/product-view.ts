@@ -4,6 +4,7 @@ import type {
   CategoryRecord,
   ProductRecord,
   ProductSearchView,
+  ProductVariantRecord,
   ProductView,
   TaxProfileRecord,
   UnitRecord
@@ -45,7 +46,8 @@ export const toProductView = (
   business: BusinessRecord,
   category: CategoryRecord,
   unit: UnitRecord,
-  taxProfile: TaxProfileRecord
+  taxProfile: TaxProfileRecord,
+  variants: ProductVariantRecord[] = []
 ): ProductView => ({
   barcode: product.barcode,
   brand: product.brand,
@@ -76,5 +78,11 @@ export const toProductView = (
   unitId: unit.id,
   unitName: unit.name,
   unitPrecision: unit.precision,
-  unitSymbol: unit.symbol
+  unitSymbol: unit.symbol,
+  variants: variants.map((variant) => ({
+    id: variant.id,
+    name: variant.name,
+    sellingPrice: variant.sellingPrice,
+    sortOrder: variant.sortOrder
+  }))
 });

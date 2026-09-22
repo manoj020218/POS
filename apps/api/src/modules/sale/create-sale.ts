@@ -32,11 +32,23 @@ export const createSaleHandler = (
     throw createHttpError(409, 'TERMINAL_INACTIVE', 'Terminal is inactive');
   }
 
-  ensureUniqueProducts(input.items.map((item) => item.productId));
+  // A product can legitimately appear more than once now (e.g. a Half
+  // portion and a Full portion of the same Daal) -- uniqueness is keyed on
+  // product+variant, not product alone.
+  ensureUniqueProducts(input.items.map((item) => `${item.productId}::${item.variantId ?? ''}`));
 
   const products = await Promise.all(
     input.items.map((item) => catalogRepository.findProductById(item.productId))
   );
+  const variantIds = [...new Set(input.items.flatMap((item) => (item.variantId ? [item.variantId] : [])))];
+  const variants =
+    variantIds.length > 0
+      ? await catalogRepository.listVariantsForProducts(
+          context.tenantId,
+          [...new Set(input.items.map((item) => item.productId))]
+        )
+      : [];
+  const variantMap = new Map(variants.map((variant) => [variant.id, variant]));
   const occurredAt = input.occurredAt ?? new Date();
 
   const calculated = calculateSaleTotals({
@@ -49,6 +61,20 @@ export const createSaleHandler = (
         throw createHttpError(409, 'PRODUCT_INACTIVE', 'Product is inactive');
       }
 
+      let variantName: string | undefined;
+      let resolvedUnitPrice = item.unitPrice ?? product.sellingPrice;
+      if (item.variantId) {
+        const variant = variantMap.get(item.variantId);
+        if (!variant || variant.productId !== product.id) {
+          throw createHttpError(404, 'PRODUCT_VARIANT_NOT_FOUND', 'Product variant not found');
+        }
+        if (!variant.isActive) {
+          throw createHttpError(409, 'PRODUCT_VARIANT_INACTIVE', 'Product variant is inactive');
+        }
+        variantName = variant.name;
+        resolvedUnitPrice = item.unitPrice ?? variant.sellingPrice;
+      }
+
       return {
         discountAmount: item.discountAmount,
         productId: product.id,
@@ -56,7 +82,9 @@ export const createSaleHandler = (
         productSku: product.sku,
         quantity: item.quantity,
         taxAmount: item.taxAmount,
-        unitPrice: item.unitPrice ?? product.sellingPrice
+        unitPrice: resolvedUnitPrice,
+        variantId: item.variantId,
+        variantName
       };
     }),
     payment: input.payment
@@ -90,7 +118,9 @@ export const createSaleHandler = (
       taxAmount: item.taxAmount,
       tenantId: context.tenantId,
       totalAmount: item.totalAmount,
-      unitPrice: item.unitPrice
+      unitPrice: item.unitPrice,
+      variantId: item.variantId,
+      variantName: item.variantName
     })),
     inventoryMovements: input.items.flatMap((item, index) => {
       const product = products[index]!;

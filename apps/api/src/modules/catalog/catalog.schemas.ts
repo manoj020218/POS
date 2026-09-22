@@ -101,6 +101,11 @@ export const productIdSchema = z.object({
   productId: uuidSchema
 });
 
+const productVariantInputSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  sellingPrice: moneySchema
+});
+
 export const createProductSchema = z.object({
   barcode: optionalStringSchema(64),
   brand: optionalStringSchema(120),
@@ -119,7 +124,8 @@ export const createProductSchema = z.object({
   taxProfileId: uuidSchema.optional(),
   isActive: z.boolean().optional().default(true),
   trackInventory: z.boolean().optional(),
-  unitId: uuidSchema.optional()
+  unitId: uuidSchema.optional(),
+  variants: z.array(productVariantInputSchema).max(20).optional()
 });
 
 export const updateProductSchema = z
@@ -140,7 +146,8 @@ export const updateProductSchema = z
     sku: optionalStringSchema(64).transform((value) => value?.toUpperCase()),
     taxProfileId: uuidSchema.optional(),
     trackInventory: z.boolean().optional(),
-    unitId: uuidSchema.optional()
+    unitId: uuidSchema.optional(),
+    variants: z.array(productVariantInputSchema).max(20).optional()
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: 'At least one field is required'

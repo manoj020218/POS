@@ -9,6 +9,8 @@ type SaleDraftItem = {
   quantity: number;
   taxAmount: number;
   unitPrice: number;
+  variantId?: string;
+  variantName?: string;
 };
 
 export type CalculatedSale = {

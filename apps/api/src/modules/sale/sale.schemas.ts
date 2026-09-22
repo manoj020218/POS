@@ -15,7 +15,8 @@ export const createSaleSchema = z.object({
         productId: uuidSchema,
         quantity: z.number().int().positive().max(10_000),
         taxAmount: moneySchema.optional().default(0),
-        unitPrice: moneySchema.optional()
+        unitPrice: moneySchema.optional(),
+        variantId: uuidSchema.optional()
       })
     )
     .min(1)

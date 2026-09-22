@@ -141,14 +141,22 @@ const toProductChanges = async (
   }
 
   const productBusinessIds = [...new Set(products.map((product) => product.businessId))];
-  const [categories, taxProfiles, units] = await Promise.all([
+  const productIds = products.map((product) => product.id);
+  const [categories, taxProfiles, units, variants] = await Promise.all([
     catalogRepository.listCategories(tenantId, productBusinessIds),
     catalogRepository.listTaxProfiles(tenantId, productBusinessIds),
-    catalogRepository.listUnits(tenantId, productBusinessIds)
+    catalogRepository.listUnits(tenantId, productBusinessIds),
+    catalogRepository.listVariantsForProducts(tenantId, productIds)
   ]);
   const categoryMap = new Map(categories.map((category) => [category.id, category]));
   const unitMap = new Map(units.map((unit) => [unit.id, unit]));
   const taxProfileMap = new Map(taxProfiles.map((taxProfile) => [taxProfile.id, taxProfile]));
+  const variantsByProductId = new Map<string, typeof variants>();
+  for (const variant of variants) {
+    const list = variantsByProductId.get(variant.productId) ?? [];
+    list.push(variant);
+    variantsByProductId.set(variant.productId, list);
+  }
 
   return products.map((product) => {
     const view = toProductView(
@@ -161,7 +169,8 @@ const toProductChanges = async (
         product.taxProfileId,
         'TAX_PROFILE_NOT_FOUND',
         'Tax profile not found'
-      )
+      ),
+      variantsByProductId.get(product.id) ?? []
     );
 
     return {

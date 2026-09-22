@@ -25,6 +25,8 @@ import type {
   PaginationInput,
   ProductPriceChangeRecord,
   ProductRecord,
+  ProductVariantInput,
+  ProductVariantRecord,
   RecordProductPriceChangeInput,
   TaxProfileRecord,
   UnitRecord,
@@ -40,6 +42,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   private readonly products = new Map<string, ProductRecord>();
   private readonly taxProfiles = new Map<string, TaxProfileRecord>();
   private readonly units = new Map<string, UnitRecord>();
+  private readonly variants = new Map<string, ProductVariantRecord>();
 
   async createCategory(input: CreateCategoryInput) {
     return this.store(this.categories, withTimestamps(input));
@@ -108,6 +111,44 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     }
 
     return record;
+  }
+  async listVariantsForProducts(tenantId: string, productIds: string[]) {
+    const wanted = new Set(productIds);
+    return [...this.variants.values()]
+      .filter((variant) => variant.tenantId === tenantId && wanted.has(variant.productId))
+      .sort((left, right) => left.sortOrder - right.sortOrder);
+  }
+  async replaceProductVariants(
+    tenantId: string,
+    businessId: string,
+    productId: string,
+    variants: ProductVariantInput[]
+  ) {
+    for (const [id, variant] of this.variants.entries()) {
+      if (variant.tenantId === tenantId && variant.productId === productId) {
+        this.variants.delete(id);
+      }
+    }
+
+    const now = new Date();
+    const created = variants.map((variant, index) => {
+      const record: ProductVariantRecord = {
+        businessId,
+        createdAt: now,
+        id: randomUUID(),
+        isActive: true,
+        name: variant.name,
+        productId,
+        sellingPrice: variant.sellingPrice,
+        sortOrder: index,
+        tenantId,
+        updatedAt: now
+      };
+      this.variants.set(record.id, record);
+      return record;
+    });
+
+    return created;
   }
   async listCategoriesUpdatedSince(
     tenantId: string,

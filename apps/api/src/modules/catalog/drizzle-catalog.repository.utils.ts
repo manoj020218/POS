@@ -1,8 +1,16 @@
-import { categories, productPriceChanges, products, taxProfiles, units } from '../../db/schema/index.js';
+import {
+  categories,
+  productPriceChanges,
+  productVariants,
+  products,
+  taxProfiles,
+  units
+} from '../../db/schema/index.js';
 import type {
   CategoryRecord,
   ProductPriceChangeRecord,
   ProductRecord,
+  ProductVariantRecord,
   TaxProfileRecord,
   UnitRecord
 } from './catalog.types.js';
@@ -83,6 +91,21 @@ export const normalizeProductPriceChange = (
   previousPrice: record.previousPrice,
   productId: record.productId,
   tenantId: record.tenantId
+});
+
+export const normalizeProductVariant = (
+  record: typeof productVariants.$inferSelect
+): ProductVariantRecord => ({
+  businessId: record.businessId,
+  createdAt: record.createdAt,
+  id: record.id,
+  isActive: record.isActive,
+  name: record.name,
+  productId: record.productId,
+  sellingPrice: record.sellingPrice,
+  sortOrder: record.sortOrder,
+  tenantId: record.tenantId,
+  updatedAt: record.updatedAt
 });
 
 export const isDuplicateKeyError = (error: unknown): boolean => {

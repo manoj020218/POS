@@ -9,6 +9,8 @@ import type {
   CreateUnitInput,
   ProductPriceChangeRecord,
   ProductRecord,
+  ProductVariantInput,
+  ProductVariantRecord,
   RecordProductPriceChangeInput,
   TaxProfileRecord,
   UnitRecord,
@@ -44,6 +46,13 @@ export interface CatalogRepository {
   findUnitByCode(tenantId: string, businessId: string, code: string): Promise<UnitRecord | null>;
   findUnitById(unitId: string): Promise<UnitRecord | null>;
   listCategories(tenantId: string, businessIds?: string[]): Promise<CategoryRecord[]>;
+  listVariantsForProducts(tenantId: string, productIds: string[]): Promise<ProductVariantRecord[]>;
+  replaceProductVariants(
+    tenantId: string,
+    businessId: string,
+    productId: string,
+    variants: ProductVariantInput[]
+  ): Promise<ProductVariantRecord[]>;
   listRecentPriceChanges(
     tenantId: string,
     productId: string,

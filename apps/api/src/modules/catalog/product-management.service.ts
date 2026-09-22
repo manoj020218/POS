@@ -17,6 +17,7 @@ import type {
   PaginationInput,
   ProductListQuery,
   ProductRecord,
+  ProductVariantInput,
   ProductView
 } from './catalog.types.js';
 import { requiredRecord, toProductView } from './product-view.js';
@@ -40,6 +41,7 @@ type ProductInput = Omit<
   taxProfileId?: string;
   trackInventory?: boolean;
   unitId?: string;
+  variants?: ProductVariantInput[];
 };
 
 export const createProductHandlers = (
@@ -67,8 +69,9 @@ export const createProductHandlers = (
     });
     if (duplicate) throw createHttpError(409, 'PRODUCT_IDENTIFIER_IN_USE', 'Product identifier already in use');
 
+    const { variants, ...productInput } = input;
     const product = await repository.createProduct({
-      ...input,
+      ...productInput,
       businessId: business.id,
       categoryId: related.category.id,
       sku,
@@ -77,7 +80,13 @@ export const createProductHandlers = (
       trackInventory: input.trackInventory ?? settings.defaultTrackInventory,
       unitId: related.unit.id
     });
-    return toProductView(product, business, related.category, related.unit, related.taxProfile);
+    const createdVariants = await repository.replaceProductVariants(
+      context.tenantId,
+      business.id,
+      product.id,
+      variants ?? []
+    );
+    return toProductView(product, business, related.category, related.unit, related.taxProfile, createdVariants);
   },
   listProducts: async (
     context: AccessContext,
@@ -100,19 +109,27 @@ export const createProductHandlers = (
     }
 
     const pageBusinessIds = [...new Set(productPage.items.map((product) => product.businessId))];
-    const [categories, taxProfiles, units] = await Promise.all([
+    const productIds = productPage.items.map((product) => product.id);
+    const [categories, taxProfiles, units, variants] = await Promise.all([
       repository.listCategories(context.tenantId, pageBusinessIds),
       repository.listTaxProfiles(context.tenantId, pageBusinessIds),
-      repository.listUnits(context.tenantId, pageBusinessIds)
+      repository.listUnits(context.tenantId, pageBusinessIds),
+      repository.listVariantsForProducts(context.tenantId, productIds)
     ]);
     const businessMap = new Map(businesses.map((business) => [business.id, business]));
     const categoryMap = new Map(categories.map((category) => [category.id, category]));
     const unitMap = new Map(units.map((unit) => [unit.id, unit]));
     const taxProfileMap = new Map(taxProfiles.map((taxProfile) => [taxProfile.id, taxProfile]));
+    const variantsByProductId = new Map<string, typeof variants>();
+    for (const variant of variants) {
+      const list = variantsByProductId.get(variant.productId) ?? [];
+      list.push(variant);
+      variantsByProductId.set(variant.productId, list);
+    }
 
     return {
       items: productPage.items.map((product) =>
-        toProductView(product, requiredRecord(businessMap, product.businessId, 'BUSINESS_NOT_FOUND', 'Business not found'), requiredRecord(categoryMap, product.categoryId, 'CATEGORY_NOT_FOUND', 'Category not found'), requiredRecord(unitMap, product.unitId, 'UNIT_NOT_FOUND', 'Unit not found'), requiredRecord(taxProfileMap, product.taxProfileId, 'TAX_PROFILE_NOT_FOUND', 'Tax profile not found'))
+        toProductView(product, requiredRecord(businessMap, product.businessId, 'BUSINESS_NOT_FOUND', 'Business not found'), requiredRecord(categoryMap, product.categoryId, 'CATEGORY_NOT_FOUND', 'Category not found'), requiredRecord(unitMap, product.unitId, 'UNIT_NOT_FOUND', 'Unit not found'), requiredRecord(taxProfileMap, product.taxProfileId, 'TAX_PROFILE_NOT_FOUND', 'Tax profile not found'), variantsByProductId.get(product.id) ?? [])
       ),
       meta: productPage.meta
     };
@@ -141,8 +158,9 @@ export const createProductHandlers = (
       }
     }
 
+    const { variants, ...productInput } = input;
     const updated = await repository.updateProduct(productId, context.tenantId, {
-      ...input,
+      ...productInput,
       ...(input.categoryId ? { categoryId: related.category.id } : {}),
       ...(sku ? { sku } : {}),
       ...(input.taxProfileId ? { taxProfileId: related.taxProfile.id } : {}),
@@ -164,7 +182,15 @@ export const createProductHandlers = (
       );
     }
 
-    return toProductView(updated, business, related.category, related.unit, related.taxProfile);
+    // Only replace variants when the caller actually included the field --
+    // omitting it entirely (e.g. a price-only patch) must leave existing
+    // variants untouched, not wipe them.
+    const updatedVariants =
+      variants !== undefined
+        ? await repository.replaceProductVariants(context.tenantId, business.id, updated.id, variants)
+        : await repository.listVariantsForProducts(context.tenantId, [updated.id]);
+
+    return toProductView(updated, business, related.category, related.unit, related.taxProfile, updatedVariants);
   },
   getPriceHistory: async (context: AccessContext, productId: string) => {
     const existing = await repository.findProductById(productId);

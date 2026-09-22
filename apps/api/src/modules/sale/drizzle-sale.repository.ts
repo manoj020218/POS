@@ -101,7 +101,11 @@ export class DrizzleSaleRepository
       }
 
       return {
-        items: itemRows.map((item) => item),
+        items: itemRows.map((item) => ({
+          ...item,
+          variantId: item.variantId ?? undefined,
+          variantName: item.variantName ?? undefined
+        })),
         sale: normalizeSale(requireSale(saleRow))
       };
     });
@@ -204,7 +208,11 @@ export class DrizzleSaleRepository
       .where(and(eq(saleItems.saleId, saleId), eq(saleItems.tenantId, tenantId)));
 
     return {
-      items: itemRows.map((item) => item),
+      items: itemRows.map((item) => ({
+        ...item,
+        variantId: item.variantId ?? undefined,
+        variantName: item.variantName ?? undefined
+      })),
       sale: normalizeSale(saleRow)
     };
   }

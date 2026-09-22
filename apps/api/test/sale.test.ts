@@ -249,4 +249,80 @@ describe('sale routes', () => {
     expect(duplicate.status).toBe(400);
     expect(duplicate.body.code).toBe('DUPLICATE_SALE_PRODUCT');
   });
+
+  it('sells two different variants of the same product in one sale', async () => {
+    const managerAccess = await loginAs('manager@example.com');
+    const cashierAccess = await loginAs('cashier@example.com');
+    const product = await request(app)
+      .post('/api/v1/products')
+      .set(managerAccess)
+      .send({
+        name: 'Daal',
+        sellingPrice: 25000,
+        variants: [
+          { name: 'Half', sellingPrice: 25000 },
+          { name: 'Full', sellingPrice: 30000 }
+        ]
+      });
+    const [half, full] = product.body.data.variants as { id: string; name: string }[];
+
+    const created = await request(app)
+      .post('/api/v1/sales')
+      .set(cashierAccess)
+      .send({
+        branchId: branchAId,
+        items: [
+          { productId: product.body.data.id, quantity: 1, variantId: half.id },
+          { productId: product.body.data.id, quantity: 1, variantId: full.id }
+        ],
+        payment: { method: 'CASH', tenderedAmount: 55000 },
+        terminalId: terminalAId
+      });
+
+    expect(created.status).toBe(201);
+    expect(created.body.data.items).toEqual([
+      expect.objectContaining({
+        productId: product.body.data.id,
+        quantity: 1,
+        unitPrice: 25000,
+        variantId: half.id,
+        variantName: 'Half'
+      }),
+      expect.objectContaining({
+        productId: product.body.data.id,
+        quantity: 1,
+        unitPrice: 30000,
+        variantId: full.id,
+        variantName: 'Full'
+      })
+    ]);
+    expect(created.body.data.subtotalAmount).toBe(55000);
+  });
+
+  it('rejects a variant that does not belong to the given product', async () => {
+    const managerAccess = await loginAs('manager@example.com');
+    const cashierAccess = await loginAs('cashier@example.com');
+    const productA = await request(app)
+      .post('/api/v1/products')
+      .set(managerAccess)
+      .send({ name: 'Daal', sellingPrice: 25000, variants: [{ name: 'Half', sellingPrice: 25000 }] });
+    const productB = await request(app).post('/api/v1/products').set(managerAccess).send({
+      name: 'Roti',
+      sellingPrice: 1000
+    });
+    const wrongVariantId = productA.body.data.variants[0].id as string;
+
+    const created = await request(app)
+      .post('/api/v1/sales')
+      .set(cashierAccess)
+      .send({
+        branchId: branchAId,
+        items: [{ productId: productB.body.data.id, quantity: 1, variantId: wrongVariantId }],
+        payment: { method: 'CASH', tenderedAmount: 1000 },
+        terminalId: terminalAId
+      });
+
+    expect(created.status).toBe(404);
+    expect(created.body.code).toBe('PRODUCT_VARIANT_NOT_FOUND');
+  });
 });

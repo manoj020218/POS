@@ -317,4 +317,50 @@ describe('catalog routes', () => {
     expect(history.status).toBe(200);
     expect(history.body.data).toEqual([]);
   });
+
+  it('creates a product with variants and reflects them in the response and later listings', async () => {
+    const managerAccess = await loginAs('manager@example.com');
+    const created = await request(app)
+      .post('/api/v1/products')
+      .set(managerAccess)
+      .send({
+        name: 'Daal',
+        sellingPrice: 25000,
+        variants: [
+          { name: 'Half', sellingPrice: 25000 },
+          { name: 'Full', sellingPrice: 30000 }
+        ]
+      });
+
+    expect(created.status).toBe(201);
+    expect(created.body.data.variants).toMatchObject([
+      { name: 'Half', sellingPrice: 25000 },
+      { name: 'Full', sellingPrice: 30000 }
+    ]);
+    const productId = created.body.data.id as string;
+
+    const listed = await request(app)
+      .get('/api/v1/products')
+      .query({ businessId: businessAId })
+      .set(managerAccess);
+    const listedProduct = listed.body.data.find((item: { id: string }) => item.id === productId);
+    expect(listedProduct.variants).toMatchObject([
+      { name: 'Half', sellingPrice: 25000 },
+      { name: 'Full', sellingPrice: 30000 }
+    ]);
+
+    // A patch that omits `variants` entirely must leave them untouched.
+    const patchedDescription = await request(app)
+      .patch(`/api/v1/products/${productId}`)
+      .set(managerAccess)
+      .send({ description: 'Made fresh daily' });
+    expect(patchedDescription.body.data.variants).toHaveLength(2);
+
+    // A patch that explicitly sends `variants` replaces the full set.
+    const patchedVariants = await request(app)
+      .patch(`/api/v1/products/${productId}`)
+      .set(managerAccess)
+      .send({ variants: [{ name: 'Full', sellingPrice: 32000 }] });
+    expect(patchedVariants.body.data.variants).toMatchObject([{ name: 'Full', sellingPrice: 32000 }]);
+  });
 });

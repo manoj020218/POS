@@ -36,7 +36,9 @@ export const toSaleView = (detail: SaleDetailRecord): SaleView => ({
     subtotalAmount: item.subtotalAmount,
     taxAmount: item.taxAmount,
     totalAmount: item.totalAmount,
-    unitPrice: item.unitPrice
+    unitPrice: item.unitPrice,
+    variantId: item.variantId,
+    variantName: item.variantName
   })),
   occurredAt: detail.sale.occurredAt,
   paymentMethod: detail.sale.paymentMethod,

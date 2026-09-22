@@ -79,6 +79,10 @@ export class DrizzleCatalogRepository implements CatalogRepository {
     this.productStore.listProductsUpdatedSince(...args);
   listRecentPriceChanges = (...args: Parameters<CatalogRepository['listRecentPriceChanges']>) =>
     this.productStore.listRecentPriceChanges(...args);
+  listVariantsForProducts = (...args: Parameters<CatalogRepository['listVariantsForProducts']>) =>
+    this.productStore.listVariantsForProducts(...args);
+  replaceProductVariants = (...args: Parameters<CatalogRepository['replaceProductVariants']>) =>
+    this.productStore.replaceProductVariants(...args);
   recordProductPriceChange = (...args: Parameters<CatalogRepository['recordProductPriceChange']>) =>
     this.productStore.recordProductPriceChange(...args);
   searchProducts = (...args: Parameters<CatalogRepository['searchProducts']>) =>

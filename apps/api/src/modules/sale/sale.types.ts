@@ -41,6 +41,8 @@ export type SaleItemRecord = {
   tenantId: string;
   totalAmount: number;
   unitPrice: number;
+  variantId?: string;
+  variantName?: string;
 };
 
 export type CreateSaleRecordInput = Omit<
@@ -76,6 +78,7 @@ export type CreateSaleRequest = {
     quantity: number;
     taxAmount: number;
     unitPrice?: number;
+    variantId?: string;
   }>;
   occurredAt?: Date;
   payment: {
@@ -113,6 +116,8 @@ export type SaleItemView = {
   taxAmount: number;
   totalAmount: number;
   unitPrice: number;
+  variantId?: string;
+  variantName?: string;
 };
 
 export type SaleView = {
