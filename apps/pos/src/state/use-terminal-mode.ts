@@ -8,6 +8,7 @@ const defaultSettings = (terminalId: string): ClientTerminalSettings => ({
   kioskCollectsPayment: false,
   mode: 'BILLING_POS',
   printDualTokens: false,
+  showWalkInCustomer: true,
   terminalId
 });
 

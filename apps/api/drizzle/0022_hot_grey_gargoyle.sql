@@ -1,0 +1,1 @@
+ALTER TABLE "terminal_settings" ADD COLUMN "show_walk_in_customer" boolean DEFAULT true NOT NULL;

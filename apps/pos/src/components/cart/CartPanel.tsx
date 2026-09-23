@@ -1,9 +1,11 @@
 import { Ticket } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import type { ClientTerminalSettings } from '@smart-pos/client-data';
 
 import { KioskTokenLookupModal } from '../kiosk/KioskTokenLookupModal.js';
 import type { CartApi } from '../../state/use-cart.js';
 import { useCustomers } from '../../state/use-customers.js';
+import type { HeldBillsApi } from '../../state/use-held-bills.js';
 import { usePosContext } from '../../state/use-pos-context.js';
 import { CustomerBar } from '../customer/CustomerBar.js';
 import { CustomerPickerModal } from '../customer/CustomerPickerModal.js';
@@ -14,7 +16,13 @@ import { CartEmptyState } from './CartEmptyState.js';
 import { CartLineItem } from './CartLineItem.js';
 import { CartTotals } from './CartTotals.js';
 
-export const CartPanel = ({ cartApi }: { cartApi: CartApi }) => {
+type CartPanelProps = {
+  cartApi: CartApi;
+  heldBillsApi: HeldBillsApi;
+  terminalSettings: ClientTerminalSettings;
+};
+
+export const CartPanel = ({ cartApi, heldBillsApi, terminalSettings }: CartPanelProps) => {
   const { remoteApi, settings } = usePosContext();
   const { cart, clear, decrement, increment, remove, setCustomer, setDiscountPercent, totals } = cartApi;
   const customers = useCustomers();
@@ -28,17 +36,19 @@ export const CartPanel = ({ cartApi }: { cartApi: CartApi }) => {
   );
 
   return (
-    <aside className="flex w-full flex-col gap-4 border-t border-line bg-surface p-4 lg:w-[26rem] lg:shrink-0 lg:overflow-hidden lg:border-l lg:border-t-0">
-      <div className="flex items-center gap-2">
-        <div className="min-w-0 flex-1">
-          <CustomerBar customerName={customerName} onOpen={() => setPickerOpen(true)} />
+    <aside className="@container flex w-[30%] shrink-0 flex-col gap-4 overflow-hidden border-l border-line bg-surface p-4">
+      {terminalSettings.showWalkInCustomer && (
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <CustomerBar customerName={customerName} onOpen={() => setPickerOpen(true)} />
+          </div>
+          <IconButton label="Look up kiosk token" onClick={() => setTokenLookupOpen(true)} size="sm" tone="neutral">
+            <Ticket size={18} />
+          </IconButton>
         </div>
-        <IconButton label="Look up kiosk token" onClick={() => setTokenLookupOpen(true)} tone="neutral">
-          <Ticket size={20} />
-        </IconButton>
-      </div>
+      )}
 
-      <div className="space-y-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col space-y-2 overflow-y-auto">
         {cart.lines.length === 0 ? (
           <CartEmptyState />
         ) : (
@@ -60,6 +70,11 @@ export const CartPanel = ({ cartApi }: { cartApi: CartApi }) => {
       <CheckoutFlow
         cart={cart}
         currencyCode={settings.currencyCode}
+        onHoldBill={(label, heldCart, totalAmount) => {
+          heldBillsApi.holdBill(label, heldCart, totalAmount);
+          clear();
+          setKioskOrderId(null);
+        }}
         onSaleCompleted={() => {
           clear();
           setKioskOrderId(null);

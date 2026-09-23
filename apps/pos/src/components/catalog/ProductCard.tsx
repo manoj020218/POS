@@ -105,10 +105,15 @@ export const ProductCard = ({
         {hasVariants ? (
           <div className="flex flex-col gap-1">
             <p className="truncate text-xs font-semibold leading-tight text-ink">{product.name}</p>
-            <div className="flex flex-wrap gap-1">
+            {/* flex-1 on each button (no flex-wrap) makes them share the row
+                evenly and shrink together instead of wrapping to a second
+                row when the card is narrow -- solid, saturated color (not
+                the old translucent tint) so they read clearly against any
+                food photo behind them. */}
+            <div className="flex gap-1">
               {product.variants.map((variant) => (
                 <button
-                  className="rounded-lg border border-brand-500/30 bg-brand-500/20 px-2 py-1 text-[11px] font-bold text-brand-700 backdrop-blur-sm active:bg-brand-500/30"
+                  className="min-w-0 flex-1 truncate rounded-lg bg-warn-500 px-1.5 py-1 text-center text-[11px] font-bold text-white shadow-kiosk active:bg-warn-600"
                   key={variant.id}
                   onClick={(event) => {
                     event.stopPropagation();

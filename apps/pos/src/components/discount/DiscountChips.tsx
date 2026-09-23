@@ -5,6 +5,7 @@ import { Modal } from '../common/Modal.js';
 import { NumericKeypad, type NumericKey } from '../common/NumericKeypad.js';
 
 const quickPercents = [0, 5, 10, 15];
+const customValue = 'custom';
 
 type DiscountChipsProps = {
   discountPercent: number;
@@ -40,31 +41,58 @@ export const DiscountChips = ({ discountPercent, onChange }: DiscountChipsProps)
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs font-semibold uppercase tracking-wide text-ink-faint">Discount</span>
-      {quickPercents.map((percent) => (
+    <div className="@container">
+      {/* Compact: a single-line selector instead of 5 separate buttons -- a
+          chip row just doesn't fit a narrow panel without cutting options off. */}
+      <div className="flex items-center gap-2 @sm:hidden">
+        <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-ink-faint">Disc.</span>
+        <select
+          className="h-9 min-w-0 flex-1 rounded-lg border border-line bg-surface-sunken px-2 text-sm font-bold text-ink"
+          onChange={(event) => {
+            if (event.target.value === customValue) {
+              setCustomOpen(true);
+              return;
+            }
+            onChange(Number(event.target.value));
+          }}
+          value={isCustomActive ? customValue : String(discountPercent)}
+        >
+          {quickPercents.map((percent) => (
+            <option key={percent} value={percent}>
+              {percent}%
+            </option>
+          ))}
+          <option value={customValue}>{isCustomActive ? `Custom (${discountPercent}%)` : 'Custom'}</option>
+        </select>
+      </div>
+
+      {/* Spacious: the full chip row once there's room to show every option at once. */}
+      <div className="hidden items-center gap-2 @sm:flex">
+        <span className="text-xs font-semibold uppercase tracking-wide text-ink-faint">Discount</span>
+        {quickPercents.map((percent) => (
+          <button
+            className={`h-9 rounded-lg px-3 text-sm font-bold transition-colors ${
+              discountPercent === percent
+                ? 'bg-warn-500 text-white'
+                : 'bg-surface-sunken text-ink-muted active:bg-line'
+            }`}
+            key={percent}
+            onClick={() => onChange(percent)}
+            type="button"
+          >
+            {percent}%
+          </button>
+        ))}
         <button
           className={`h-9 rounded-lg px-3 text-sm font-bold transition-colors ${
-            discountPercent === percent
-              ? 'bg-warn-500 text-white'
-              : 'bg-surface-sunken text-ink-muted active:bg-line'
+            isCustomActive ? 'bg-warn-500 text-white' : 'bg-surface-sunken text-ink-muted active:bg-line'
           }`}
-          key={percent}
-          onClick={() => onChange(percent)}
+          onClick={() => setCustomOpen(true)}
           type="button"
         >
-          {percent}%
+          {isCustomActive ? `${discountPercent}%` : 'Custom'}
         </button>
-      ))}
-      <button
-        className={`h-9 rounded-lg px-3 text-sm font-bold transition-colors ${
-          isCustomActive ? 'bg-warn-500 text-white' : 'bg-surface-sunken text-ink-muted active:bg-line'
-        }`}
-        onClick={() => setCustomOpen(true)}
-        type="button"
-      >
-        {isCustomActive ? `${discountPercent}%` : 'Custom'}
-      </button>
+      </div>
 
       <Modal onClose={() => setCustomOpen(false)} open={customOpen} title="Custom discount %" widthClassName="max-w-sm">
         <div className="space-y-4">

@@ -138,6 +138,7 @@ describe('DrizzleKioskRepository', () => {
       kioskCollectsPayment: false,
       mode: 'BILLING_POS',
       printDualTokens: false,
+      showWalkInCustomer: true,
       tenantId,
       terminalId
     });
@@ -148,6 +149,7 @@ describe('DrizzleKioskRepository', () => {
       kioskCollectsPayment: true,
       mode: 'SELF_SERVICE_KIOSK',
       printDualTokens: true,
+      showWalkInCustomer: false,
       tenantId,
       terminalId
     });

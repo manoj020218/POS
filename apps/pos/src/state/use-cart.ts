@@ -15,6 +15,7 @@ type CartAction =
   | { productId: string; type: 'UPDATE_PRICE'; unitPrice: number; variantId?: string }
   | { discountPercent: number; type: 'SET_DISCOUNT' }
   | { customerId: string | null; type: 'SET_CUSTOMER' }
+  | { cart: CartState; type: 'LOAD' }
   | { type: 'CLEAR' };
 
 const cartReducer = (state: CartState, action: CartAction): CartState => {
@@ -113,6 +114,8 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       return { ...state, discountPercent: action.discountPercent };
     case 'SET_CUSTOMER':
       return { ...state, customerId: action.customerId };
+    case 'LOAD':
+      return action.cart;
     case 'CLEAR':
       return emptyCartState;
     default:
@@ -158,6 +161,7 @@ export const useCart = () => {
     []
   );
   const clear = useCallback(() => dispatch({ type: 'CLEAR' }), []);
+  const load = useCallback((nextCart: CartState) => dispatch({ cart: nextCart, type: 'LOAD' }), []);
 
   const totals = useMemo(() => {
     if (cart.lines.length === 0) {
@@ -189,6 +193,7 @@ export const useCart = () => {
     clear,
     decrement,
     increment,
+    load,
     remove,
     setCustomer,
     setDiscountPercent,

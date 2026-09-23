@@ -25,7 +25,8 @@ const defaultTerminalSettings = {
   gatewayTimeoutMinutes: 5,
   kioskCollectsPayment: false,
   mode: 'BILLING_POS' as const,
-  printDualTokens: false
+  printDualTokens: false,
+  showWalkInCustomer: true
 };
 
 export const createKioskService = (
@@ -66,6 +67,7 @@ export const createKioskService = (
       kioskCollectsPayment: stored?.kioskCollectsPayment ?? defaultTerminalSettings.kioskCollectsPayment,
       mode: stored?.mode ?? defaultTerminalSettings.mode,
       printDualTokens: stored?.printDualTokens ?? defaultTerminalSettings.printDualTokens,
+      showWalkInCustomer: stored?.showWalkInCustomer ?? defaultTerminalSettings.showWalkInCustomer,
       terminalId
     };
   };
@@ -111,6 +113,7 @@ export const createKioskService = (
         kioskCollectsPayment: input.kioskCollectsPayment ?? current.kioskCollectsPayment,
         mode: input.mode ?? current.mode,
         printDualTokens: input.printDualTokens ?? current.printDualTokens,
+        showWalkInCustomer: input.showWalkInCustomer ?? current.showWalkInCustomer,
         tenantId: context.tenantId,
         terminalId
       });
@@ -120,6 +123,7 @@ export const createKioskService = (
         kioskCollectsPayment: saved.kioskCollectsPayment,
         mode: saved.mode,
         printDualTokens: saved.printDualTokens,
+        showWalkInCustomer: saved.showWalkInCustomer,
         terminalId: saved.terminalId
       } satisfies TerminalSettingsView;
     },

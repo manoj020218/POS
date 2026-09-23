@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type RefObject } from 'react';
 import type { ClientProductRecord, ClientProductVariant } from '@smart-pos/client-data';
 
 import type { CartApi } from '../../state/use-cart.js';
@@ -14,9 +14,10 @@ import { SearchBar } from '../catalog/SearchBar.js';
 type CatalogPaneProps = {
   cartApi: CartApi;
   catalog: ReturnType<typeof useProductCatalog>;
+  scrollContainerRef: RefObject<HTMLElement | null>;
 };
 
-export const CatalogPane = ({ cartApi, catalog }: CatalogPaneProps) => {
+export const CatalogPane = ({ cartApi, catalog, scrollContainerRef }: CatalogPaneProps) => {
   const { settings } = usePosContext();
   const {
     categories,
@@ -70,11 +71,16 @@ export const CatalogPane = ({ cartApi, catalog }: CatalogPaneProps) => {
   };
 
   return (
-    <section className="flex w-full min-w-0 flex-col gap-3 p-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden">
-      <SearchBar onChange={setSearchText} value={searchText} />
-      <div className="flex shrink-0 items-center gap-2">
-        <CategoryTabs categories={categories} onSelect={setCategoryCode} selected={categoryCode} />
-        <FoodTypeFilter active={foodTypeFilter} onToggle={toggleFoodType} />
+    <section
+      className="@container flex min-h-0 w-full min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-4"
+      ref={scrollContainerRef as RefObject<HTMLElement>}
+    >
+      <div className="sticky top-0 z-10 -mx-4 -mt-4 space-y-3 bg-surface px-4 pt-4 pb-1">
+        <SearchBar onChange={setSearchText} value={searchText} />
+        <div className="flex items-center gap-2">
+          <CategoryTabs categories={categories} onSelect={setCategoryCode} selected={categoryCode} />
+          <FoodTypeFilter active={foodTypeFilter} onToggle={toggleFoodType} />
+        </div>
       </div>
       {stockLimitError && (
         <p className="rounded-xl bg-danger-50 px-4 py-3 text-sm font-semibold text-danger-600">

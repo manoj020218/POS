@@ -32,7 +32,13 @@ export const ProductGrid = ({
   }
 
   return (
-    <div className="grid auto-rows-min grid-cols-3 gap-3 p-2 pt-3 sm:grid-cols-4 xl:grid-cols-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+    // Column count follows the grid's own container width, not the
+    // viewport -- this pane can be anywhere from ~40% to 100% of the
+    // screen depending on the cart panel's split, so a viewport breakpoint
+    // (sm:/xl:) picked the wrong column count whenever that ratio changed.
+    // Too many columns starves each card of width, which is what made the
+    // Half/Full variant buttons wrap onto a second row.
+    <div className="grid auto-rows-min grid-cols-2 gap-3 p-2 pt-3 @md:grid-cols-3 @2xl:grid-cols-4 @5xl:grid-cols-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
       {products.map((product) => (
         <ProductCard
           currencyCode={currencyCode}

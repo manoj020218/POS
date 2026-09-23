@@ -31,6 +31,7 @@ export const TerminalModeSettingsModal = ({
   const [mode, setMode] = useState<ClientTerminalMode>(terminalSettings.mode);
   const [kioskCollectsPayment, setKioskCollectsPayment] = useState(terminalSettings.kioskCollectsPayment);
   const [printDualTokens, setPrintDualTokens] = useState(terminalSettings.printDualTokens);
+  const [showWalkInCustomer, setShowWalkInCustomer] = useState(terminalSettings.showWalkInCustomer);
   const [gatewayTimeoutMinutes, setGatewayTimeoutMinutes] = useState(
     String(terminalSettings.gatewayTimeoutMinutes)
   );
@@ -55,7 +56,8 @@ export const TerminalModeSettingsModal = ({
         gatewayTimeoutMinutes: timeoutMinutes,
         kioskCollectsPayment,
         mode,
-        printDualTokens
+        printDualTokens,
+        showWalkInCustomer
       });
       onSaved();
     } catch (cause) {
@@ -86,6 +88,26 @@ export const TerminalModeSettingsModal = ({
             );
           })}
         </div>
+
+        {mode === 'BILLING_POS' && (
+          <div className="space-y-4 rounded-2xl bg-surface-sunken p-4">
+            <label className="flex items-start justify-between gap-4">
+              <span>
+                <span className="block text-sm font-semibold text-ink">Show walk-in customer row</span>
+                <span className="block text-xs text-ink-faint">
+                  Shows the customer name/picker row above the cart on this terminal's dashboard. Turn this off if
+                  you never attach a customer to a sale here.
+                </span>
+              </span>
+              <input
+                checked={showWalkInCustomer}
+                className="mt-1 h-5 w-5 shrink-0"
+                onChange={(event) => setShowWalkInCustomer(event.target.checked)}
+                type="checkbox"
+              />
+            </label>
+          </div>
+        )}
 
         {mode === 'SELF_SERVICE_KIOSK' && (
           <div className="space-y-4 rounded-2xl bg-surface-sunken p-4">

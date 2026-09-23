@@ -140,6 +140,7 @@ export class DrizzleKioskRepository implements KioskRepository {
           kioskCollectsPayment: input.kioskCollectsPayment,
           mode: input.mode,
           printDualTokens: input.printDualTokens,
+          showWalkInCustomer: input.showWalkInCustomer,
           updatedAt: new Date()
         },
         target: terminalSettings.terminalId
@@ -180,6 +181,7 @@ const normalizeTerminalSettings = (
   kioskCollectsPayment: record.kioskCollectsPayment,
   mode: record.mode as TerminalSettingsRecord['mode'],
   printDualTokens: record.printDualTokens,
+  showWalkInCustomer: record.showWalkInCustomer,
   tenantId: record.tenantId,
   terminalId: record.terminalId,
   updatedAt: record.updatedAt

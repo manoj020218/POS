@@ -19,6 +19,7 @@ export const terminalSettings = pgTable(
     mode: varchar('mode', { length: 32 }).notNull().default('BILLING_POS'),
     kioskCollectsPayment: boolean('kiosk_collects_payment').notNull().default(false),
     printDualTokens: boolean('print_dual_tokens').notNull().default(false),
+    showWalkInCustomer: boolean('show_walk_in_customer').notNull().default(true),
     gatewayTimeoutMinutes: integer('gateway_timeout_minutes').notNull().default(5),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()

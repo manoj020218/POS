@@ -35,14 +35,16 @@ export const updateTerminalSettingsSchema = z
     gatewayTimeoutMinutes: z.number().int().min(1).max(60).optional(),
     kioskCollectsPayment: z.boolean().optional(),
     mode: z.enum(terminalModes).optional(),
-    printDualTokens: z.boolean().optional()
+    printDualTokens: z.boolean().optional(),
+    showWalkInCustomer: z.boolean().optional()
   })
   .refine(
     (value) =>
       value.gatewayTimeoutMinutes !== undefined ||
       value.kioskCollectsPayment !== undefined ||
       value.mode !== undefined ||
-      value.printDualTokens !== undefined,
+      value.printDualTokens !== undefined ||
+      value.showWalkInCustomer !== undefined,
     { message: 'At least one setting field is required' }
   );
 

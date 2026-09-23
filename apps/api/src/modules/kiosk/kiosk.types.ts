@@ -46,6 +46,7 @@ export type TerminalSettingsRecord = {
   kioskCollectsPayment: boolean;
   mode: TerminalMode;
   printDualTokens: boolean;
+  showWalkInCustomer: boolean;
   tenantId: string;
   terminalId: string;
   updatedAt: Date;
@@ -56,12 +57,16 @@ export type SaveTerminalSettingsInput = {
   kioskCollectsPayment: boolean;
   mode: TerminalMode;
   printDualTokens: boolean;
+  showWalkInCustomer: boolean;
   tenantId: string;
   terminalId: string;
 };
 
 export type UpdateTerminalSettingsInput = Partial<
-  Pick<SaveTerminalSettingsInput, 'gatewayTimeoutMinutes' | 'kioskCollectsPayment' | 'mode' | 'printDualTokens'>
+  Pick<
+    SaveTerminalSettingsInput,
+    'gatewayTimeoutMinutes' | 'kioskCollectsPayment' | 'mode' | 'printDualTokens' | 'showWalkInCustomer'
+  >
 >;
 
 export type KioskOrderView = {
@@ -86,5 +91,6 @@ export type TerminalSettingsView = {
   kioskCollectsPayment: boolean;
   mode: TerminalMode;
   printDualTokens: boolean;
+  showWalkInCustomer: boolean;
   terminalId: string;
 };

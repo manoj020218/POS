@@ -111,6 +111,7 @@ export class InMemoryKioskRepository implements KioskRepository {
       kioskCollectsPayment: input.kioskCollectsPayment,
       mode: input.mode,
       printDualTokens: input.printDualTokens,
+      showWalkInCustomer: input.showWalkInCustomer,
       tenantId: input.tenantId,
       terminalId: input.terminalId,
       updatedAt: now
