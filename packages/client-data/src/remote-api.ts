@@ -241,11 +241,15 @@ export type ClientTerminalSettings = {
   kioskCollectsPayment: boolean;
   mode: ClientTerminalMode;
   printDualTokens: boolean;
+  showWalkInCustomer: boolean;
   terminalId: string;
 };
 
 export type ClientUpdateTerminalSettingsInput = Partial<
-  Pick<ClientTerminalSettings, 'gatewayTimeoutMinutes' | 'kioskCollectsPayment' | 'mode' | 'printDualTokens'>
+  Pick<
+    ClientTerminalSettings,
+    'gatewayTimeoutMinutes' | 'kioskCollectsPayment' | 'mode' | 'printDualTokens' | 'showWalkInCustomer'
+  >
 >;
 
 export type ClientPaymentGatewayCode = 'razorpay';
@@ -384,5 +388,6 @@ export interface ClientRemoteApi {
     terminalId: string,
     input: ClientUpdateTerminalSettingsInput
   ): Promise<ClientTerminalSettings>;
+  updateOwnProfile(input: { displayName: string }): Promise<{ displayName: string }>;
   uploadProductImage(file: Blob, filename: string): Promise<{ url: string }>;
 }

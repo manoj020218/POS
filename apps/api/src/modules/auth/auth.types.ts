@@ -69,6 +69,16 @@ export type ChangePasswordInput = {
   userId: string;
 };
 
+export type UpdateOwnProfileInput = {
+  displayName: string;
+  tenantId: string;
+  userId: string;
+};
+
+export type OwnProfileView = {
+  displayName: string;
+};
+
 export type RequestPasswordResetInput = {
   email?: string;
   mobile?: string;

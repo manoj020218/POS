@@ -114,7 +114,31 @@ export const useAuth = () => {
 
   const getAccessToken = useCallback(() => sessionRef.current?.accessToken ?? '', []);
 
-  return { authClient, error, getAccessToken, login, logout, refreshAccessToken, session, status };
+  // The server is the source of truth for the rename itself (via
+  // remoteApi.updateOwnProfile); this just reflects that into the locally
+  // stored session so the top bar updates immediately without a re-login.
+  const updateDisplayName = useCallback(
+    (displayName: string) => {
+      const current = sessionRef.current;
+      if (!current) {
+        return;
+      }
+      applySession({ ...current, user: { ...current.user, displayName } });
+    },
+    [applySession]
+  );
+
+  return {
+    authClient,
+    error,
+    getAccessToken,
+    login,
+    logout,
+    refreshAccessToken,
+    session,
+    status,
+    updateDisplayName
+  };
 };
 
 export type UseAuthReturn = ReturnType<typeof useAuth>;

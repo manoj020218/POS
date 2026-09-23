@@ -30,6 +30,7 @@ export type PosContextValue = {
   logout: () => void;
   refreshSettings: () => Promise<void>;
   remoteApi: ClientRemoteApi;
+  renameCashier: (displayName: string) => Promise<void>;
   settings: ClientBusinessSettings;
   store: ClientDataStore;
   syncService: ReturnType<typeof createClientSyncService>;
@@ -85,6 +86,18 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
 
     const settings = await bundle.refreshBusinessSettings();
     setBundle((previous) => (previous ? { ...previous, settings } : previous));
+  };
+
+  const renameCashier = async (displayName: string) => {
+    if (!bundle) {
+      return;
+    }
+
+    await bundle.remoteApi.updateOwnProfile({ displayName });
+    auth.updateDisplayName(displayName);
+    setBundle((previous) =>
+      previous ? { ...previous, terminalContext: { ...previous.terminalContext, cashierName: displayName } } : previous
+    );
   };
 
   const backToLogin = () => {
@@ -180,6 +193,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
         logout: backToLogin,
         refreshSettings,
         remoteApi: bundle.remoteApi,
+        renameCashier,
         settings: bundle.settings,
         store: bundle.store,
         syncService: bundle.syncService,

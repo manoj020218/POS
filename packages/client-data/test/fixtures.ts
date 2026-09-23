@@ -44,6 +44,7 @@ export const createUnusedRemoteApi = (): ClientRemoteApi => ({
   updateProduct: unused,
   updateTaxProfile: unused,
   updateTerminalSettings: unused,
+  updateOwnProfile: unused,
   uploadProductImage: unused
 });
 

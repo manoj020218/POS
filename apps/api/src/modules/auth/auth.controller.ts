@@ -15,6 +15,7 @@ import {
   sessionIdParamsSchema,
   userBranchAccessQuerySchema,
   updateAuthUserSchema,
+  updateOwnProfileSchema,
   userIdParamsSchema
 } from './auth.schemas.js';
 import type { AuthService } from './auth.routes.js';
@@ -139,6 +140,18 @@ export const updateUserController = (service: AuthService): RequestHandler =>
     });
 
     response.status(200).json({ data: user });
+  });
+
+export const updateOwnProfileController = (service: AuthService): RequestHandler =>
+  asyncHandler(async (request, response: Response) => {
+    const accessContext = getAccessContext(request);
+    const profile = await service.updateOwnProfile({
+      ...parseSchema(updateOwnProfileSchema, request.body),
+      tenantId: accessContext.tenantId,
+      userId: accessContext.userId
+    });
+
+    response.status(200).json({ data: profile });
   });
 
 export const refreshController = (service: AuthService): RequestHandler =>

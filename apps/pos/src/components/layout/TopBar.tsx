@@ -1,4 +1,4 @@
-import { LogOut, Store, User } from 'lucide-react';
+import { Store } from 'lucide-react';
 import { useState } from 'react';
 import type { ClientTerminalSettings } from '@smart-pos/client-data';
 
@@ -8,6 +8,8 @@ import { CalculatorButton } from '../calculator/CalculatorButton.js';
 import { IconButton } from '../common/IconButton.js';
 import { BusinessDetailsModal } from '../settings/BusinessDetailsModal.js';
 import { PrinterStatusButton } from '../settings/PrinterStatusButton.js';
+import { CashierMenuButton } from './CashierMenuButton.js';
+import { EditNameModal } from './EditNameModal.js';
 import { LiveClock } from './LiveClock.js';
 import { MoreMenuButton } from './MoreMenuButton.js';
 import { useTopBarMenuEntries } from './topbar-menu-entries.js';
@@ -19,9 +21,10 @@ type TopBarProps = {
 };
 
 export const TopBar = ({ onProductSaved, onTerminalSettingsSaved, terminalSettings }: TopBarProps) => {
-  const { logout, settings, terminalContext } = usePosContext();
+  const { logout, renameCashier, settings, terminalContext } = usePosContext();
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [editNameOpen, setEditNameOpen] = useState(false);
 
   const entries = useTopBarMenuEntries({ onProductSaved, onTerminalSettingsSaved, terminalSettings });
   const { isPinned, pinnedIds, togglePinned } = usePinnedTopBarEntries(entries.map((entry) => entry.id));
@@ -56,24 +59,30 @@ export const TopBar = ({ onProductSaved, onTerminalSettingsSaved, terminalSettin
           </IconButton>
         ))}
 
+        <div className="hidden lg:block">
+          <LiveClock />
+        </div>
+
+        <CashierMenuButton
+          cashierName={terminalContext.cashierName ?? 'Cashier'}
+          onEditName={() => setEditNameOpen(true)}
+          onSignOut={logout}
+        />
+
         <MoreMenuButton
           entries={entries}
           isPinned={isPinned}
           onOpenEntry={setActiveEntryId}
           togglePinned={togglePinned}
         />
-
-        <div className="flex items-center gap-2 rounded-2xl bg-surface-sunken px-4 py-2">
-          <User size={18} className="text-ink-muted" />
-          <span className="text-sm font-semibold text-ink">{terminalContext.cashierName}</span>
-        </div>
-        <div className="hidden lg:block">
-          <LiveClock />
-        </div>
-        <IconButton label="Sign out" onClick={logout} tone="danger">
-          <LogOut size={20} />
-        </IconButton>
       </div>
+
+      <EditNameModal
+        currentName={terminalContext.cashierName ?? ''}
+        onClose={() => setEditNameOpen(false)}
+        onSave={renameCashier}
+        open={editNameOpen}
+      />
 
       {entries.map((entry) => (
         <span key={entry.id}>{entry.renderModal(activeEntryId === entry.id, () => setActiveEntryId(null))}</span>

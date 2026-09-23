@@ -232,6 +232,11 @@ export const createHttpClientRemoteApi = (options: HttpClientRemoteApiOptions): 
         buildApiUrl(options.baseUrl, `/terminals/${terminalId}/kiosk-settings`),
         { body: JSON.stringify(input), method: 'PATCH' }
       ),
+    updateOwnProfile: (input: { displayName: string }) =>
+      requestWithAuth<{ displayName: string }>(buildApiUrl(options.baseUrl, '/auth/me'), {
+        body: JSON.stringify(input),
+        method: 'PATCH'
+      }),
     uploadProductImage: (file: Blob, filename: string) => {
       const formData = new FormData();
       formData.append('image', file, filename);

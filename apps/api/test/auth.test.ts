@@ -126,4 +126,25 @@ describe('auth routes', () => {
     expect(refreshAfterLogout.status).toBe(401);
     expect(refreshAfterLogout.body.code).toBe('AUTH_SESSION_REVOKED');
   });
+
+  it('lets a signed-in user rename themselves without any special permission', async () => {
+    const login = await request(app).post('/api/v1/auth/login').send({
+      email: 'owner@example.com',
+      password: 'Password123'
+    });
+
+    const rename = await request(app)
+      .patch('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${login.body.data.accessToken}`)
+      .send({ displayName: 'Ramesh' });
+
+    expect(rename.status).toBe(200);
+    expect(rename.body.data).toEqual({ displayName: 'Ramesh' });
+
+    const nextLogin = await request(app).post('/api/v1/auth/login').send({
+      email: 'owner@example.com',
+      password: 'Password123'
+    });
+    expect(nextLogin.body.data.user.displayName).toBe('Ramesh');
+  });
 });

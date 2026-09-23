@@ -10,6 +10,7 @@ import { createPasswordResetHandlers, type PasswordResetTokenSink } from './pass
 import { refreshTokenPayloadSchema } from './auth.schemas.js';
 import { createSessionManagementHandlers } from './session-management.service.js';
 import type { TenantCoreRepository } from '../tenant-core/tenant-core.repository.js';
+import { createUpdateOwnProfileHandler } from './update-own-profile.service.js';
 import { createUserBranchAccessHandlers } from './user-branch-access.service.js';
 import { createUserManagementHandlers } from './user-management.service.js';
 import type { AuthResult, AuthSessionRecord, AuthUserRecord, LoginInput, LogoutInput, RefreshInput } from './auth.types.js';
@@ -25,7 +26,15 @@ export type AuthServiceConfig = {
   refreshTokenTtlSeconds?: number;
 };
 
-const defaultAccessTokenTtlSeconds = 15 * 60;
+// A fixed, physically-secured POS terminal doesn't need short-lived access
+// tokens the way a personal/public device does. Kept long specifically to
+// cut how often /auth/refresh runs: the refresh token rotates (old one is
+// invalidated the instant a new one is issued) on every refresh, so a
+// 15-minute TTL meant ~96 rotations/day -- if the app process was killed
+// in the narrow window between the server rotating and the client
+// persisting the new token to disk, the whole 30-day session was lost.
+// Refreshing once/day instead of 96 times/day cuts that risk ~50x.
+const defaultAccessTokenTtlSeconds = 24 * 60 * 60;
 const defaultRefreshTokenTtlSeconds = 30 * 24 * 60 * 60;
 
 export const createAuthService = (
@@ -41,6 +50,7 @@ export const createAuthService = (
     ...createSessionManagementHandlers(repository, auditLogger),
     ...createUserBranchAccessHandlers(repository, tenantCoreRepository, auditLogger),
     ...createUserManagementHandlers(repository, auditLogger),
+    updateOwnProfile: createUpdateOwnProfileHandler(repository),
     login: async (input: LoginInput): Promise<AuthResult> => {
       const user = await repository.findUserByEmail(input.email);
 

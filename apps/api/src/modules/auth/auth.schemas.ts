@@ -38,6 +38,10 @@ export const changePasswordSchema = z.object({
   newPassword: passwordSchema
 });
 
+export const updateOwnProfileSchema = z.object({
+  displayName: z.string().trim().min(1).max(120)
+});
+
 const resetMobileSchema = z
   .string()
   .trim()

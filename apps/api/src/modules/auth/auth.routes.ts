@@ -15,6 +15,7 @@ import {
   resetPasswordController,
   revokeSessionController,
   refreshController,
+  updateOwnProfileController,
   updateUserController
 } from './auth.controller.js';
 import type { AuthRepository } from './auth.repository.js';
@@ -35,6 +36,7 @@ export const createAuthRouter = (
   router.post('/password/reset/request', authRateLimiter, requestPasswordResetController(service));
   router.post('/password/reset/confirm', authRateLimiter, resetPasswordController(service));
   router.post('/password/change', changePasswordController(service));
+  router.patch('/me', updateOwnProfileController(service));
   router.get('/sessions', listSessionsController(service));
   router.delete('/sessions/:sessionId', revokeSessionController(service));
   router.get('/users', requirePermissions(['user:manage']), listUsersController(service));
