@@ -35,10 +35,31 @@ const createQrDataLengthBytes = (payloadLength: number): [number, number] => {
 // which round-trips correctly on that hardware.
 const encodeBarcodeValue = (command: Extract<EscPosCommand, { type: 'BARCODE' }>) => createTextChunk(command.value);
 
+// ESC 7 n1 n2 n3 -- "print heating" (dots / time / interval). Not part of
+// the official ESC/POS spec, but nearly every generic 58/80mm thermal
+// printer clone (the kind sold for POS use in India) honors it, and
+// printers that don't just ignore the unrecognized command. Raising the
+// heating time (n2) is the standard way to print darker on this class of
+// hardware -- there's no separate "density" API exposed anywhere else.
+// Trade-off: more heating time means each line is slower (the head stays
+// hot longer per dot) and more heating dots draws more current at once,
+// which matters more on battery-powered Bluetooth printers than USB/AC
+// ones. These values are pushed toward the dark end but still within the
+// range this class of printer is commonly run at.
+const PRINT_DENSITY = { heatingDots: 9, heatingInterval: 2, heatingTime: 200 };
+
 const encodeCommand = (command: EscPosCommand): number[] => {
   switch (command.type) {
     case 'INITIALIZE':
-      return [ESC, 0x40];
+      return [
+        ESC,
+        0x40,
+        ESC,
+        0x37,
+        PRINT_DENSITY.heatingDots,
+        PRINT_DENSITY.heatingTime,
+        PRINT_DENSITY.heatingInterval
+      ];
     case 'TEXT':
       return [
         ESC,

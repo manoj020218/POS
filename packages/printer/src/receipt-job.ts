@@ -6,7 +6,7 @@ import {
   type EscPosCommand,
   type EscPosPrintJob
 } from './escpos.js';
-import { createDividerLine, formatColumns, getPrinterColumns, wrapText } from './layout.js';
+import { createDividerLine, getPrinterColumns, wrapText } from './layout.js';
 import type { ReceiptPrinterProfile } from './printer-profile.js';
 
 export type ReceiptLineItem = {
@@ -59,6 +59,16 @@ export type ReceiptPrintJobInput = {
 const formatMoney = (amount: number, currencySymbol: string) => {
   const prefix = amount < 0 ? '-' : '';
   return `${prefix}${currencySymbol} ${Math.abs(amount).toFixed(2)}`;
+};
+
+// Per-item lines skip the currency label -- it was printed once for the
+// unit price AND once for the line total on the same row (e.g.
+// "2 x INR 60.00 ... INR 120.00"), which on a 32/48-column receipt eats
+// most of the line width for two redundant labels. The currency only
+// needs to appear once, at Subtotal/Tax/Total/Payments.
+const formatAmount = (amount: number) => {
+  const prefix = amount < 0 ? '-' : '';
+  return `${prefix}${Math.abs(amount).toFixed(2)}`;
 };
 
 const formatQuantity = (quantity: number) =>
@@ -124,12 +134,11 @@ export const createReceiptPrintJob = (input: ReceiptPrintJobInput): EscPosPrintJ
   for (const item of input.items) {
     appendLines(commands, wrapText(item.name, width), 'LEFT', true);
 
-    const itemAmount = formatMoney(item.totalAmount, currencySymbol);
-    const itemDetail = item.unitPriceAmount === undefined
-      ? `Qty: ${formatQuantity(item.quantity)}`
-      : `${formatQuantity(item.quantity)} x ${formatMoney(item.unitPriceAmount, currencySymbol)}`;
+    const itemLine = item.unitPriceAmount === undefined
+      ? `Qty: ${formatQuantity(item.quantity)} = ${formatAmount(item.totalAmount)}`
+      : `${formatQuantity(item.quantity)} x ${formatAmount(item.unitPriceAmount)} = ${formatAmount(item.totalAmount)}`;
 
-    appendLines(commands, formatColumns(itemDetail, itemAmount, width));
+    appendLines(commands, wrapText(itemLine, width));
 
     if (item.note) {
       appendLines(commands, wrapText(`Note: ${item.note}`, width));
@@ -139,33 +148,27 @@ export const createReceiptPrintJob = (input: ReceiptPrintJobInput): EscPosPrintJ
   appendLines(commands, [createDividerLine(input.profile)]);
 
   if (input.subtotalAmount !== undefined) {
-    appendLines(
-      commands,
-      formatColumns('Subtotal', formatMoney(input.subtotalAmount, currencySymbol), width)
-    );
+    appendLines(commands, wrapText(`Subtotal = ${formatMoney(input.subtotalAmount, currencySymbol)}`, width));
   }
 
   if ((input.discountAmount ?? 0) > 0) {
-    appendLines(
-      commands,
-      formatColumns('Discount', formatMoney(-input.discountAmount!, currencySymbol), width)
-    );
+    appendLines(commands, wrapText(`Discount = ${formatMoney(-input.discountAmount!, currencySymbol)}`, width));
   }
 
   if ((input.taxAmount ?? 0) > 0) {
     if (input.showGstSplit) {
       const cgstAmount = Math.round((input.taxAmount! / 2) * 100) / 100;
       const sgstAmount = Math.round((input.taxAmount! - cgstAmount) * 100) / 100;
-      appendLines(commands, formatColumns('CGST', formatMoney(cgstAmount, currencySymbol), width));
-      appendLines(commands, formatColumns('SGST', formatMoney(sgstAmount, currencySymbol), width));
+      appendLines(commands, wrapText(`CGST = ${formatMoney(cgstAmount, currencySymbol)}`, width));
+      appendLines(commands, wrapText(`SGST = ${formatMoney(sgstAmount, currencySymbol)}`, width));
     } else {
-      appendLines(commands, formatColumns('Tax', formatMoney(input.taxAmount!, currencySymbol), width));
+      appendLines(commands, wrapText(`Tax = ${formatMoney(input.taxAmount!, currencySymbol)}`, width));
     }
   }
 
   appendLines(
     commands,
-    formatColumns('Total', formatMoney(input.totalAmount, currencySymbol), width),
+    wrapText(`Total = ${formatMoney(input.totalAmount, currencySymbol)}`, width),
     'LEFT',
     true
   );
@@ -174,10 +177,7 @@ export const createReceiptPrintJob = (input: ReceiptPrintJobInput): EscPosPrintJ
     appendLines(commands, [createDividerLine(input.profile)]);
 
     for (const payment of input.payments) {
-      appendLines(
-        commands,
-        formatColumns(payment.label, formatMoney(payment.amount, currencySymbol), width)
-      );
+      appendLines(commands, wrapText(`${payment.label} = ${formatMoney(payment.amount, currencySymbol)}`, width));
     }
   }
 

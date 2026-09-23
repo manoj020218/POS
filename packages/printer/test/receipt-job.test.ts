@@ -39,11 +39,13 @@ describe('createReceiptPrintJob', () => {
       type: 'TEXT',
       value: 'SALES RECEIPT'
     });
+    // Item lines are "qty x rate = total" in plain numbers -- the currency
+    // label appears once, at Subtotal/Tax/Total/Payments, not per item.
     expect(job.commands).toContainEqual({
       alignment: 'LEFT',
       bold: false,
       type: 'TEXT',
-      value: '2 x INR 120.00        INR 240.00'
+      value: '2 x 120.00 = 240.00'
     });
     expect(job.commands).toContainEqual({
       alignment: 'LEFT',
@@ -55,7 +57,7 @@ describe('createReceiptPrintJob', () => {
       alignment: 'LEFT',
       bold: true,
       type: 'TEXT',
-      value: 'Total                 INR 285.00'
+      value: 'Total = INR 285.00'
     });
     expect(job.commands[job.commands.length - 1]).toEqual({ mode: 'FULL', type: 'CUT' });
   });
@@ -75,9 +77,9 @@ describe('createReceiptPrintJob', () => {
 
     const textValues = job.commands.filter((command) => command.type === 'TEXT').map((command) => command.value);
 
-    expect(textValues).not.toContain('Tax                          INR 36.00');
-    expect(textValues.some((value) => value.startsWith('CGST') && value.endsWith('INR 18.00'))).toBe(true);
-    expect(textValues.some((value) => value.startsWith('SGST') && value.endsWith('INR 18.00'))).toBe(true);
+    expect(textValues).not.toContain('Tax = INR 36.00');
+    expect(textValues).toContain('CGST = INR 18.00');
+    expect(textValues).toContain('SGST = INR 18.00');
   });
 
   it('prints a single Tax line when showGstSplit is not set', () => {
@@ -94,7 +96,7 @@ describe('createReceiptPrintJob', () => {
 
     const textValues = job.commands.filter((command) => command.type === 'TEXT').map((command) => command.value);
 
-    expect(textValues.some((value) => value.startsWith('Tax') && value.endsWith('INR 36.00'))).toBe(true);
+    expect(textValues).toContain('Tax = INR 36.00');
     expect(textValues.some((value) => value.startsWith('CGST'))).toBe(false);
   });
 

@@ -31,6 +31,15 @@ describe('encodeEscPosJob', () => {
     expect(bytes.slice(-3)).toEqual([0x1d, 0x56, 0x01]);
   });
 
+  it('sends a darker print-heating command right after reset on INITIALIZE', () => {
+    const bytes = Array.from(encodeEscPosJob(createEscPosJob([{ type: 'INITIALIZE' }])));
+
+    // ESC @ (reset) followed by ESC 7 n1 n2 n3 (print heating/density) --
+    // widely honored by generic thermal printer clones, harmlessly ignored
+    // by printers that don't support it.
+    expect(bytes).toEqual([0x1b, 0x40, 0x1b, 0x37, 9, 200, 2]);
+  });
+
   it('encodes drawer, barcode, and QR commands with ESC/POS control sequences', () => {
     const bytes = Array.from(
       encodeEscPosJob(
