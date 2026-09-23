@@ -1,4 +1,4 @@
-import { BarChart3, CreditCard, HelpCircle, LayoutGrid, PackagePlus, Percent, Receipt, Sheet, Sparkles, Ticket } from 'lucide-react';
+import { BarChart3, CreditCard, HelpCircle, LayoutGrid, PackagePlus, Percent, Receipt, Share2, Sheet, Sparkles, Ticket } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { ClientTerminalSettings } from '@smart-pos/client-data';
 
@@ -12,6 +12,7 @@ import { ProductImportExportModal } from '../settings/ProductImportExportModal.j
 import { ReceiptMessageSettingsModal } from '../settings/ReceiptMessageSettingsModal.js';
 import { SalesReportModal } from '../settings/SalesReportModal.js';
 import { TerminalModeSettingsModal } from '../settings/TerminalModeSettingsModal.js';
+import { ShareAppTrigger } from './ShareAppTrigger.js';
 
 export type TopBarMenuEntry = {
   icon: ReactNode;
@@ -113,5 +114,11 @@ export const useTopBarMenuEntries = ({
     id: 'ai-assistant',
     label: 'AI Assistant (coming soon)',
     renderModal: (open, onClose) => <AiAssistantModal onClose={onClose} open={open} />
+  },
+  {
+    icon: <Share2 size={20} />,
+    id: 'share-app',
+    label: 'Share with a friend',
+    renderModal: (open, onClose) => <ShareAppTrigger onClose={onClose} open={open} />
   }
 ];
