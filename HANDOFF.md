@@ -1,5 +1,52 @@
 # HANDOFF
 
+## ⚠ READ THIS FIRST — versionCode 13 built and pushed; not yet uploaded to Play Console, waiting on tester/client feedback (2026-09-23)
+
+Same branch, `codex/settings-printer-foundation`. This session's release cycle covered three
+client-requested polish items (all live-tested/verified, not just built) plus a large earlier round
+of responsive-layout and cashier-management work already committed before this entry (see
+`67bbf24`/`0dbca06`/`06f2562` — dashboard responsiveness via CSS container queries, Dhaba held
+bills, walk-in-customer toggle, cashier self-rename, printer receipt formatting/darkness, 24h
+access-token TTL). This entry only covers the final three fixes and the release cut:
+
+1. **Splash screen redesign** (`414028c`) — was just the icon; now icon, then "Smart POS & KIOSK",
+   then "by Jenix" below it, in the app's brand colors (`#333BA3` text, `#EEF1FF` background). Source
+   images at `apps/pos/resources/splash.png`/`splash-dark.png` regenerated via a one-off `sharp`
+   script (not a project dependency, ran from the scratchpad), then all 26 Android
+   density/orientation drawable variants regenerated from those sources at each file's exact
+   pre-existing dimensions. Verified live on-device (`adb shell am start` + immediate `screencap`
+   caught the splash mid-render).
+2. **"Share with a friend" menu entry** (`bc13bdd`) — new last item in the 3-dot TopBar menu
+   (`apps/pos/src/components/layout/topbar-menu-entries.tsx`, `id: 'share-app'`). Not a real modal —
+   `ShareAppTrigger.tsx` fires `@capacitor/share`'s native share sheet the instant it's selected
+   (pointing at the Play Store listing URL), then immediately calls `onClose()` so the menu's active
+   state resets. Lets the client's customers/testers spread the app to their own circle.
+3. **Play Store screenshots** (`1d52a12`) — the 4 images in `apps/pos/store-listing/images/` were
+   still 1600×1000 mockup placeholders from before any real device existed. Replaced with real
+   1280×800 landscape captures taken directly off the tablet (terminal picker, clean dashboard,
+   populated cart with 3 items totaling ₹650, Cash payment modal), flattened from RGBA to RGB (Play
+   rejects an alpha channel). **User said they may also supply their own real screenshots** — these
+   files are the ones to overwrite if/when that happens, don't assume the current ones are final.
+
+**Release cut**: `versionCode` bumped 12→13 (`245cf3d`), `apps/pos` web build against production
+(`VITE_API_BASE_URL=https://smartpos.iotsoft.in/api/v1`), `cap sync android`, `./gradlew
+bundleRelease` — signed with the same `smart-pos-release.jks`/`smartpos` alias as every prior
+release (confirmed via `unzip -l app-release.aab | grep META-INF/SMARTPOS` showing fresh
+`.SF`/`.RSA` entries). AAB at
+`apps/pos/android/app/build/outputs/bundle/release/app-release.aab`. All four commits pushed to
+`origin/codex/settings-printer-foundation`.
+
+**Not yet done — this is the actual next step**: the AAB has **not** been uploaded to Play Console
+yet this session (user said "release this to Play Store, its final" meaning "cut the release build,"
+not confirmation that the upload itself happened). Before doing anything else, check Play Console →
+Publishing overview to see whether this build (or a later manual upload by the user) is already in
+review/live. **When the tester/client reports feedback on this build, that's the trigger to resume
+work from this entry** — read whatever they report, figure out root cause the same way every prior
+entry in this file did, fix, rebuild (`versionCode` → 14), and add a new entry above this one rather
+than editing this one in place.
+
+---
+
 ## ⚠ READ THIS FIRST — versionCode 7 in closed testing review; waiting on tester feedback before next work (2026-09-18)
 
 Two fixes shipped this session, both on `codex/settings-printer-foundation` (not yet merged to
